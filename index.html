@@ -105,7 +105,7 @@ input[type=range]{-webkit-appearance:none;height:4px;border-radius:2px;backgroun
             <button class="btn" onclick="logout()">Ausloggen</button>
           </div>
         </div>
-        <div id="noTradeBanner" class="no-trade" style="display:none"><div class="dot"></div><span id="noTradeText"></span></div>
+        <div id="noTradeBanner" class="no-trade" style="display:none"><div class="dot"></div><span id="noTradeText"></span></div><div class="section-title" style="margin-bottom:14px">Test-Version mit stark verkleinertem Universe: 5 Scanner-Assets, 5 Trend-Assets, 5 Index-Proxies.</div>
         <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
 
         <div class="panel active" id="tab-gp">
@@ -190,26 +190,27 @@ const PASS = "HBMS2026";
 const BASE = "/api/finnhub";
 
 const UNIVERSE = [
-  {t:"AAPL",n:"Apple",g:"SP500"},{t:"MSFT",n:"Microsoft",g:"SP500"},{t:"NVDA",n:"Nvidia",g:"SP500"},{t:"AMZN",n:"Amazon",g:"SP500"},{t:"META",n:"Meta",g:"SP500"},{t:"GOOGL",n:"Alphabet",g:"SP500"},{t:"TSLA",n:"Tesla",g:"SP500"},{t:"JPM",n:"JPMorgan",g:"SP500"},{t:"GS",n:"Goldman Sachs",g:"SP500"},{t:"WFC",n:"Wells Fargo",g:"SP500"},{t:"ADBE",n:"Adobe",g:"SP500"},{t:"AMD",n:"AMD",g:"SP500"},{t:"INTC",n:"Intel",g:"SP500"},{t:"XOM",n:"Exxon Mobil",g:"SP500"},{t:"PFE",n:"Pfizer",g:"SP500"},{t:"NFLX",n:"Netflix",g:"SP500"},{t:"COIN",n:"Coinbase",g:"SP500"},{t:"SNOW",n:"Snowflake",g:"SP500"},{t:"TTD",n:"Trade Desk",g:"SP500"},{t:"DIS",n:"Disney",g:"SP500"},{t:"BAC",n:"Bank of America",g:"SP500"},{t:"UBER",n:"Uber",g:"SP500"},{t:"CRM",n:"Salesforce",g:"SP500"},{t:"INTU",n:"Intuit",g:"SP500"},{t:"KO",n:"Coca-Cola",g:"SP500"},
-  {t:"SAP",n:"SAP SE",g:"DAX"},{t:"SIEGY",n:"Siemens",g:"DAX"},{t:"BMWYY",n:"BMW",g:"DAX"},{t:"BAYRY",n:"Bayer",g:"DAX"},{t:"BASFY",n:"BASF",g:"DAX"},{t:"ALIZY",n:"Allianz",g:"DAX"},{t:"DTEGY",n:"Deutsche Telekom",g:"DAX"},{t:"VLKAF",n:"Volkswagen",g:"DAX"},
-  {t:"TCEHY",n:"Tencent",g:"HSI"},{t:"BABA",n:"Alibaba",g:"HSI"},{t:"JD",n:"JD.com",g:"HSI"},{t:"BIDU",n:"Baidu",g:"HSI"},{t:"PDD",n:"PDD Holdings",g:"HSI"},{t:"XPEV",n:"XPeng",g:"HSI"},{t:"NIO",n:"NIO",g:"HSI"}
+  {t:"AAPL",n:"Apple",g:"SP500"},
+  {t:"MSFT",n:"Microsoft",g:"SP500"},
+  {t:"NVDA",n:"Nvidia",g:"SP500"},
+  {t:"SAP",n:"SAP SE",g:"DAX"},
+  {t:"BABA",n:"Alibaba",g:"HSI"}
 ];
 
 const TREND_UNIVERSE = [
-  {t:"AAPL",n:"Apple",k:"Equity"},{t:"MSFT",n:"Microsoft",k:"Equity"},{t:"NVDA",n:"Nvidia",k:"Equity"},{t:"AMZN",n:"Amazon",k:"Equity"},{t:"META",n:"Meta",k:"Equity"},{t:"TSLA",n:"Tesla",k:"Equity"},{t:"JPM",n:"JPMorgan",k:"Equity"},{t:"NFLX",n:"Netflix",k:"Equity"},{t:"SAP",n:"SAP SE",k:"Equity"},
-  {t:"SPY",n:"S&P 500 ETF",k:"ETF"},{t:"QQQ",n:"Nasdaq 100 ETF",k:"ETF"},{t:"DIA",n:"Dow Jones ETF",k:"ETF"},{t:"IWM",n:"Russell 2000 ETF",k:"ETF"},{t:"EWG",n:"Germany ETF",k:"ETF"},{t:"EWJ",n:"Japan ETF",k:"ETF"},{t:"FXI",n:"China Large Cap ETF",k:"ETF"},{t:"GLD",n:"Gold ETF",k:"ETF"},{t:"SLV",n:"Silver ETF",k:"ETF"},{t:"USO",n:"Oil ETF",k:"ETF"},{t:"TLT",n:"20Y Treasury ETF",k:"ETF"},
-  {t:"BINANCE:BTCUSDT",n:"Bitcoin",k:"Crypto"},{t:"BINANCE:ETHUSDT",n:"Ethereum",k:"Crypto"},{t:"BINANCE:SOLUSDT",n:"Solana",k:"Crypto"},{t:"BINANCE:XRPUSDT",n:"XRP",k:"Crypto"},
-  {t:"OANDA:EUR_USD",n:"EUR/USD",k:"FX"},{t:"OANDA:USD_JPY",n:"USD/JPY",k:"FX"},{t:"OANDA:GBP_USD",n:"GBP/USD",k:"FX"},{t:"OANDA:AUD_USD",n:"AUD/USD",k:"FX"},
-  {t:"OANDA:XAU_USD",n:"Gold Spot",k:"Commodity"},{t:"OANDA:XAG_USD",n:"Silver Spot",k:"Commodity"},
-  {t:"^GSPC",n:"S&P 500",k:"Index"},{t:"^DJI",n:"Dow Jones",k:"Index"},{t:"^IXIC",n:"Nasdaq Composite",k:"Index"},{t:"^GDAXI",n:"DAX",k:"Index"},{t:"^FTSE",n:"FTSE 100",k:"Index"},{t:"^N225",n:"Nikkei 225",k:"Index"},{t:"^HSI",n:"Hang Seng",k:"Index"}
+  {t:"AAPL",n:"Apple",k:"Equity"},
+  {t:"MSFT",n:"Microsoft",k:"Equity"},
+  {t:"SPY",n:"S&P 500 ETF",k:"ETF"},
+  {t:"GLD",n:"Gold ETF",k:"ETF"},
+  {t:"BINANCE:BTCUSDT",n:"Bitcoin",k:"Crypto"}
 ];
 
 const INDEX_LIVE = [
-  {r:"Amerika",n:"S&P 500",t:"^GSPC"},{r:"Amerika",n:"Nasdaq Composite",t:"^IXIC"},{r:"Amerika",n:"Dow Jones",t:"^DJI"},{r:"Amerika",n:"Russell 2000",t:"IWM",proxy:true},{r:"Amerika",n:"VIX",t:"^VIX"},{r:"Amerika",n:"Brasil Bovespa",t:"EWZ",proxy:true},{r:"Amerika",n:"TSX Canada",t:"EWC",proxy:true},
-  {r:"Europa",n:"DAX 40",t:"^GDAXI"},{r:"Europa",n:"FTSE 100",t:"^FTSE"},{r:"Europa",n:"CAC 40",t:"^FCHI"},{r:"Europa",n:"Euro Stoxx 50",t:"FEZ",proxy:true},{r:"Europa",n:"SMI Schweiz",t:"EWL",proxy:true},{r:"Europa",n:"AEX Holland",t:"EWN",proxy:true},{r:"Europa",n:"IBEX 35",t:"EWP",proxy:true},{r:"Europa",n:"FTSE MIB Italy",t:"EWI",proxy:true},{r:"Europa",n:"OMX Stockholm",t:"EWD",proxy:true},
-  {r:"Asien",n:"Hang Seng",t:"^HSI"},{r:"Asien",n:"Nikkei 225",t:"^N225"},{r:"Asien",n:"CSI 300",t:"ASHR",proxy:true},{r:"Asien",n:"Shanghai Comp.",t:"000001.SS"},{r:"Asien",n:"Kospi Korea",t:"EWY",proxy:true},{r:"Asien",n:"ASX 200",t:"EWA",proxy:true},{r:"Asien",n:"Sensex India",t:"INDA",proxy:true},{r:"Asien",n:"TWSE Taiwan",t:"EWT",proxy:true},{r:"Asien",n:"STI Singapur",t:"EWS",proxy:true},
-  {r:"Nahost",n:"Tadawul Saudi",t:"KSA",proxy:true},{r:"Nahost",n:"ADX Abu Dhabi",t:"UAE",proxy:true},{r:"Nahost",n:"DFM Dubai",t:"UAE",proxy:true},
-  {r:"Afrika",n:"JSE Suedafrika",t:"EZA",proxy:true},{r:"Afrika",n:"EGX 30 Aegypten",t:"EGPT",proxy:true}
+  {r:"Amerika",n:"S&P 500 ETF",t:"SPY",proxy:true},
+  {r:"Amerika",n:"Nasdaq 100 ETF",t:"QQQ",proxy:true},
+  {r:"Europa",n:"Germany ETF",t:"EWG",proxy:true},
+  {r:"Asien",n:"China Large Cap ETF",t:"FXI",proxy:true},
+  {r:"Rohstoffe",n:"Gold ETF",t:"GLD",proxy:true}
 ];
 
 const EARN = [
