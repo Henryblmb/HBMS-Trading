@@ -178,7 +178,7 @@ input[type=range]{-webkit-appearance:none;height:4px;border-radius:2px;backgroun
             <div class="stat"><div class="stat-val" id="earnHigh">0</div><div class="stat-lbl">High Impact</div></div>
             <div class="stat"><div class="stat-val" id="earnNext">—</div><div class="stat-lbl">Naechste</div></div>
           </div>
-          <div class="section-title">Kein Trading 2 Tage vor/nach High Impact Earnings!</div>
+          <div class="section-title">Earnings-Kalender ist manuell gepflegt und nur als Hinweis gedacht – vor Trades bitte gegenpruefen.</div>
           <div class="earn-list" id="earnList"></div>
         </div>
       </div>
@@ -187,8 +187,7 @@ input[type=range]{-webkit-appearance:none;height:4px;border-radius:2px;backgroun
 </div>
 <script>
 const PASS = "HBMS2026";
-const API  = "d73bjq1r01qjjol2ei3gd73bjq1r01qjjol2ei40";
-const BASE = "https://finnhub.io/api/v1";
+const BASE = "/api/finnhub";
 
 const UNIVERSE = [
   {t:"AAPL",n:"Apple",g:"SP500"},{t:"MSFT",n:"Microsoft",g:"SP500"},{t:"NVDA",n:"Nvidia",g:"SP500"},{t:"AMZN",n:"Amazon",g:"SP500"},{t:"META",n:"Meta",g:"SP500"},{t:"GOOGL",n:"Alphabet",g:"SP500"},{t:"TSLA",n:"Tesla",g:"SP500"},{t:"JPM",n:"JPMorgan",g:"SP500"},{t:"GS",n:"Goldman Sachs",g:"SP500"},{t:"WFC",n:"Wells Fargo",g:"SP500"},{t:"ADBE",n:"Adobe",g:"SP500"},{t:"AMD",n:"AMD",g:"SP500"},{t:"INTC",n:"Intel",g:"SP500"},{t:"XOM",n:"Exxon Mobil",g:"SP500"},{t:"PFE",n:"Pfizer",g:"SP500"},{t:"NFLX",n:"Netflix",g:"SP500"},{t:"COIN",n:"Coinbase",g:"SP500"},{t:"SNOW",n:"Snowflake",g:"SP500"},{t:"TTD",n:"Trade Desk",g:"SP500"},{t:"DIS",n:"Disney",g:"SP500"},{t:"BAC",n:"Bank of America",g:"SP500"},{t:"UBER",n:"Uber",g:"SP500"},{t:"CRM",n:"Salesforce",g:"SP500"},{t:"INTU",n:"Intuit",g:"SP500"},{t:"KO",n:"Coca-Cola",g:"SP500"},
@@ -248,6 +247,7 @@ function checkPass(){
     checkNoTrade();
     renderEarn();
     renderIdxPlaceholder();
+    loadCurrentTab();
   } else {
     const e=document.getElementById('lockErr'); e.style.display='block'; document.getElementById('pwInput').value=''; setTimeout(()=>e.style.display='none',3000);
   }
@@ -263,10 +263,16 @@ function showTab(id){
 }
 
 async function apiGet(path){
-  const glue = path.includes('?') ? '&' : '?';
-  const url = `${BASE}${path}${glue}token=${API}`;
+  const url = `${BASE}?path=${encodeURIComponent(path)}`;
   const r = await fetch(url);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  if(!r.ok){
+    let msg = `HTTP ${r.status}`;
+    try {
+      const data = await r.json();
+      if(data && data.error) msg = data.error;
+    } catch(_) {}
+    throw new Error(msg);
+  }
   return r.json();
 }
 
@@ -292,7 +298,7 @@ async function loadCurrentTab(){
     else if(currentTab==='idx') await loadIndices();
     else renderEarn();
     setBadge('LIVE API');
-  } catch(e){ console.error(e); setBadge('API Fehler','error'); }
+  } catch(e){ console.error(e); setBadge('API Fehler','error'); const msg=(e&&e.message)?e.message:'Unbekannter Fehler'; ['gpGrid','osGrid','trendGrid','idxContainer'].forEach(id=>{ const el=document.getElementById(id); if(el && (!el.innerHTML || el.innerHTML.includes('loading-card') || el.innerHTML.includes('Noch keine') || el.innerHTML.includes('Klick "Daten laden"'))){ el.innerHTML=`<div class="empty">API-Fehler: ${msg}<br><span style="font-size:12px;color:#666">Wenn die Seite auf Vercel liegt, setze FINNHUB_API_KEY als Environment Variable und nutze die mitgelieferte /api/finnhub Route.</span></div>`; } }); }
   btn.disabled=false; btn.textContent='Daten laden'; isLoading=false; setProgress(0);
   document.getElementById('lastUpd').textContent='Aktualisiert: '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 }
