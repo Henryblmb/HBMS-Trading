@@ -228,6 +228,7 @@ const EARN = [
 ];
 
 let gpData = [];
+let gpNearData = [];
 let osData = [];
 let trendData = [];
 let idxData = [];
@@ -253,13 +254,20 @@ function checkPass(){
   }
 }
 document.addEventListener('DOMContentLoaded',()=>{document.getElementById('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')checkPass()}); updateSliders();});
-function logout(){document.getElementById('dashboard').style.display='none';document.getElementById('lockScreen').style.display='flex';document.getElementById('pwInput').value='';gpData=[];osData=[];trendData=[];idxData=[];}
+function logout(){document.getElementById('dashboard').style.display='none';document.getElementById('lockScreen').style.display='flex';document.getElementById('pwInput').value='';gpData=[];gpNearData=[];osData=[];trendData=[];idxData=[];}
 
-function showTab(id){
+async function showTab(id){
   currentTab=id;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
+  if(id==='earn'){ renderEarn(); return; }
+  if(['gp','os','trend'].includes(id) && (!gpData.length && !osData.length && !trendData.length)){ await loadCurrentTab(); return; }
+  if(id==='idx' && !idxData.length){ await loadCurrentTab(); return; }
+  if(id==='gp') filterGP();
+  if(id==='os') filterOS();
+  if(id==='trend') filterTrend();
+  if(id==='idx') renderIdx();
 }
 
 async function apiGet(path){
@@ -288,7 +296,7 @@ function computeTrendScore(closes){
   return {score:0,dir:null,ema:null};
 }
 function ytdBounds(candles,times){const year=(new Date()).getFullYear(); const vals=[]; for(let i=0;i<(times||[]).length;i++){const d=new Date(times[i]*1000); if(d.getFullYear()===year) vals.push(candles[i]);} if(!vals.length) return null; return {hi:Math.max(...vals), lo:Math.min(...vals)};}
-function classifyFibDirection(price, hi, lo){const retraceFromHigh=(hi-price)/(hi-lo)*100; const retraceFromLow=(price-lo)/(hi-lo)*100; if(retraceFromHigh>=61.8&&retraceFromHigh<=65) return {dir:'bullish', pos:retraceFromHigh}; if(retraceFromLow>=61.8&&retraceFromLow<=65) return {dir:'bearish', pos:retraceFromLow}; return null;}
+function classifyFibDirection(price, hi, lo){if(!Number.isFinite(price)||!Number.isFinite(hi)||!Number.isFinite(lo)||hi<=lo)return null;const retraceFromHigh=(hi-price)/(hi-lo)*100; const retraceFromLow=(price-lo)/(hi-lo)*100;const exactBull=retraceFromHigh>=61.8&&retraceFromHigh<=65; const exactBear=retraceFromLow>=61.8&&retraceFromLow<=65;if(exactBull) return {dir:'bullish', pos:retraceFromHigh, exact:true, pocketDist:0};if(exactBear) return {dir:'bearish', pos:retraceFromLow, exact:true, pocketDist:0};const bullDist=Math.min(Math.abs(retraceFromHigh-61.8),Math.abs(retraceFromHigh-65));const bearDist=Math.min(Math.abs(retraceFromLow-61.8),Math.abs(retraceFromLow-65));if(Math.min(bullDist,bearDist)<=6){if(bullDist<=bearDist) return {dir:'bullish', pos:retraceFromHigh, exact:false, pocketDist:bullDist};return {dir:'bearish', pos:retraceFromLow, exact:false, pocketDist:bearDist};}return null;}
 
 async function loadCurrentTab(){
   if(isLoading) return; isLoading=true;
@@ -304,7 +312,7 @@ async function loadCurrentTab(){
 }
 
 async function loadMarketScanners(){
-  gpData=[]; osData=[]; trendData=[];
+  gpData=[]; gpNearData=[]; osData=[]; trendData=[];
   showLoadingSkeletons('gpGrid',6); showLoadingSkeletons('osGrid',6); showLoadingSkeletons('trendGrid',6);
   const mergedTrend = new Map();
   const allTrendItems = [...TREND_UNIVERSE];
@@ -338,7 +346,11 @@ async function loadSingleStock(s){
     const fib52 = classifyFibDirection(price, hi52, lo52);
     const fibYTD = ytd ? classifyFibDirection(price, ytd.hi, ytd.lo) : null;
     const chosen = fib52 ? {sig:'52w',hi:hi52,lo:lo52,...fib52} : (fibYTD ? {sig:'ytd',hi:ytd.hi,lo:ytd.lo,...fibYTD} : null);
-    if(chosen){ gpData.push({ticker:s.t,name:s.n,group:s.g,price,chg:chg||0,hi:chosen.hi,lo:chosen.lo,pos:chosen.pos,sig:chosen.sig,dir:chosen.dir}); }
+    if(chosen){
+      const row={ticker:s.t,name:s.n,group:s.g,price,chg:chg||0,hi:chosen.hi,lo:chosen.lo,pos:chosen.pos,sig:chosen.sig,dir:chosen.dir,exact:!!chosen.exact,pocketDist:chosen.pocketDist||0};
+      if(row.exact) gpData.push(row);
+      gpNearData.push(row);
+    }
 
     const rsiW = wCloses ? calcRSI(wCloses) : null;
     const rsiD = dCloses ? calcRSI(dCloses.slice(-120)) : null;
@@ -370,11 +382,13 @@ function showLoadingSkeletons(id,count){document.getElementById(id).innerHTML=Ar
 function filterGP(){
   const sig=document.getElementById('gpSig').value, idx=document.getElementById('gpIndex').value, dir=document.getElementById('gpDir').value;
   const filtered=gpData.filter(d=>(sig==='all'||d.sig===sig)&&(idx==='all'||d.group===idx)&&(dir==='all'||d.dir===dir)).sort((a,b)=>Math.abs(63.4-a.pos)-Math.abs(63.4-b.pos));
-  document.getElementById('gpCount').textContent=filtered.length; document.getElementById('gpBull').textContent=filtered.filter(d=>d.dir==='bullish').length; document.getElementById('gpBear').textContent=filtered.filter(d=>d.dir==='bearish').length;
+  const nearby=gpNearData.filter(d=>(sig==='all'||d.sig===sig)&&(idx==='all'||d.group===idx)&&(dir==='all'||d.dir===dir)).sort((a,b)=>(a.pocketDist-b.pocketDist)||Math.abs(63.4-a.pos)-Math.abs(63.4-b.pos)).slice(0,12);
+  document.getElementById('gpCount').textContent=filtered.length; document.getElementById('gpBull').textContent=gpData.filter(d=>d.dir==='bullish').length; document.getElementById('gpBear').textContent=gpData.filter(d=>d.dir==='bearish').length;
   const grid=document.getElementById('gpGrid');
-  if(!gpData.length){grid.innerHTML='<div class="empty">Noch keine Golden-Pocket-Daten geladen</div>';return;}
-  if(!filtered.length){grid.innerHTML='<div class="empty">Kein Asset aktuell im Golden Pocket mit diesen Filtern</div>';return;}
-  grid.innerHTML=filtered.map(d=>{const pricePos=((d.price-d.lo)/(d.hi-d.lo))*100; const cc=d.chg>=0?'pos':'neg'; const cs=d.chg>=0?'+':''; const sigCls=d.sig==='52w'?'sig-52w':'sig-ytd'; const sigTxt=d.sig==='52w'?'52W Move':'YTD Move'; return `<div class="scard"><div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div><div style="font-size:11px;color:#666;margin-bottom:6px">${d.name}</div><div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${cc}">${cs}${safePct(d.chg)}%</span></div><div class="fib-bar-wrap"><div class="fib-label-row"><span>Low $${fmtP(d.lo)}</span><span style="color:#EF9F27;font-weight:600">Fib ${d.pos.toFixed(1)}%</span><span>High $${fmtP(d.hi)}</span></div><div class="fib-bar"><div class="fib-fill" style="width:${Math.max(0,Math.min(100,pricePos)).toFixed(1)}%"></div><div class="fib-pocket" style="left:61.8%;width:3.2%"></div><div class="fib-marker" style="left:${Math.max(0,Math.min(100,pricePos)).toFixed(1)}%"></div></div></div><div class="gp-label">${d.dir==='bullish'?'Bullischer Retracement-Bereich':'Baerischer Retracement-Bereich'} · Golden Pocket 61.8–65%</div><span class="sig-badge ${sigCls}">${sigTxt}</span></div>`;}).join('');
+  if(!gpNearData.length){grid.innerHTML='<div class="empty">Noch keine Golden-Pocket-Daten geladen</div>';return;}
+  const useRows = filtered.length ? filtered : nearby;
+  if(!useRows.length){grid.innerHTML='<div class="empty">Keine verwertbaren Golden-Pocket-Daten gefunden</div>';return;}
+  grid.innerHTML=(filtered.length?'':'<div class="no-trade" style="margin-bottom:12px"><span class="dot"></span>Aktuell nichts exakt im Golden Pocket. Es werden die nächsten Kandidaten angezeigt.</div>') + useRows.map(d=>{const pricePos=((d.price-d.lo)/(d.hi-d.lo))*100; const cc=d.chg>=0?'pos':'neg'; const cs=d.chg>=0?'+':''; const sigCls=d.sig==='52w'?'sig-52w':'sig-ytd'; const sigTxt=d.sig==='52w'?'52W Move':'YTD Move'; return `<div class="scard"><div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div><div style="font-size:11px;color:#666;margin-bottom:6px">${d.name}</div><div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${cc}">${cs}${safePct(d.chg)}%</span></div><div class="fib-bar-wrap"><div class="fib-label-row"><span>Low $${fmtP(d.lo)}</span><span style="color:#EF9F27;font-weight:600">Fib ${d.pos.toFixed(1)}%</span><span>High $${fmtP(d.hi)}</span></div><div class="fib-bar"><div class="fib-fill" style="width:${Math.max(0,Math.min(100,pricePos)).toFixed(1)}%"></div><div class="fib-pocket" style="left:61.8%;width:3.2%"></div><div class="fib-marker" style="left:${Math.max(0,Math.min(100,pricePos)).toFixed(1)}%"></div></div></div><div class="gp-label">${d.dir==='bullish'?'Bullischer Retracement-Bereich':'Baerischer Retracement-Bereich'} · ${d.exact?'Exakt im ':'Nahe am '}Golden Pocket 61.8–65%</div><span class="sig-badge ${sigCls}">${sigTxt}</span></div>`;}).join('');
 }
 
 function updateSliders(){document.getElementById('rsiWval').textContent=document.getElementById('rsiW').value;document.getElementById('rsiDval').textContent=document.getElementById('rsiD').value;}
@@ -382,11 +396,12 @@ function rsiColor(v){if(v===null)return '#555'; if(v<20)return'#e05050'; if(v<25
 function filterOS(){
   const maxW=parseInt(document.getElementById('rsiW').value), maxD=parseInt(document.getElementById('rsiD').value), sec=document.getElementById('osSec').value, mode=document.getElementById('osMode').value;
   const filtered=osData.filter(d=>{const secOk=sec==='all'||d.group===sec; let rsiOk=false; if(mode==='either') rsiOk=(d.rsiW!==null&&d.rsiW<=maxW)||(d.rsiD!==null&&d.rsiD<=maxD); else if(mode==='both') rsiOk=(d.rsiW!==null&&d.rsiW<=maxW)&&(d.rsiD!==null&&d.rsiD<=maxD); else if(mode==='weekly') rsiOk=d.rsiW!==null&&d.rsiW<=maxW; else rsiOk=d.rsiD!==null&&d.rsiD<=maxD; return secOk&&rsiOk;});
-  const both=filtered.filter(d=>d.rsiW!==null&&d.rsiW<=maxW&&d.rsiD!==null&&d.rsiD<=maxD); const avgSrc=filtered.filter(d=>d.rsiW!==null); const avgW=avgSrc.length?avgSrc.reduce((s,d)=>s+d.rsiW,0)/avgSrc.length:0;
+  const ranked=osData.filter(d=>sec==='all'||d.group===sec).sort((a,b)=>Math.min(a.rsiW??99,a.rsiD??99)-Math.min(b.rsiW??99,b.rsiD??99)).slice(0,12);
+  const both=filtered.filter(d=>d.rsiW!==null&&d.rsiW<=maxW&&d.rsiD!==null&&d.rsiD<=maxD); const avgSrc=(filtered.length?filtered:ranked).filter(d=>d.rsiW!==null); const avgW=avgSrc.length?avgSrc.reduce((s,d)=>s+d.rsiW,0)/avgSrc.length:0;
   document.getElementById('osCount').textContent=filtered.length; document.getElementById('osBoth').textContent=both.length; document.getElementById('osAvg').textContent=avgW?avgW.toFixed(1):'—';
-  const grid=document.getElementById('osGrid'); if(!osData.length){grid.innerHTML='<div class="empty">Noch keine RSI-Daten geladen</div>';return;} if(!filtered.length){grid.innerHTML=`<div class="empty">Kein Asset mit RSI Weekly ≤${maxW} / Daily ≤${maxD}</div>`;return;}
-  const sorted=[...filtered].sort((a,b)=>Math.min(a.rsiW??99,a.rsiD??99)-Math.min(b.rsiW??99,b.rsiD??99));
-  grid.innerHTML=sorted.map(d=>{const cc=d.chg>=0?'pos':'neg'; const cs=d.chg>=0?'+':''; const cW=rsiColor(d.rsiW), cD=rsiColor(d.rsiD); const wOk=d.rsiW!==null&&d.rsiW<=maxW; const dOk=d.rsiD!==null&&d.rsiD<=maxD; return `<div class="scard"><div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div><div style="font-size:11px;color:#666;margin-bottom:6px">${d.name}</div><div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${cc}">${cs}${safePct(d.chg)}%</span></div><div class="rsi-section"><div class="rsi-row"><span class="rsi-lbl">RSI Weekly</span><div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsiW||0}%;background:${cW}"></div></div><span class="rsi-val" style="color:${cW}">${d.rsiW??'—'}</span></div><div class="rsi-row"><span class="rsi-lbl">RSI Daily</span><div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsiD||0}%;background:${cD}"></div></div><span class="rsi-val" style="color:${cD}">${d.rsiD??'—'}</span></div></div>${d.from52h!==null?`<div style="font-size:11px;color:#555;margin-bottom:6px">${d.from52h}% vom 52W-Hoch entfernt</div>`:''}<div class="tf-chips">${wOk?'<span class="tf-chip ok">W-Oversold</span>':'<span class="tf-chip">W normal</span>'}${dOk?'<span class="tf-chip ok">D-Oversold</span>':'<span class="tf-chip">D normal</span>'}<span class="tf-chip warn">Long-Bias Check</span></div></div>`;}).join('');
+  const grid=document.getElementById('osGrid'); if(!osData.length){grid.innerHTML='<div class="empty">Noch keine RSI-Daten geladen</div>';return;}
+  const sorted=filtered.length?[...filtered].sort((a,b)=>Math.min(a.rsiW??99,a.rsiD??99)-Math.min(b.rsiW??99,b.rsiD??99)):ranked;
+  grid.innerHTML=(filtered.length?'':`<div class="no-trade" style="margin-bottom:12px"><span class="dot"></span>Aktuell nichts unter deinen Oversold-Grenzen. Es werden die niedrigsten RSI-Werte angezeigt.</div>`) + sorted.map(d=>{const cc=d.chg>=0?'pos':'neg'; const cs=d.chg>=0?'+':''; const cW=rsiColor(d.rsiW), cD=rsiColor(d.rsiD); const wOk=d.rsiW!==null&&d.rsiW<=maxW; const dOk=d.rsiD!==null&&d.rsiD<=maxD; return `<div class="scard"><div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div><div style="font-size:11px;color:#666;margin-bottom:6px">${d.name}</div><div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${cc}">${cs}${safePct(d.chg)}%</span></div><div class="rsi-section"><div class="rsi-row"><span class="rsi-lbl">RSI Weekly</span><div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsiW||0}%;background:${cW}"></div></div><span class="rsi-val" style="color:${cW}">${d.rsiW??'—'}</span></div><div class="rsi-row"><span class="rsi-lbl">RSI Daily</span><div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsiD||0}%;background:${cD}"></div></div><span class="rsi-val" style="color:${cD}">${d.rsiD??'—'}</span></div></div>${d.from52h!==null?`<div style="font-size:11px;color:#555;margin-bottom:6px">${d.from52h}% vom 52W-Hoch entfernt</div>`:''}<div class="tf-chips">${wOk?'<span class="tf-chip ok">W-Oversold</span>':'<span class="tf-chip">W normal</span>'}${dOk?'<span class="tf-chip ok">D-Oversold</span>':'<span class="tf-chip">D normal</span>'}<span class="tf-chip warn">Long-Bias Check</span></div></div>`;}).join('');
 }
 
 function filterTrend(){
