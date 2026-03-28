@@ -7,10 +7,9 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f0f;color:#e8e8e8;min-height:100vh}
-
-/* LOCK */
+.dash{padding:1.5rem;max-width:1400px;margin:0 auto}
 .lock{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f0f0f}
-.lock-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:2.5rem;width:320px;display:flex;flex-direction:column;gap:1rem;align-items:center}
+.lock-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:2.5rem;width:340px;display:flex;flex-direction:column;gap:1rem;align-items:center}
 .logo{font-size:22px;font-weight:600;color:#fff}.logo span{color:#1D9E75}
 .lock-sub{font-size:13px;color:#888;text-align:center;line-height:1.6}
 .lock-input{width:100%;padding:10px 14px;border:1px solid #333;border-radius:10px;background:#111;color:#fff;font-size:15px;text-align:center;letter-spacing:0.15em;outline:none}
@@ -18,59 +17,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .lock-btn{width:100%;padding:11px;background:#1D9E75;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer}
 .lock-btn:hover{background:#0F6E56}
 .lock-err{font-size:12px;color:#e05050;display:none;text-align:center}
-
-/* LAYOUT */
-.app{display:flex;min-height:100vh}
-
-/* SIDEBAR */
-.sidebar{width:180px;min-width:180px;background:#111;border-right:1px solid #1e1e1e;display:flex;flex-direction:column;padding:1rem 0;position:sticky;top:0;height:100vh;overflow-y:auto}
-.sidebar-logo{font-size:15px;font-weight:600;color:#fff;padding:0 1rem 1rem;border-bottom:1px solid #1e1e1e;margin-bottom:0.5rem}
-.sidebar-logo span{color:#1D9E75}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 1rem;font-size:13px;font-weight:500;color:#666;cursor:pointer;transition:all 0.15s;border-left:3px solid transparent}
-.nav-item:hover{color:#e8e8e8;background:#1a1a1a}
-.nav-item.active{color:#fff;background:#1a1a1a;border-left-color:#1D9E75}
-.nav-icon{font-size:14px;width:18px;text-align:center}
-.sidebar-bottom{margin-top:auto;padding:1rem;border-top:1px solid #1e1e1e}
-.sidebar-status{font-size:10px;color:#555;margin-bottom:8px;line-height:1.5}
-.btn{font-size:12px;padding:7px 12px;border:1px solid #333;border-radius:8px;background:transparent;color:#e8e8e8;cursor:pointer;width:100%;transition:all 0.15s;text-align:left}
-.btn:hover{background:#222}
-.btn.primary{background:#1D9E75;border-color:#1D9E75;color:#fff;text-align:center;font-weight:500}
-.btn.primary:hover{background:#0F6E56}
-.btn:disabled{opacity:0.4;cursor:not-allowed}
-
-/* MAIN */
-.main{flex:1;padding:1.5rem;overflow-x:hidden;min-width:0}
-.panel{display:none}.panel.active{display:block}
-
-/* TOP BAR */
-.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #222}
-.page-title{font-size:18px;font-weight:600;color:#fff}
-.topbar-right{display:flex;align-items:center;gap:10px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #222}
+.header-logo{font-size:18px;font-weight:600;color:#fff}.header-logo span{color:#1D9E75}
+.hright{display:flex;align-items:center;gap:10px}
 .badge{font-size:11px;padding:3px 9px;border-radius:20px;background:#1a3a2a;color:#1D9E75;border:1px solid #1D9E75}
-.badge.warn{background:#2a2a1a;color:#EF9F27;border-color:#d97706}
-
-/* PROGRESS */
-.progress-bar{height:2px;background:#222;border-radius:2px;margin-bottom:1.5rem;overflow:hidden}
-.progress-fill{height:100%;background:#1D9E75;border-radius:2px;transition:width 0.3s}
-
-/* FILTERS */
+.last-upd{font-size:11px;color:#555}
+.btn{font-size:12px;padding:6px 14px;border:1px solid #333;border-radius:8px;background:transparent;color:#e8e8e8;cursor:pointer}
+.btn:hover{background:#222}
+.tabs{display:flex;gap:4px;margin-bottom:1.5rem;background:#1a1a1a;border-radius:12px;padding:4px;border:1px solid #222}
+.tab{flex:1;padding:8px 12px;font-size:13px;font-weight:500;color:#666;cursor:pointer;border-radius:9px;border:none;background:transparent;text-align:center}
+.tab.active{background:#252525;color:#fff;border:1px solid #333}
+.panel{display:none}.panel.active{display:block}
 .filter-row{display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;background:#1a1a1a;padding:12px 14px;border-radius:12px;border:1px solid #222}
 .filter-row label{font-size:12px;color:#888;white-space:nowrap}
 .filter-row select{padding:5px 10px;font-size:12px;border:1px solid #333;border-radius:8px;background:#111;color:#e8e8e8;outline:none}
 .filter-row input[type=range]{width:100px;accent-color:#1D9E75}
 .fval{font-size:12px;font-weight:600;color:#1D9E75;min-width:28px}
-
-/* STAT ROW */
-.stat-row{display:flex;gap:10px;margin-bottom:1.25rem}
-.stat{flex:1;background:#1a1a1a;border:1px solid #222;border-radius:12px;padding:12px 14px;text-align:center}
-.stat-val{font-size:24px;font-weight:600;color:#fff}
-.stat-lbl{font-size:11px;color:#555;margin-top:3px}
-
-/* SECTION */
 .section-title{font-size:11px;font-weight:600;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em}
-
-/* CARDS */
-.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.stock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
 .scard{background:#1a1a1a;border:1px solid #252525;border-radius:14px;padding:14px 16px;transition:border-color 0.15s}
 .scard:hover{border-color:#333}
 .scard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -81,8 +45,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .price{font-size:14px;font-weight:500;color:#e8e8e8}
 .chg{font-size:12px;font-weight:600}
 .pos{color:#1D9E75}.neg{color:#e05050}
-
-/* FIB BAR */
 .fib-bar-wrap{margin-bottom:6px}
 .fib-label-row{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:3px}
 .fib-bar{position:relative;height:7px;background:#222;border-radius:4px;overflow:visible}
@@ -90,52 +52,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fib-pocket{position:absolute;top:0;height:100%;background:rgba(239,159,39,0.2);border-left:1.5px solid #EF9F27;border-right:1.5px solid #EF9F27}
 .fib-marker{position:absolute;top:-2px;width:11px;height:11px;border-radius:50%;background:#EF9F27;transform:translateX(-50%);border:2px solid #0f0f0f}
 .gp-label{font-size:10px;color:#BA7517;margin-top:3px;font-weight:600}
-
-/* RSI */
+.sig-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;margin-top:4px;display:inline-block}
+.sig-52w{background:#1a3a2a;color:#1D9E75;border:1px solid #1D9E75}
+.sig-ytd{background:#1a2a3a;color:#60a5fa;border:1px solid #2563eb}
 .rsi-section{margin-bottom:8px}
 .rsi-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .rsi-lbl{font-size:11px;color:#555;min-width:70px}
 .rsi-bar{flex:1;height:5px;background:#222;border-radius:3px;overflow:hidden}
 .rsi-fill{height:100%;border-radius:3px}
 .rsi-val{font-size:13px;font-weight:600;min-width:28px;text-align:right}
-
-/* CHIPS */
 .tf-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .tf-chip{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid #2a2a2a;color:#666}
 .tf-chip.warn{border-color:#5a1a1a;color:#e05050}
 .tf-chip.ok{border-color:#1a3a2a;color:#1D9E75}
-
-/* TREND SCORE */
-.trend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
-.tcard{background:#1a1a1a;border:1px solid #252525;border-radius:14px;padding:14px 16px;transition:border-color 0.15s}
-.tcard:hover{border-color:#333}
-.tcard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.score-display{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.score-num{font-size:28px;font-weight:600}
-.score-label{font-size:11px;color:#888;line-height:1.4}
-.score-dots{display:flex;gap:4px;margin-bottom:8px}
-.dot-fill{width:16px;height:16px;border-radius:50%;transition:background 0.2s}
-.trend-dir{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-block;margin-bottom:4px}
-.trend-bull{background:#1a3a2a;color:#1D9E75;border:1px solid #1D9E75}
-.trend-bear{background:#3a1a1a;color:#e05050;border:1px solid #5a1a1a}
-.trend-neutral{background:#222;color:#888;border:1px solid #333}
-.ema-rows{display:flex;flex-direction:column;gap:3px;margin-top:6px}
-.ema-row{display:flex;align-items:center;gap:6px;font-size:10px;color:#666}
-.ema-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-
-/* INDEX CARDS */
-.idx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-bottom:1.5rem}
-.idx-card{background:#1a1a1a;border:1px solid #252525;border-radius:10px;padding:10px 12px}
-.idx-region{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px}
-.idx-name{font-size:12px;font-weight:600;color:#fff;margin-bottom:4px}
-.count-badge{font-size:10px;padding:1px 6px;border-radius:20px;background:#222;color:#888;margin-left:4px}
-
-/* EARNINGS */
 .earn-list{display:flex;flex-direction:column;gap:10px}
 .earn-card{background:#1a1a1a;border:1px solid #252525;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:16px}
 .earn-date{text-align:center;min-width:44px}
 .earn-day{font-size:22px;font-weight:600;color:#fff}
-.earn-month{font-size:10px;color:#555;text-transform:uppercase}
+.earn-month{font-size:10px;color:#555;text-transform:uppercase;margin-top:1px}
 .earn-info{flex:1}
 .earn-ticker{font-size:15px;font-weight:600;color:#fff}
 .earn-name{font-size:11px;color:#666;margin-top:2px}
@@ -148,745 +82,407 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .earn-eps{text-align:right;min-width:60px}
 .earn-eps span{font-size:10px;color:#555;display:block}
 .earn-eps strong{font-size:14px;font-weight:600;color:#fff}
-
-/* NO TRADE */
 .no-trade{background:#2a1f0a;border:1px solid #4a3510;border-radius:10px;padding:10px 14px;font-size:12px;color:#EF9F27;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
-.pulse-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 1.5s infinite}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-
-/* LOADING */
-.loading-card{background:#1a1a1a;border:1px solid #252525;border-radius:14px;padding:14px 16px}
-.shimmer{height:10px;background:#252525;border-radius:4px;overflow:hidden;position:relative;margin-bottom:6px}
-.shimmer::after{content:'';position:absolute;top:0;left:-50%;width:50%;height:100%;background:linear-gradient(90deg,transparent,#333,transparent);animation:shimmer 1.2s infinite}
-@keyframes shimmer{0%{left:-50%}100%{left:150%}}
-
+.stat-row{display:flex;gap:10px;margin-bottom:1.25rem}
+.stat{flex:1;background:#1a1a1a;border:1px solid #222;border-radius:12px;padding:12px 14px;text-align:center}
+.stat-val{font-size:24px;font-weight:600;color:#fff}
+.stat-lbl{font-size:11px;color:#555;margin-top:3px}
 .empty{font-size:13px;color:#555;text-align:center;padding:3rem}
-
+.idx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:1.5rem}
+.idx-card{background:#1a1a1a;border:1px solid #252525;border-radius:10px;padding:10px 12px}
+.idx-region{font-size:10px;color:#555;text-transform:uppercase;margin-bottom:2px}
+.idx-name{font-size:12px;font-weight:600;color:#fff;margin-bottom:4px}
+.count-badge{font-size:10px;padding:1px 6px;border-radius:20px;background:#222;color:#888;margin-left:4px}
 input[type=range]{-webkit-appearance:none;height:4px;border-radius:2px;background:#333;outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#1D9E75;cursor:pointer}
+.data-info{font-size:11px;color:#555;margin-bottom:1rem;padding:8px 12px;background:#1a1a1a;border-radius:8px;border:1px solid #222}
 </style>
 </head>
 <body>
 
-<!-- LOCK SCREEN -->
 <div id="lockScreen" class="lock">
   <div class="lock-card">
     <div class="logo">HBMS <span>Trading</span></div>
-    <div class="lock-sub">Privates Trading Dashboard<br>Echtzeit-Daten via Finnhub API</div>
+    <div class="lock-sub">Privates Trading Dashboard.<br>Täglich aktualisierte Screener-Daten.</div>
     <input class="lock-input" type="password" id="pwInput" placeholder="Passwort eingeben" autocomplete="off"/>
     <div class="lock-err" id="lockErr">Falsches Passwort.</div>
     <button class="lock-btn" onclick="checkPass()">Einloggen</button>
   </div>
 </div>
 
-<!-- APP -->
-<div id="app" class="app" style="display:none">
-
-  <!-- SIDEBAR -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">HBMS <span>Trading</span></div>
-    <div class="nav-item active" onclick="showTab('gp')" id="nav-gp">
-      <span class="nav-icon">◆</span>Golden Pocket
-    </div>
-    <div class="nav-item" onclick="showTab('os')" id="nav-os">
-      <span class="nav-icon">▼</span>Oversold Scanner
-    </div>
-    <div class="nav-item" onclick="showTab('trend')" id="nav-trend">
-      <span class="nav-icon">▲</span>Trend Stärke
-    </div>
-    <div class="nav-item" onclick="showTab('idx')" id="nav-idx">
-      <span class="nav-icon">≡</span>Indizes Global
-    </div>
-    <div class="nav-item" onclick="showTab('earn')" id="nav-earn">
-      <span class="nav-icon">!</span>Earnings
-    </div>
-    <div class="sidebar-bottom">
-      <div class="sidebar-status" id="sideStatus">Bereit zum Laden</div>
-      <button class="btn primary" id="loadBtn" onclick="loadData()" style="margin-bottom:6px">
-        Daten laden
-      </button>
+<div id="dashboard" class="dash" style="display:none">
+  <div class="header">
+    <div class="header-logo">HBMS <span>Trading</span></div>
+    <div class="hright">
+      <span class="last-upd" id="lastUpd">Lädt...</span>
+      <span class="badge" id="apiBadge">LIVE</span>
       <button class="btn" onclick="logout()">Ausloggen</button>
     </div>
-  </nav>
+  </div>
 
-  <!-- MAIN CONTENT -->
-  <main class="main">
+  <div id="noTradeBanner" class="no-trade" style="display:none">
+    <div class="dot"></div><span id="noTradeText"></span>
+  </div>
 
-    <div id="noTradeBanner" class="no-trade" style="display:none">
-      <div class="pulse-dot"></div><span id="noTradeText"></span>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('gp')">Golden Pocket</button>
+    <button class="tab" onclick="showTab('os')">Oversold Scanner</button>
+    <button class="tab" onclick="showTab('idx')">Indizes Global</button>
+    <button class="tab" onclick="showTab('earn')">Earnings</button>
+  </div>
+
+  <!-- GOLDEN POCKET -->
+  <div class="panel active" id="tab-gp">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val" id="gpCount">—</div><div class="stat-lbl">Im Golden Pocket</div></div>
+      <div class="stat"><div class="stat-val" id="gpBull">—</div><div class="stat-lbl">Bullish</div></div>
+      <div class="stat"><div class="stat-val" id="gpBear">—</div><div class="stat-lbl">Bearish</div></div>
     </div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-
-    <!-- GOLDEN POCKET -->
-    <div class="panel active" id="tab-gp">
-      <div class="topbar">
-        <div class="page-title">Golden Pocket</div>
-        <div class="topbar-right">
-          <span class="badge" id="gpBadge">Fib 61.8–65%</span>
-        </div>
-      </div>
-      <div class="stat-row">
-        <div class="stat"><div class="stat-val" id="gpCount">—</div><div class="stat-lbl">Im Pocket</div></div>
-        <div class="stat"><div class="stat-val" id="gpBull">—</div><div class="stat-lbl">Bullish</div></div>
-        <div class="stat"><div class="stat-val" id="gpBear">—</div><div class="stat-lbl">Bearish</div></div>
-      </div>
-      <div class="filter-row">
-        <label>Move-Typ:</label>
-        <select id="gpSig" onchange="filterGP()">
-          <option value="all">Alle</option>
-          <option value="52w">52W High/Low</option>
-          <option value="ytd">YTD Move</option>
-        </select>
-        <label>Index:</label>
-        <select id="gpIdx" onchange="filterGP()">
-          <option value="all">Alle</option>
-          <option value="SP500">S&P 500</option>
-          <option value="DAX">DAX</option>
-          <option value="HSI">Hang Seng</option>
-        </select>
-        <label>Richtung:</label>
-        <select id="gpDir" onchange="filterGP()">
-          <option value="all">Alle</option>
-          <option value="bull">Bullish Retracement</option>
-          <option value="bear">Bearish Retracement</option>
-        </select>
-      </div>
-      <div class="section-title">Echte 52W Daten via Finnhub API</div>
-      <div class="stock-grid" id="gpGrid"><div class="empty">Klick "Daten laden" in der Sidebar</div></div>
+    <div class="filter-row">
+      <label>Move-Typ:</label>
+      <select id="gpSig" onchange="filterGP()">
+        <option value="all">Alle</option>
+        <option value="52w">52W High/Low</option>
+        <option value="ytd">YTD Move</option>
+      </select>
+      <label>Index:</label>
+      <select id="gpIdx" onchange="filterGP()">
+        <option value="all">Alle</option>
+        <option value="SP500">S&P 500</option>
+        <option value="DAX">DAX</option>
+        <option value="HSI">Hang Seng</option>
+        <option value="Forex">Forex</option>
+        <option value="Commodity">Rohstoffe</option>
+      </select>
+      <label>Richtung:</label>
+      <select id="gpDir" onchange="filterGP()">
+        <option value="all">Alle</option>
+        <option value="bullish">Bullish</option>
+        <option value="bearish">Bearish</option>
+      </select>
     </div>
+    <div class="data-info" id="gpInfo">Daten werden geladen...</div>
+    <div class="section-title">Fibonacci 61.8 – 65% Golden Pocket</div>
+    <div class="stock-grid" id="gpGrid"><div class="empty">Daten werden geladen...</div></div>
+  </div>
 
-    <!-- OVERSOLD -->
-    <div class="panel" id="tab-os">
-      <div class="topbar">
-        <div class="page-title">Oversold Scanner</div>
-        <div class="topbar-right"><span class="badge">RSI Weekly + Daily</span></div>
-      </div>
-      <div class="stat-row">
-        <div class="stat"><div class="stat-val" id="osCount">—</div><div class="stat-lbl">Oversold</div></div>
-        <div class="stat"><div class="stat-val" id="osBoth">—</div><div class="stat-lbl">W + D beide</div></div>
-        <div class="stat"><div class="stat-val" id="osAvg">—</div><div class="stat-lbl">Ø RSI Weekly</div></div>
-      </div>
-      <div class="filter-row">
-        <label>Max RSI Weekly:</label>
-        <input type="range" min="10" max="45" value="35" id="rsiW" step="1" oninput="updateSliders();filterOS()">
-        <span class="fval" id="rsiWval">35</span>
-        <label>Max RSI Daily:</label>
-        <input type="range" min="10" max="45" value="35" id="rsiD" step="1" oninput="updateSliders();filterOS()">
-        <span class="fval" id="rsiDval">35</span>
-        <label>Modus:</label>
-        <select id="osMode" onchange="filterOS()">
-          <option value="either">W oder D</option>
-          <option value="both">W UND D</option>
-          <option value="weekly">Nur Weekly</option>
-          <option value="daily">Nur Daily</option>
-        </select>
-        <label>Index:</label>
-        <select id="osSec" onchange="filterOS()">
-          <option value="all">Alle</option>
-          <option value="SP500">S&P 500</option>
-          <option value="DAX">DAX</option>
-          <option value="HSI">Hang Seng</option>
-        </select>
-      </div>
-      <div class="section-title">RSI berechnet aus echten Kursdaten</div>
-      <div class="stock-grid" id="osGrid"><div class="empty">Klick "Daten laden" in der Sidebar</div></div>
+  <!-- OVERSOLD -->
+  <div class="panel" id="tab-os">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val" id="osCount">—</div><div class="stat-lbl">Oversold gesamt</div></div>
+      <div class="stat"><div class="stat-val" id="osBoth">—</div><div class="stat-lbl">W + D oversold</div></div>
+      <div class="stat"><div class="stat-val" id="osAvg">—</div><div class="stat-lbl">Ø Weekly RSI</div></div>
     </div>
-
-    <!-- TREND STRENGTH -->
-    <div class="panel" id="tab-trend">
-      <div class="topbar">
-        <div class="page-title">Trend Stärke</div>
-        <div class="topbar-right"><span class="badge">EMA Punkte-System</span></div>
-      </div>
-      <div class="stat-row">
-        <div class="stat"><div class="stat-val" id="trCount">—</div><div class="stat-lbl">Assets analysiert</div></div>
-        <div class="stat"><div class="stat-val" id="trBull5">—</div><div class="stat-lbl">Score 5 (stärkster)</div></div>
-        <div class="stat"><div class="stat-val" id="trBear5">—</div><div class="stat-lbl">Score -5 (stärkster Bär)</div></div>
-      </div>
-      <div class="filter-row">
-        <label>Richtung:</label>
-        <select id="trDir" onchange="filterTrend()">
-          <option value="all">Alle</option>
-          <option value="bull">Nur Bullish</option>
-          <option value="bear">Nur Bearish</option>
-        </select>
-        <label>Min Score:</label>
-        <input type="range" min="1" max="5" value="3" id="trMin" step="1" oninput="document.getElementById('trMinVal').textContent=this.value;filterTrend()">
-        <span class="fval" id="trMinVal">3</span>
-        <label>Index:</label>
-        <select id="trSec" onchange="filterTrend()">
-          <option value="all">Alle</option>
-          <option value="SP500">S&P 500</option>
-          <option value="DAX">DAX</option>
-          <option value="HSI">Hang Seng</option>
-        </select>
-      </div>
-      <div class="section-title">Score: 5=über 10d EMA · 4=über 20d · 3=über 30d · 2=über 40d · 1=über 50d (8 Wochen Mindest)</div>
-      <div class="trend-grid" id="trGrid"><div class="empty">Klick "Daten laden" in der Sidebar</div></div>
+    <div class="filter-row">
+      <label>Max RSI Weekly:</label>
+      <input type="range" min="10" max="45" value="35" id="rsiW" step="1" oninput="updateSliders();filterOS()">
+      <span class="fval" id="rsiWval">35</span>
+      <label>Max RSI Daily:</label>
+      <input type="range" min="10" max="45" value="35" id="rsiD" step="1" oninput="updateSliders();filterOS()">
+      <span class="fval" id="rsiDval">35</span>
+      <label>Modus:</label>
+      <select id="osMode" onchange="filterOS()">
+        <option value="either">W oder D</option>
+        <option value="both">W UND D</option>
+        <option value="weekly">Nur Weekly</option>
+        <option value="daily">Nur Daily</option>
+      </select>
+      <label>Index:</label>
+      <select id="osSec" onchange="filterOS()">
+        <option value="all">Alle</option>
+        <option value="SP500">S&P 500</option>
+        <option value="DAX">DAX</option>
+        <option value="HSI">Hang Seng</option>
+        <option value="Forex">Forex</option>
+      </select>
     </div>
+    <div class="section-title">RSI Weekly & Daily aus echten Kursdaten</div>
+    <div class="stock-grid" id="osGrid"><div class="empty">Daten werden geladen...</div></div>
+  </div>
 
-    <!-- INDIZES -->
-    <div class="panel" id="tab-idx">
-      <div class="topbar">
-        <div class="page-title">Indizes Global</div>
-        <div class="topbar-right"><span class="badge warn" id="idxNote">Daten von heute</span></div>
-      </div>
-      <div class="stat-row">
-        <div class="stat"><div class="stat-val">30+</div><div class="stat-lbl">Indizes global</div></div>
-        <div class="stat"><div class="stat-val" id="idxUp">—</div><div class="stat-lbl">Im Plus</div></div>
-        <div class="stat"><div class="stat-val" id="idxDown">—</div><div class="stat-lbl">Im Minus</div></div>
-      </div>
-      <div id="idxContainer"></div>
+  <!-- INDIZES -->
+  <div class="panel" id="tab-idx">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val">30+</div><div class="stat-lbl">Indizes global</div></div>
+      <div class="stat"><div class="stat-val" id="idxUp">—</div><div class="stat-lbl">Im Plus</div></div>
+      <div class="stat"><div class="stat-val" id="idxDown">—</div><div class="stat-lbl">Im Minus</div></div>
     </div>
+    <div id="idxContainer"></div>
+  </div>
 
-    <!-- EARNINGS -->
-    <div class="panel" id="tab-earn">
-      <div class="topbar">
-        <div class="page-title">Earnings Kalender</div>
-        <div class="topbar-right"><span class="badge warn">Kein Trading ±2 Tage!</span></div>
-      </div>
-      <div class="stat-row">
-        <div class="stat"><div class="stat-val" id="earnCount">0</div><div class="stat-lbl">Anstehend</div></div>
-        <div class="stat"><div class="stat-val" id="earnHigh">0</div><div class="stat-lbl">High Impact</div></div>
-        <div class="stat"><div class="stat-val" id="earnNext">—</div><div class="stat-lbl">Naechste</div></div>
-      </div>
-      <div class="earn-list" id="earnList"></div>
+  <!-- EARNINGS -->
+  <div class="panel" id="tab-earn">
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val" id="earnCount">0</div><div class="stat-lbl">Anstehend</div></div>
+      <div class="stat"><div class="stat-val" id="earnHigh">0</div><div class="stat-lbl">High Impact</div></div>
+      <div class="stat"><div class="stat-val" id="earnNext">—</div><div class="stat-lbl">Naechste</div></div>
     </div>
-
-  </main>
+    <div class="section-title">Kein Trading 2 Tage vor/nach High Impact!</div>
+    <div class="earn-list" id="earnList"></div>
+  </div>
 </div>
 
 <script>
-const PASS="HBMS2026";
-const API="d73bjq1r01qjjol2ei3gd73bjq1r01qjjol2ei40";
-const BASE="https://finnhub.io/api/v1";
+const PASS     = "HBMS2026";
+const DATA_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/data.json";
 
-// ── UNIVERSE ──────────────────────────────────────────────────────
-const UNIVERSE=[
-  {t:"AAPL",  n:"Apple",           g:"SP500"},
-  {t:"MSFT",  n:"Microsoft",       g:"SP500"},
-  {t:"NVDA",  n:"Nvidia",          g:"SP500"},
-  {t:"AMZN",  n:"Amazon",          g:"SP500"},
-  {t:"META",  n:"Meta",            g:"SP500"},
-  {t:"GOOGL", n:"Alphabet",        g:"SP500"},
-  {t:"TSLA",  n:"Tesla",           g:"SP500"},
-  {t:"JPM",   n:"JPMorgan",        g:"SP500"},
-  {t:"GS",    n:"Goldman Sachs",   g:"SP500"},
-  {t:"WFC",   n:"Wells Fargo",     g:"SP500"},
-  {t:"ADBE",  n:"Adobe",           g:"SP500"},
-  {t:"AMD",   n:"AMD",             g:"SP500"},
-  {t:"INTC",  n:"Intel",           g:"SP500"},
-  {t:"XOM",   n:"Exxon Mobil",     g:"SP500"},
-  {t:"PFE",   n:"Pfizer",          g:"SP500"},
-  {t:"NFLX",  n:"Netflix",         g:"SP500"},
-  {t:"COIN",  n:"Coinbase",        g:"SP500"},
-  {t:"SNOW",  n:"Snowflake",       g:"SP500"},
-  {t:"TTD",   n:"Trade Desk",      g:"SP500"},
-  {t:"DIS",   n:"Disney",          g:"SP500"},
-  {t:"BAC",   n:"Bank of America", g:"SP500"},
-  {t:"UBER",  n:"Uber",            g:"SP500"},
-  {t:"CRM",   n:"Salesforce",      g:"SP500"},
-  {t:"INTU",  n:"Intuit",          g:"SP500"},
-  {t:"KO",    n:"Coca-Cola",       g:"SP500"},
-  {t:"V",     n:"Visa",            g:"SP500"},
-  {t:"UNH",   n:"UnitedHealth",    g:"SP500"},
-  // DAX (US-listed ADRs / direct)
-  {t:"SAP",   n:"SAP SE",          g:"DAX"},
-  {t:"SIEGY", n:"Siemens",         g:"DAX"},
-  {t:"BMWYY", n:"BMW",             g:"DAX"},
-  {t:"BAYRY", n:"Bayer",           g:"DAX"},
-  {t:"BASFY", n:"BASF",            g:"DAX"},
-  {t:"ALIZY", n:"Allianz",         g:"DAX"},
-  {t:"DTEGY", n:"Deutsche Telekom",g:"DAX"},
-  {t:"VLKAF", n:"Volkswagen",      g:"DAX"},
-  // Hang Seng
-  {t:"TCEHY", n:"Tencent",         g:"HSI"},
-  {t:"BABA",  n:"Alibaba",         g:"HSI"},
-  {t:"JD",    n:"JD.com",          g:"HSI"},
-  {t:"BIDU",  n:"Baidu",           g:"HSI"},
-  {t:"PDD",   n:"PDD Holdings",    g:"HSI"},
-  {t:"NIO",   n:"NIO",             g:"HSI"},
-  {t:"XPEV",  n:"XPeng",           g:"HSI"},
-];
+let allStocks = [];
 
-// ── STATE ─────────────────────────────────────────────────────────
-let gpData=[], osData=[], trendData=[];
-let isLoading=false;
-let currentTab="gp";
-
-// ── AUTH ──────────────────────────────────────────────────────────
-function checkPass(){
-  if(document.getElementById("pwInput").value===PASS){
-    document.getElementById("lockScreen").style.display="none";
-    document.getElementById("app").style.display="flex";
+function checkPass() {
+  if(document.getElementById("pwInput").value === PASS) {
+    document.getElementById("lockScreen").style.display = "none";
+    document.getElementById("dashboard").style.display  = "block";
     checkNoTrade();
+    loadData();
     renderIdx();
     renderEarn();
   } else {
-    const e=document.getElementById("lockErr");
-    e.style.display="block";
-    document.getElementById("pwInput").value="";
-    setTimeout(()=>e.style.display="none",3000);
+    const e = document.getElementById("lockErr");
+    e.style.display = "block";
+    document.getElementById("pwInput").value = "";
+    setTimeout(()=>e.style.display="none", 3000);
   }
 }
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("pwInput").addEventListener("keydown",e=>{if(e.key==="Enter")checkPass()});
 });
-function logout(){
-  document.getElementById("app").style.display="none";
-  document.getElementById("lockScreen").style.display="flex";
-  document.getElementById("pwInput").value="";
-  gpData=[];osData=[];trendData=[];
+function logout() {
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("lockScreen").style.display = "flex";
+  allStocks = [];
 }
-
-// ── TABS ──────────────────────────────────────────────────────────
-function showTab(id){
-  currentTab=id;
-  ["gp","os","trend","idx","earn"].forEach(t=>{
-    document.getElementById("nav-"+t).classList.toggle("active",t===id);
-    document.getElementById("tab-"+t).classList.toggle("active",t===id);
+function showTab(id) {
+  ["gp","os","idx","earn"].forEach((t,i)=>{
+    document.querySelectorAll(".tab")[i].classList.toggle("active",t===id);
   });
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("active");
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function apiGet(path){
-  const r=await fetch(`${BASE}${path}&token=${API}`);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
-function fmtP(p){return p<10?p.toFixed(4):p.toLocaleString("de-DE",{maximumFractionDigits:2});}
-function setProgress(pct){document.getElementById("progressFill").style.width=pct+"%";}
-function setSideStatus(txt){document.getElementById("sideStatus").textContent=txt;}
-
-function calcRSI(closes,period=14){
-  if(!closes||closes.length<period+2) return null;
-  let g=0,l=0;
-  for(let i=1;i<=period;i++){const d=closes[i]-closes[i-1];if(d>0)g+=d;else l+=Math.abs(d);}
-  let ag=g/period,al=l/period;
-  for(let i=period+1;i<closes.length;i++){
-    const d=closes[i]-closes[i-1];
-    ag=(ag*(period-1)+Math.max(d,0))/period;
-    al=(al*(period-1)+Math.max(-d,0))/period;
-  }
-  if(al===0) return 100;
-  return Math.round(100-100/(1+ag/al));
-}
-
-function calcEMA(closes,period){
-  if(!closes||closes.length<period) return null;
-  const k=2/(period+1);
-  let ema=closes.slice(0,period).reduce((s,v)=>s+v,0)/period;
-  for(let i=period;i<closes.length;i++) ema=closes[i]*k+ema*(1-k);
-  return ema;
-}
-
-// Check if price was above EMA for last N weeks (using daily closes)
-// Returns number of consecutive days (approx weeks*5) above EMA
-function weeksAboveEMA(closes,emaPeriod,minWeeks=8){
-  if(!closes||closes.length<emaPeriod+10) return 0;
-  // need at least minWeeks*5 days
-  const minDays=minWeeks*5;
-  if(closes.length<emaPeriod+minDays) return 0;
-  let consecutiveDaysAbove=0;
-  // Calculate rolling EMA and check if each day is above
-  const k=2/(emaPeriod+1);
-  let ema=closes.slice(0,emaPeriod).reduce((s,v)=>s+v,0)/emaPeriod;
-  const results=[];
-  for(let i=emaPeriod;i<closes.length;i++){
-    ema=closes[i]*k+ema*(1-k);
-    results.push(closes[i]>ema);
-  }
-  // Count consecutive from end
-  let streak=0;
-  for(let i=results.length-1;i>=0;i--){
-    if(results[i]) streak++;
-    else break;
-  }
-  return streak;
-}
-
-// ── LOAD DATA ─────────────────────────────────────────────────────
-async function loadData(){
-  if(isLoading) return;
-  isLoading=true;
-  const btn=document.getElementById("loadBtn");
-  btn.disabled=true;btn.textContent="Lädt...";
-  gpData=[];osData=[];trendData=[];
-  showSkeletons("gpGrid",6);
-  showSkeletons("osGrid",6);
-  showSkeletons("trGrid",6);
-
-  const total=UNIVERSE.length;
-  let done=0;
-  const BATCH=2;
-
-  for(let i=0;i<UNIVERSE.length;i+=BATCH){
-    const batch=UNIVERSE.slice(i,i+BATCH);
-    await Promise.all(batch.map(s=>loadStock(s)));
-    done+=batch.length;
-    const pct=Math.round(done/total*100);
-    setProgress(pct);
-    setSideStatus(`Laden... ${pct}% (${done}/${total})`);
-    if(i+BATCH<UNIVERSE.length) await sleep(1500);
-  }
-
-  filterGP();filterOS();filterTrend();
-  setProgress(0);
-  setSideStatus("Aktualisiert: "+new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}));
-  btn.disabled=false;btn.textContent="Daten laden";
-  isLoading=false;
-}
-
-async function loadStock(s){
-  try{
-    const now=Math.floor(Date.now()/1000);
-    // Get daily candles: 9 months for EMA + RSI calculation
-    const nineMonthsAgo=now-270*24*3600;
-    await sleep(200);
-    const dc=await apiGet(`/stock/candle?symbol=${s.t}&resolution=D&from=${nineMonthsAgo}&to=${now}`);
-    await sleep(400);
-    const quote=await apiGet(`/quote?symbol=${s.t}`);
-    await sleep(400);
-    const metrics=await apiGet(`/stock/metric?symbol=${s.t}&metric=all`);
-
-    const price=quote.c;
-    const chg=quote.dp;
-    if(!price||price===0) return;
-
-    const m=metrics.metric||{};
-    const hi52=m["52WeekHigh"];
-    const lo52=m["52WeekLow"];
-
-    const closes=dc.s==="ok"?dc.c:null;
-
-    // ── GOLDEN POCKET ──
-    if(hi52&&lo52&&hi52>lo52){
-      const pos=(hi52-price)/(hi52-lo52)*100;
-      const inPocket52=pos>=61.8&&pos<=65.0;
-      if(inPocket52){
-        gpData.push({
-          ticker:s.t,name:s.n,group:s.g,
-          price,chg,hi:hi52,lo:lo52,pos,sig:"52w",
-          dir:chg>=0?"bull":"bear"
-        });
-      }
-      // YTD
-      const ytdHi=m["yearHigh"]||hi52;
-      const ytdLo=m["yearLow"]||lo52;
-      if(ytdHi>ytdLo&&!(inPocket52)){
-        const posYTD=(ytdHi-price)/(ytdHi-ytdLo)*100;
-        if(posYTD>=61.8&&posYTD<=65.0){
-          gpData.push({
-            ticker:s.t,name:s.n,group:s.g,
-            price,chg,hi:ytdHi,lo:ytdLo,pos:posYTD,sig:"ytd",
-            dir:chg>=0?"bull":"bear"
-          });
-        }
-      }
-    }
-
-    // ── RSI ──
-    let rsiW=null,rsiD=null;
-    if(closes&&closes.length>15){
-      rsiD=calcRSI(closes);
-      // Weekly RSI: sample every 5 days
-      const wCloses=[];
-      for(let i=0;i<closes.length;i+=5) wCloses.push(closes[i]);
-      if(wCloses.length>15) rsiW=calcRSI(wCloses);
-    }
-    const dist52=hi52?Math.round((hi52-price)/hi52*100):null;
-    osData.push({ticker:s.t,name:s.n,group:s.g,price,chg,rsiW,rsiD,from52h:dist52});
-
-    // ── TREND SCORE ──
-    if(closes&&closes.length>60){
-      const emaPeriods=[10,20,30,40,50];
-      const minWeeks=8;
-      let bullScore=0,bearScore=0;
-      const emaDetails=[];
-      for(let ei=0;ei<emaPeriods.length;ei++){
-        const ep=emaPeriods[ei];
-        const streak=weeksAboveEMA(closes,ep,minWeeks);
-        const weeksAbove=Math.floor(streak/5);
-        const aboveMin=weeksAbove>=minWeeks;
-        const currentEMA=calcEMA(closes,ep);
-        const above=currentEMA&&price>currentEMA;
-        const below=currentEMA&&price<currentEMA;
-        if(aboveMin&&above) bullScore=Math.max(bullScore,5-ei);
-        if(aboveMin&&below) bearScore=Math.max(bearScore,5-ei);
-        emaDetails.push({
-          period:ep,
-          above:above,
-          weeksAbove,
-          ema:currentEMA
-        });
-      }
-      const score=bullScore>0?bullScore:(bearScore>0?-bearScore:0);
-      if(score!==0){
-        trendData.push({ticker:s.t,name:s.n,group:s.g,price,chg,score,emaDetails});
-      }
-    }
-  } catch(e){
-    console.warn(`Failed ${s.t}:`,e.message);
+// ─── DATEN LADEN ─────────────────────────────────────────────────
+async function loadData() {
+  try {
+    document.getElementById("apiBadge").textContent = "Lädt...";
+    const r = await fetch(DATA_URL + "?t=" + Date.now());
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const json = await r.json();
+    allStocks = json.stocks || [];
+    const gen  = json.generated || "—";
+    document.getElementById("lastUpd").textContent = "Stand: " + gen;
+    document.getElementById("apiBadge").textContent = allStocks.length + " Stocks";
+    filterGP();
+    filterOS();
+  } catch(e) {
+    document.getElementById("apiBadge").textContent = "Fehler";
+    document.getElementById("gpGrid").innerHTML = `<div class="empty">Daten konnten nicht geladen werden.<br>Screener noch nicht ausgeführt?<br><small style="color:#444">${e.message}</small></div>`;
+    document.getElementById("osGrid").innerHTML = `<div class="empty">data.json noch nicht vorhanden.<br>Bitte screener.py einmal ausführen.</div>`;
   }
 }
 
-function showSkeletons(id,count){
-  document.getElementById(id).innerHTML=Array(count).fill(0).map(()=>`
-    <div class="loading-card">
-      <div class="shimmer" style="width:50%;height:14px"></div>
-      <div class="shimmer" style="width:70%;height:10px"></div>
-      <div class="shimmer" style="width:100%;height:7px"></div>
-      <div class="shimmer" style="width:80%;height:7px"></div>
-    </div>`).join("");
-}
+// ─── GOLDEN POCKET ───────────────────────────────────────────────
+function fmtP(p) { return p < 10 ? p.toFixed(4) : p.toLocaleString("de-DE",{maximumFractionDigits:2}); }
 
-// ── GOLDEN POCKET ─────────────────────────────────────────────────
-function filterGP(){
-  const sig=document.getElementById("gpSig").value;
-  const idx=document.getElementById("gpIdx").value;
-  const dir=document.getElementById("gpDir").value;
-  const f=gpData.filter(d=>
-    (sig==="all"||d.sig===sig)&&
-    (idx==="all"||d.group===idx)&&
-    (dir==="all"||d.dir===dir)
-  );
-  document.getElementById("gpCount").textContent=f.length;
-  document.getElementById("gpBull").textContent=f.filter(d=>d.dir==="bull").length;
-  document.getElementById("gpBear").textContent=f.filter(d=>d.dir==="bear").length;
-  const grid=document.getElementById("gpGrid");
-  if(gpData.length===0){grid.innerHTML='<div class="empty">Klick "Daten laden" in der Sidebar</div>';return;}
-  if(!f.length){grid.innerHTML='<div class="empty">Kein Asset im Golden Pocket mit diesen Filtern</div>';return;}
-  grid.innerHTML=f.map(d=>{
-    const fillPct=(d.price-d.lo)/(d.hi-d.lo)*100;
-    const cc=d.chg>=0?"pos":"neg";const cs=d.chg>=0?"+":"";
-    const sigTxt=d.sig==="52w"?"52W High→Low":"YTD Move";
-    const dirTxt=d.dir==="bull"?"Bullish Retracement":"Bearish Retracement";
-    return`<div class="scard">
+function filterGP() {
+  const sig = document.getElementById("gpSig").value;
+  const idx = document.getElementById("gpIdx").value;
+  const dir = document.getElementById("gpDir").value;
+
+  let filtered = allStocks.filter(d => {
+    const in52  = d.in_gp_52w;
+    const inYtd = d.in_gp_ytd;
+    if(sig === "52w"  && !in52)  return false;
+    if(sig === "ytd"  && !inYtd) return false;
+    if(sig === "all"  && !in52 && !inYtd) return false;
+    if(idx !== "all"  && d.group !== idx) return false;
+    const chgDir = d.chg >= 0 ? "bullish" : "bearish";
+    if(dir !== "all"  && chgDir !== dir) return false;
+    return true;
+  });
+
+  document.getElementById("gpCount").textContent = filtered.length;
+  document.getElementById("gpBull").textContent  = filtered.filter(d=>d.chg>=0).length;
+  document.getElementById("gpBear").textContent  = filtered.filter(d=>d.chg<0).length;
+
+  const total = allStocks.length;
+  document.getElementById("gpInfo").textContent =
+    total > 0
+      ? `${total} Stocks gescreent · ${filtered.length} im Golden Pocket (61.8–65% Fibonacci Retracement)`
+      : "Screener noch nicht ausgeführt. Bitte screener.py starten.";
+
+  const grid = document.getElementById("gpGrid");
+  if(!filtered.length) {
+    grid.innerHTML = total > 0
+      ? '<div class="empty">Kein Stock im Golden Pocket mit diesen Filtern</div>'
+      : '<div class="empty">data.json noch nicht vorhanden – screener.py ausführen</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(d => {
+    const use52  = sig === "52w" || (sig === "all" && d.in_gp_52w);
+    const hi     = use52 ? d.hi52  : d.hi_ytd;
+    const lo     = use52 ? d.lo52  : d.lo_ytd;
+    const fib    = use52 ? d.fib_52w : d.fib_ytd;
+    const fillPct = ((d.price - lo) / (hi - lo) * 100).toFixed(1);
+    const cc = d.chg >= 0 ? "pos" : "neg";
+    const cs = d.chg >= 0 ? "+" : "";
+    const sigCls = use52 ? "sig-52w" : "sig-ytd";
+    const sigTxt = use52 ? "52W High/Low" : "YTD Move";
+    return `<div class="scard">
       <div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div>
-      <div class="sname">${d.name} · <span style="color:#EF9F27">${sigTxt}</span></div>
-      <div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${cc}">${cs}${d.chg.toFixed(2)}%</span></div>
+      <div class="sname">${d.name}</div>
+      <div class="price-row">
+        <span class="price">$${fmtP(d.price)}</span>
+        <span class="chg ${cc}">${cs}${d.chg.toFixed(2)}%</span>
+      </div>
       <div class="fib-bar-wrap">
         <div class="fib-label-row">
-          <span>Low $${fmtP(d.lo)}</span>
-          <span style="color:#EF9F27;font-weight:600">Fib ${d.pos.toFixed(1)}%</span>
-          <span>High $${fmtP(d.hi)}</span>
+          <span>Low $${fmtP(lo)}</span>
+          <span style="color:#EF9F27;font-weight:600">Fib ${fib}%</span>
+          <span>High $${fmtP(hi)}</span>
         </div>
         <div class="fib-bar">
-          <div class="fib-fill" style="width:${fillPct.toFixed(1)}%"></div>
+          <div class="fib-fill" style="width:${fillPct}%"></div>
           <div class="fib-pocket" style="left:35%;width:3.2%"></div>
-          <div class="fib-marker" style="left:${fillPct.toFixed(1)}%"></div>
+          <div class="fib-marker" style="left:${fillPct}%"></div>
         </div>
       </div>
-      <div class="gp-label">Im Golden Pocket (61.8–65%) · ${dirTxt}</div>
+      <div class="gp-label">Golden Pocket 61.8–65% · ${d.chg>=0?"Bullish Retracement":"Bearish Retracement"}</div>
+      <span class="sig-badge ${sigCls}">${sigTxt}</span>
     </div>`;
   }).join("");
 }
 
-// ── OVERSOLD ──────────────────────────────────────────────────────
-function updateSliders(){
-  document.getElementById("rsiWval").textContent=document.getElementById("rsiW").value;
-  document.getElementById("rsiDval").textContent=document.getElementById("rsiD").value;
+// ─── OVERSOLD ────────────────────────────────────────────────────
+function updateSliders() {
+  document.getElementById("rsiWval").textContent = document.getElementById("rsiW").value;
+  document.getElementById("rsiDval").textContent = document.getElementById("rsiD").value;
 }
-function rsiColor(v){
-  if(v===null) return"#555";
-  if(v<20) return"#e05050";if(v<25) return"#EF9F27";if(v<30) return"#facc15";return"#1D9E75";
+function rsiColor(v) {
+  if(v===null||v===undefined) return "#555";
+  if(v<20) return"#e05050"; if(v<25) return"#EF9F27";
+  if(v<30) return"#facc15"; return"#1D9E75";
 }
-function filterOS(){
-  const maxW=parseInt(document.getElementById("rsiW").value);
-  const maxD=parseInt(document.getElementById("rsiD").value);
-  const sec=document.getElementById("osSec").value;
-  const mode=document.getElementById("osMode").value;
-  const f=osData.filter(d=>{
-    const secOk=sec==="all"||d.group===sec;
-    let rsiOk=false;
-    if(mode==="either") rsiOk=(d.rsiW!==null&&d.rsiW<=maxW)||(d.rsiD!==null&&d.rsiD<=maxD);
-    else if(mode==="both") rsiOk=(d.rsiW!==null&&d.rsiW<=maxW)&&(d.rsiD!==null&&d.rsiD<=maxD);
-    else if(mode==="weekly") rsiOk=d.rsiW!==null&&d.rsiW<=maxW;
-    else rsiOk=d.rsiD!==null&&d.rsiD<=maxD;
-    return secOk&&rsiOk;
+function filterOS() {
+  const maxW = parseInt(document.getElementById("rsiW").value);
+  const maxD = parseInt(document.getElementById("rsiD").value);
+  const sec  = document.getElementById("osSec").value;
+  const mode = document.getElementById("osMode").value;
+
+  const filtered = allStocks.filter(d => {
+    if(sec !== "all" && d.group !== sec) return false;
+    const w = d.rsi_weekly, dd = d.rsi_daily;
+    if(mode==="either") return (w!==null&&w<=maxW)||(dd!==null&&dd<=maxD);
+    if(mode==="both")   return (w!==null&&w<=maxW)&&(dd!==null&&dd<=maxD);
+    if(mode==="weekly") return w!==null&&w<=maxW;
+    return dd!==null&&dd<=maxD;
   });
-  const both=f.filter(d=>d.rsiW!==null&&d.rsiW<=maxW&&d.rsiD!==null&&d.rsiD<=maxD);
-  const avgW=f.length?f.reduce((s,d)=>s+(d.rsiW||0),0)/f.length:0;
-  document.getElementById("osCount").textContent=f.length;
-  document.getElementById("osBoth").textContent=both.length;
-  document.getElementById("osAvg").textContent=avgW.toFixed(1);
-  const grid=document.getElementById("osGrid");
-  if(osData.length===0){grid.innerHTML='<div class="empty">Klick "Daten laden" in der Sidebar</div>';return;}
-  if(!f.length){grid.innerHTML=`<div class="empty">Keine Stocks mit RSI W≤${maxW} / D≤${maxD}</div>`;return;}
-  const sorted=[...f].sort((a,b)=>(a.rsiW||99)-(b.rsiW||99));
-  grid.innerHTML=sorted.map(d=>{
-    const cc=d.chg>=0?"pos":"neg";const cs=d.chg>=0?"+":"";
-    const cW=rsiColor(d.rsiW);const cD=rsiColor(d.rsiD);
-    const maxW2=parseInt(document.getElementById("rsiW").value);
-    const maxD2=parseInt(document.getElementById("rsiD").value);
-    const wOk=d.rsiW!==null&&d.rsiW<=maxW2;
-    const dOk=d.rsiD!==null&&d.rsiD<=maxD2;
-    return`<div class="scard">
+
+  const both = filtered.filter(d=>d.rsi_weekly!==null&&d.rsi_weekly<=maxW&&d.rsi_daily!==null&&d.rsi_daily<=maxD);
+  const avgW = filtered.length ? filtered.reduce((s,d)=>s+(d.rsi_weekly||0),0)/filtered.length : 0;
+  document.getElementById("osCount").textContent = filtered.length;
+  document.getElementById("osBoth").textContent  = both.length;
+  document.getElementById("osAvg").textContent   = avgW.toFixed(1);
+
+  const grid = document.getElementById("osGrid");
+  if(!filtered.length) {
+    grid.innerHTML = allStocks.length > 0
+      ? `<div class="empty">Kein Stock mit RSI W≤${maxW} / D≤${maxD} – Filter lockern?</div>`
+      : '<div class="empty">data.json noch nicht vorhanden – screener.py ausführen</div>';
+    return;
+  }
+
+  const sorted = [...filtered].sort((a,b)=>(a.rsi_weekly||99)-(b.rsi_weekly||99));
+  grid.innerHTML = sorted.map(d => {
+    const cc=d.chg>=0?"pos":"neg"; const cs=d.chg>=0?"+":"";
+    const cW=rsiColor(d.rsi_weekly); const cD=rsiColor(d.rsi_daily);
+    const wOk=d.rsi_weekly!==null&&d.rsi_weekly<=maxW;
+    const dOk=d.rsi_daily!==null&&d.rsi_daily<=maxD;
+    const wv=d.rsi_weekly!==null?d.rsi_weekly:"—";
+    const dv=d.rsi_daily!==null?d.rsi_daily:"—";
+    return `<div class="scard">
       <div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div>
       <div class="sname">${d.name}</div>
       <div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${cc}">${cs}${d.chg.toFixed(2)}%</span></div>
       <div class="rsi-section">
         <div class="rsi-row">
           <span class="rsi-lbl">RSI Weekly</span>
-          <div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsiW||0}%;background:${cW}"></div></div>
-          <span class="rsi-val" style="color:${cW}">${d.rsiW!==null?d.rsiW:"—"}</span>
+          <div class="rsi-bar"><div class="rsi-fill" style="width:${(d.rsi_weekly||0)}%;background:${cW}"></div></div>
+          <span class="rsi-val" style="color:${cW}">${wv}</span>
         </div>
         <div class="rsi-row">
           <span class="rsi-lbl">RSI Daily</span>
-          <div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsiD||0}%;background:${cD}"></div></div>
-          <span class="rsi-val" style="color:${cD}">${d.rsiD!==null?d.rsiD:"—"}</span>
+          <div class="rsi-bar"><div class="rsi-fill" style="width:${(d.rsi_daily||0)}%;background:${cD}"></div></div>
+          <span class="rsi-val" style="color:${cD}">${dv}</span>
         </div>
       </div>
-      ${d.from52h!==null?`<div style="font-size:11px;color:#555;margin-bottom:6px">${d.from52h}% vom 52W-Hoch</div>`:""}
+      ${d.dist_from_hi!==null?`<div style="font-size:11px;color:#555;margin-bottom:6px">${d.dist_from_hi}% vom 52W-Hoch entfernt</div>`:""}
       <div class="tf-chips">
         ${wOk?'<span class="tf-chip ok">W-Oversold</span>':'<span class="tf-chip">W normal</span>'}
         ${dOk?'<span class="tf-chip ok">D-Oversold</span>':'<span class="tf-chip">D normal</span>'}
-        <span class="tf-chip warn">Long-Bias only</span>
+        <span class="tf-chip warn">Nur Long-Bias!</span>
       </div>
     </div>`;
   }).join("");
 }
 
-// ── TREND STRENGTH ────────────────────────────────────────────────
-function scoreColor(s){
-  if(s>=4) return"#1D9E75";
-  if(s>=2) return"#5cb85c";
-  if(s<=-4) return"#e05050";
-  if(s<=-2) return"#d9534f";
-  return"#EF9F27";
-}
-function scoreDots(score){
-  const abs=Math.abs(score);
-  const isBull=score>0;
-  return [1,2,3,4,5].map(i=>{
-    const filled=i<=abs;
-    const col=isBull?"#1D9E75":"#e05050";
-    return`<div class="dot-fill" style="background:${filled?col:"#222"};border:1px solid ${filled?col:"#333"}"></div>`;
-  }).join("");
-}
-
-function filterTrend(){
-  const dir=document.getElementById("trDir").value;
-  const minScore=parseInt(document.getElementById("trMin").value);
-  const sec=document.getElementById("trSec").value;
-  const f=trendData.filter(d=>{
-    const secOk=sec==="all"||d.group===sec;
-    const dirOk=dir==="all"||(dir==="bull"&&d.score>0)||(dir==="bear"&&d.score<0);
-    return secOk&&dirOk&&Math.abs(d.score)>=minScore;
-  });
-  const bull5=trendData.filter(d=>d.score===5).length;
-  const bear5=trendData.filter(d=>d.score===-5).length;
-  document.getElementById("trCount").textContent=trendData.length;
-  document.getElementById("trBull5").textContent=bull5;
-  document.getElementById("trBear5").textContent=bear5;
-  const grid=document.getElementById("trGrid");
-  if(trendData.length===0){grid.innerHTML='<div class="empty">Klick "Daten laden" in der Sidebar</div>';return;}
-  if(!f.length){grid.innerHTML='<div class="empty">Keine Assets mit diesen Trend-Filtern</div>';return;}
-  const sorted=[...f].sort((a,b)=>Math.abs(b.score)-Math.abs(a.score));
-  grid.innerHTML=sorted.map(d=>{
-    const cc=d.chg>=0?"pos":"neg";const cs=d.chg>=0?"+":"";
-    const isBull=d.score>0;
-    const dirCls=isBull?"trend-bull":"trend-bear";
-    const dirTxt=isBull?`Bullish (Score +${d.score})`:`Bearish (Score ${d.score})`;
-    const sc=scoreColor(d.score);
-    const emaNames=["10d EMA","20d EMA","30d EMA","40d EMA","50d EMA"];
-    return`<div class="tcard">
-      <div class="tcard-header">
-        <span class="ticker">${d.ticker}</span>
-        <span class="stag">${d.group}</span>
-      </div>
-      <div class="sname">${d.name}</div>
-      <div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${cc}">${cs}${d.chg.toFixed(2)}%</span></div>
-      <div class="score-display">
-        <span class="score-num" style="color:${sc}">${d.score>0?"+":""}${d.score}</span>
-        <div class="score-label">Trend Score<br><span style="font-size:10px;color:#555">von max ±5</span></div>
-      </div>
-      <div class="score-dots">${scoreDots(d.score)}</div>
-      <span class="trend-dir ${dirCls}">${dirTxt}</span>
-      <div class="ema-rows">
-        ${d.emaDetails.map((e,i)=>{
-          const col=e.above?"#1D9E75":"#e05050";
-          const aboveTxt=e.above?"above":"below";
-          return`<div class="ema-row">
-            <div class="ema-dot" style="background:${col}"></div>
-            <span>${emaNames[i]}: ${aboveTxt} (${e.weeksAbove}w streak)</span>
-          </div>`;
-        }).join("")}
-      </div>
-    </div>`;
-  }).join("");
-}
-
-// ── INDICES ───────────────────────────────────────────────────────
-// Updated with today's approximate real values (28 March 2026)
-const IDX_DATA=[
-  {r:"Amerika", n:"S&P 500",        t:"SPX",     p:5580,  c:-0.8},
-  {r:"Amerika", n:"Nasdaq 100",     t:"NDX",     p:19280, c:-1.1},
-  {r:"Amerika", n:"Dow Jones",      t:"DJIA",    p:41500, c:-0.6},
-  {r:"Amerika", n:"Russell 2000",   t:"RUT",     p:2020,  c:-1.4},
-  {r:"Amerika", n:"VIX",            t:"VIX",     p:21.8,  c:6.2},
-  {r:"Amerika", n:"Brasil Bovespa", t:"IBOV",    p:131200,c:0.3},
-  {r:"Amerika", n:"TSX Canada",     t:"TSX",     p:24600, c:-0.4},
-  {r:"Amerika", n:"Mexico IPC",     t:"MXX",     p:53200, c:0.2},
-  {r:"Europa",  n:"DAX 40",         t:"DAX",     p:22480, c:-0.9},
-  {r:"Europa",  n:"FTSE 100",       t:"UKX",     p:8620,  c:-0.4},
-  {r:"Europa",  n:"CAC 40",         t:"CAC",     p:7980,  c:-0.6},
-  {r:"Europa",  n:"Euro Stoxx 50",  t:"SX5E",    p:5260,  c:-0.7},
-  {r:"Europa",  n:"SMI Schweiz",    t:"SMI",     p:12620, c:-0.3},
-  {r:"Europa",  n:"AEX Holland",    t:"AEX",     p:910,   c:-0.5},
-  {r:"Europa",  n:"IBEX 35",        t:"IBEX",    p:13100, c:-0.8},
-  {r:"Europa",  n:"FTSE MIB Italy", t:"FTSEMIB", p:37800, c:-0.4},
-  {r:"Europa",  n:"ATX Austria",    t:"ATX",     p:3780,  c:-0.6},
-  {r:"Europa",  n:"OMX Stockholm",  t:"OMX",     p:2590,  c:-0.7},
-  {r:"Asien",   n:"Hang Seng",      t:"HSI",     p:23620, c:0.6},
-  {r:"Asien",   n:"Nikkei 225",     t:"NKY",     p:35480, c:-1.2},
-  {r:"Asien",   n:"CSI 300",        t:"CSI300",  p:3890,  c:0.4},
-  {r:"Asien",   n:"Shanghai Comp.", t:"SHCOMP",  p:3310,  c:0.3},
-  {r:"Asien",   n:"Kospi Korea",    t:"KOSPI",   p:2580,  c:-0.8},
-  {r:"Asien",   n:"ASX 200",        t:"AS51",    p:7980,  c:-0.5},
-  {r:"Asien",   n:"Sensex India",   t:"SENSEX",  p:77200, c:-0.3},
-  {r:"Asien",   n:"TWSE Taiwan",    t:"TWSE",    p:21200, c:-0.9},
-  {r:"Asien",   n:"STI Singapur",   t:"STI",     p:3910,  c:0.2},
-  {r:"Nahost",  n:"Tadawul Saudi",  t:"TASI",    p:11600, c:-0.4},
-  {r:"Nahost",  n:"ADX Abu Dhabi",  t:"ADX",     p:9180,  c:-0.2},
-  {r:"Nahost",  n:"DFM Dubai",      t:"DFMGI",   p:4760,  c:-0.3},
-  {r:"Afrika",  n:"JSE Suedafrika", t:"TOP40",   p:76800, c:0.3},
-  {r:"Afrika",  n:"EGX 30 Aegypten",t:"EGX30",  p:33200, c:1.1},
+// ─── INDIZES ─────────────────────────────────────────────────────
+const IDX=[
+  {r:"Amerika",n:"S&P 500",t:"SPX",p:5620,c:-0.5},
+  {r:"Amerika",n:"Nasdaq 100",t:"NDX",p:19480,c:-0.8},
+  {r:"Amerika",n:"Dow Jones",t:"DJIA",p:41820,c:-0.3},
+  {r:"Amerika",n:"Russell 2000",t:"RUT",p:2048,c:-1.2},
+  {r:"Amerika",n:"VIX",t:"VIX",p:22.4,c:8.4},
+  {r:"Amerika",n:"Brasil Bovespa",t:"IBOV",p:128420,c:0.4},
+  {r:"Amerika",n:"TSX Canada",t:"TSX",p:24850,c:0.2},
+  {r:"Europa",n:"DAX 40",t:"DAX",p:23180,c:1.2},
+  {r:"Europa",n:"FTSE 100",t:"UKX",p:8724,c:0.3},
+  {r:"Europa",n:"CAC 40",t:"CAC",p:8048,c:0.8},
+  {r:"Europa",n:"Euro Stoxx 50",t:"SX5E",p:5348,c:0.9},
+  {r:"Europa",n:"SMI Schweiz",t:"SMI",p:12840,c:0.4},
+  {r:"Europa",n:"AEX Holland",t:"AEX",p:924,c:0.6},
+  {r:"Europa",n:"IBEX 35",t:"IBEX",p:13248,c:1.1},
+  {r:"Europa",n:"FTSE MIB Italy",t:"FTSEMIB",p:38420,c:1.4},
+  {r:"Europa",n:"OMX Stockholm",t:"OMX",p:2648,c:0.5},
+  {r:"Asien",n:"Hang Seng",t:"HSI",p:23480,c:2.1},
+  {r:"Asien",n:"Nikkei 225",t:"NKY",p:37820,c:-0.4},
+  {r:"Asien",n:"CSI 300",t:"CSI300",p:3948,c:1.8},
+  {r:"Asien",n:"Shanghai Comp.",t:"SHCOMP",p:3340,c:1.4},
+  {r:"Asien",n:"Kospi Korea",t:"KOSPI",p:2648,c:0.3},
+  {r:"Asien",n:"ASX 200",t:"AS51",p:8124,c:0.6},
+  {r:"Asien",n:"Sensex India",t:"SENSEX",p:77480,c:0.8},
+  {r:"Asien",n:"TWSE Taiwan",t:"TWSE",p:21840,c:-0.5},
+  {r:"Nahost",n:"Tadawul Saudi",t:"TASI",p:11840,c:0.2},
+  {r:"Nahost",n:"DFM Dubai",t:"DFMGI",p:4820,c:0.1},
+  {r:"Afrika",n:"JSE Suedafrika",t:"TOP40",p:78240,c:0.5},
 ];
-
-function renderIdx(){
-  const regions=[...new Set(IDX_DATA.map(d=>d.r))];
-  const up=IDX_DATA.filter(d=>d.c>=0).length;
-  const dn=IDX_DATA.filter(d=>d.c<0).length;
-  document.getElementById("idxUp").textContent=up;
-  document.getElementById("idxDown").textContent=dn;
+function renderIdx() {
+  const regions=[...new Set(IDX.map(d=>d.r))];
+  document.getElementById("idxUp").textContent  =IDX.filter(d=>d.c>=0).length;
+  document.getElementById("idxDown").textContent=IDX.filter(d=>d.c<0).length;
   document.getElementById("idxContainer").innerHTML=regions.map(r=>{
-    const items=IDX_DATA.filter(d=>d.r===r);
+    const items=IDX.filter(d=>d.r===r);
     return`<div style="margin-bottom:1.5rem">
       <div class="section-title">${r}<span class="count-badge">${items.length}</span></div>
       <div class="idx-grid">${items.map(d=>{
         const cc=d.c>=0?"pos":"neg";const cs=d.c>=0?"+":"";
-        const bc=d.c>=0?"1a3a2a":"3a1a1a";
-        return`<div class="idx-card" style="border-color:#${d.c>=0?"1a3a2a":"3a1a1a"}">
+        return`<div class="idx-card">
           <div class="idx-region">${d.t}</div>
           <div class="idx-name">${d.n}</div>
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div style="display:flex;justify-content:space-between">
             <span style="font-size:14px;font-weight:600;color:#fff">${d.p.toLocaleString("de-DE")}</span>
             <span class="chg ${cc}">${cs}${d.c.toFixed(1)}%</span>
           </div>
         </div>`;
-      }).join("")}</div>
-    </div>`;
+      }).join("")}</div></div>`;
   }).join("");
 }
 
-// ── EARNINGS ──────────────────────────────────────────────────────
+// ─── EARNINGS ────────────────────────────────────────────────────
 const EARN=[
   {t:"NVDA",n:"Nvidia",day:28,mo:"Mär",time:"Nach Börsenschluss",eps:"$8.42",imp:"high",avoid:true},
-  {t:"LULU",n:"Lululemon",day:28,mo:"Mär",time:"Nach Börsenschluss",eps:"$5.29",imp:"med",avoid:false},
   {t:"NKE",n:"Nike",day:1,mo:"Apr",time:"Nach Börsenschluss",eps:"$0.72",imp:"high",avoid:true},
-  {t:"STZ",n:"Constellation Brands",day:2,mo:"Apr",time:"Vor Öffnung",eps:"$3.15",imp:"med",avoid:false},
   {t:"JPM",n:"JPMorgan Chase",day:11,mo:"Apr",time:"Vor Öffnung",eps:"$4.62",imp:"high",avoid:true},
   {t:"GS",n:"Goldman Sachs",day:14,mo:"Apr",time:"Vor Öffnung",eps:"$12.08",imp:"high",avoid:true},
   {t:"NFLX",n:"Netflix",day:15,mo:"Apr",time:"Nach Börsenschluss",eps:"$5.74",imp:"high",avoid:true},
@@ -896,7 +492,7 @@ const EARN=[
   {t:"GOOGL",n:"Alphabet",day:24,mo:"Apr",time:"Nach Börsenschluss",eps:"$2.01",imp:"high",avoid:true},
   {t:"AMZN",n:"Amazon",day:30,mo:"Apr",time:"Nach Börsenschluss",eps:"$1.36",imp:"high",avoid:true},
 ];
-function renderEarn(){
+function renderEarn() {
   document.getElementById("earnCount").textContent=EARN.length;
   document.getElementById("earnHigh").textContent=EARN.filter(d=>d.imp==="high").length;
   document.getElementById("earnNext").textContent=EARN[0].t;
@@ -915,13 +511,12 @@ function renderEarn(){
     </div>`).join("");
 }
 
-// ── NO TRADE ──────────────────────────────────────────────────────
-function checkNoTrade(){
+function checkNoTrade() {
   const h=new Date().getHours(),day=new Date().getDay();
   const msgs=[];
-  if(day===1&&h<10) msgs.push("Montag Pre-Market – geringes Volumen!");
-  if(day===5&&h>=18) msgs.push("Freitag nach 18 Uhr – Weekend-Gap-Risiko!");
-  if(h>=22||h<7) msgs.push("Ausserhalb Hauptsessions – niedrige Liquiditaet!");
+  if(day===1&&h<10)msgs.push("Montag Pre-Market – geringes Volumen!");
+  if(day===5&&h>=18)msgs.push("Freitag nach 18 Uhr – Weekend-Gap-Risiko!");
+  if(h>=22||h<7)msgs.push("Ausserhalb Hauptsessions – niedrige Liquiditaet!");
   const b=document.getElementById("noTradeBanner");
   if(msgs.length){b.style.display="flex";document.getElementById("noTradeText").textContent=msgs[0];}
 }
