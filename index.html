@@ -434,8 +434,15 @@ function filterOS(){
   }).join("");
 }
 
-function scoreColor(s){if(s>=4)return"#1D9E75";if(s>=2)return"#5DCAA5";if(s>0)return"#9FE1CB";if(s===0)return"#444";if(s>=-2)return"#f09595";if(s>=-4)return"#e05050";return"#A32D2D";}
-function scoreClass(s){if(s>=4)return"bull-strong";if(s>=2)return"bull-med";if(s<=-4)return"bear-strong";if(s<=-2)return"bear-med";return"";}
+function scoreColor(s){
+  if(s>=4)return"#1D9E75";if(s>=2)return"#5DCAA5";if(s>0)return"#9FE1CB";
+  if(s===0)return"#555";if(s>=-2)return"#f09595";if(s>=-4)return"#e05050";
+  return"#A32D2D";
+}
+function scoreClass(s){
+  if(s>=4)return"bull-strong";if(s>=2)return"bull-med";
+  if(s<=-4)return"bear-strong";if(s<=-2)return"bear-med";return"";
+}
 
 function filterTrend(){
   const grp=document.getElementById("trendGrp").value;
@@ -455,74 +462,54 @@ function filterTrend(){
     return(b.chg_1m||0)-(a.chg_1m||0);
   });
   const grid=document.getElementById("trendGrid");
-  if(!f.length){grid.innerHTML=allTrending.length>0?'<div class="empty">Keine Assets mit diesen Filtern</div>':'<div class="empty">screener.py ausführen</div>';return;}
+  if(!f.length){
+    grid.innerHTML=allTrending.length>0?'<div class="empty">Keine Assets mit diesen Filtern</div>':'<div class="empty">screener.py ausführen</div>';
+    return;
+  }
   grid.innerHTML=f.map(d=>{
-    const sc=d.score??0, col=scoreColor(sc), cls=scoreClass(sc);
-    const pct=Math.min(100,Math.abs(sc)/5*100);
+    const sc=d.score??0;
+    const absScore=Math.abs(sc);
+    const col=scoreColor(sc);
+    const cls=scoreClass(sc);
     const bull=sc>0;
-    const fillLeft=bull?"50%":`${50-pct/2}%`;
-    const ma10c=d.price&&d.ma10?(d.price>d.ma10?"#1D9E75":"#e05050"):"#333";
-    const ma20c=d.price&&d.ma20?(d.price>d.ma20?"#1D9E75":"#e05050"):"#333";
-    const ma50c=d.price&&d.ma50?(d.price>d.ma50?"#1D9E75":"#e05050"):"#333";
+    const scoreDisplay=sc>0?`+${sc}/5`:sc<0?`${sc}/5`:`0/5`;
+    const dots=[
+      {label:"10", ema:d.ema10},
+      {label:"20", ema:d.ema20},
+      {label:"50", ema:d.ema50},
+      {label:"100",ema:d.ema100},
+      {label:"200",ema:d.ema200},
+    ].map(dot=>{
+      if(dot.ema==null)return`<div class="ma-dot" style="background:#222;opacity:0.4">${dot.label}</div>`;
+      const c=d.price>dot.ema?"#1D9E75":"#e05050";
+      return`<div class="ma-dot" style="background:${c}" title="EMA${dot.label}: ${dot.ema.toFixed(2)}">${dot.label}</div>`;
+    }).join("");
+    const trendTxt=sc>=4?"▲▲ Stark Bullish":sc>=2?"▲ Bullish":sc>0?"▲ Leicht Bullish":sc<=-4?"▼▼ Stark Bearish":sc<=-2?"▼ Bearish":sc<0?"▼ Leicht Bearish":"↔ Neutral";
     return`<div class="score-card ${cls}">
       <div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div>
       <div class="sname">${d.name}</div>
       <div class="price-row"><span class="price">${fmtP(d.price)}</span>${fmtChg(d.chg,"%")}</div>
-      <div style="display:flex;align-items:center;gap:8px;margin:4px 0">
-        <span class="score-num" style="color:${col}">${sc>0?"+":""}${sc}</span>
+      <div style="display:flex;align-items:center;gap:8px;margin:6px 0">
+        <span style="color:${col};font-size:17px;font-weight:600;min-width:52px">${scoreDisplay}</span>
         <div style="flex:1">
-          <div class="score-bar">
-            <div class="score-fill" style="left:${fillLeft};width:${pct/2}%;background:${col}"></div>
-            <div class="score-mid"></div>
+          <div style="height:5px;background:#1a1a1a;position:relative">
+            ${bull?`<div style="position:absolute;left:50%;width:${absScore/5*50}%;height:100%;background:${col}"></div>`:`<div style="position:absolute;right:50%;width:${absScore/5*50}%;height:100%;background:${col}"></div>`}
+            <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#333"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:8px;color:#333;margin-top:1px"><span>-5</span><span>0</span><span>+5</span></div>
         </div>
       </div>
-      <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:3px">${d.trend==="bullish"?"▲ Bullish":d.trend==="bearish"?"▼ Bearish":"↔ Neutral"}</div>
+      <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px">${trendTxt}</div>
       <div class="perf-row">
-        <div class="perf-item">1D: ${fmtChg(d.chg,"%")}</div>
-        <div class="perf-item">1W: ${fmtChg(d.chg_1w,"%")}</div>
-        <div class="perf-item">1M: ${fmtChg(d.chg_1m,"%")}</div>
-        <div class="perf-item">3M: ${fmtChg(d.chg_3m,"%")}</div>
+        <div class="perf-item">1D:${fmtChg(d.chg,"%")}</div>
+        <div class="perf-item">1W:${fmtChg(d.chg_1w,"%")}</div>
+        <div class="perf-item">1M:${fmtChg(d.chg_1m,"%")}</div>
+        <div class="perf-item">3M:${fmtChg(d.chg_3m,"%")}</div>
       </div>
-      <div class="ma-dots">
-        <div class="ma-dot" style="background:${ma10c}">10</div>
-        <div class="ma-dot" style="background:${ma20c}">20</div>
-        <div class="ma-dot" style="background:${ma50c}">50</div>
-        <span style="font-size:9px;color:#333;margin-left:3px">vs MA</span>
-      </div>
+      <div class="ma-dots" style="margin-top:5px">${dots}<span style="font-size:9px;color:#333;margin-left:3px">EMA</span></div>
     </div>`;
   }).join("");
 }
-
-const EARN=[
-  {t:"NVDA",n:"Nvidia",day:28,mo:"Mär",time:"Nach Börsenschluss",eps:"$8.42",imp:"high",avoid:true},
-  {t:"NKE",n:"Nike",day:1,mo:"Apr",time:"Nach Börsenschluss",eps:"$0.72",imp:"high",avoid:true},
-  {t:"JPM",n:"JPMorgan",day:11,mo:"Apr",time:"Vor Öffnung",eps:"$4.62",imp:"high",avoid:true},
-  {t:"GS",n:"Goldman Sachs",day:14,mo:"Apr",time:"Vor Öffnung",eps:"$12.08",imp:"high",avoid:true},
-  {t:"NFLX",n:"Netflix",day:15,mo:"Apr",time:"Nach Börsenschluss",eps:"$5.74",imp:"high",avoid:true},
-  {t:"TSLA",n:"Tesla",day:22,mo:"Apr",time:"Nach Börsenschluss",eps:"$0.42",imp:"high",avoid:true},
-  {t:"META",n:"Meta",day:23,mo:"Apr",time:"Nach Börsenschluss",eps:"$6.18",imp:"high",avoid:true},
-  {t:"MSFT",n:"Microsoft",day:23,mo:"Apr",time:"Nach Börsenschluss",eps:"$3.22",imp:"high",avoid:true},
-  {t:"GOOGL",n:"Alphabet",day:24,mo:"Apr",time:"Nach Börsenschluss",eps:"$2.01",imp:"high",avoid:true},
-  {t:"AMZN",n:"Amazon",day:30,mo:"Apr",time:"Nach Börsenschluss",eps:"$1.36",imp:"high",avoid:true},
-];
-function renderEarn(){
-  document.getElementById("earnList").innerHTML=EARN.map(d=>`
-    <div class="earn-card">
-      <div class="earn-date"><div class="earn-day">${d.day}</div><div class="earn-month">${d.mo}</div></div>
-      <div class="earn-info">
-        <div class="earn-ticker">${d.t}</div><div class="earn-name">${d.n}</div>
-        <div class="earn-meta">
-          <span class="earn-time">${d.time}</span>
-          <span class="wtag ${d.imp==="high"?"high":"med"}">${d.imp==="high"?"High Impact":"Med"}</span>
-          ${d.avoid?'<span class="wtag avoid">Nicht traden!</span>':""}
-        </div>
-      </div>
-      <div class="earn-eps"><span>EPS est.</span><strong>${d.eps}</strong></div>
-    </div>`).join("");
-}
-
 function checkNoTrade(){
   const h=new Date().getHours(),day=new Date().getDay();
   const msgs=[];
