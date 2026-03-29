@@ -547,10 +547,10 @@ function renderRRG(){
   if(!canvas) return;
   const wrap = document.getElementById("rrgCanvasWrap");
   const dpr = window.devicePixelRatio || 1;
-  const cssW = wrap.clientWidth || 900;
-  const cssH = Math.round(cssW * 0.55);
-  canvas.width  = cssW * dpr;
-  canvas.height = cssH * dpr;
+  const cssW = Math.max(wrap.getBoundingClientRect().width, wrap.offsetWidth, 600);
+  const cssH = Math.round(cssW * 0.52);
+  canvas.width  = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
   canvas.style.width  = cssW + "px";
   canvas.style.height = cssH + "px";
   const ctx = canvas.getContext("2d");
@@ -725,9 +725,16 @@ function renderSectorDetail(){
 
 function renderSectors(){
   renderHeatmap();
-  renderRRG();
-  renderSectorDetail();
+  // Small delay to ensure layout is complete before measuring canvas width
+  setTimeout(()=>{ renderRRG(); renderSectorDetail(); }, 50);
 }
+
+// Redraw RRG on window resize
+let rrgResizeTimer;
+window.addEventListener("resize", ()=>{
+  clearTimeout(rrgResizeTimer);
+  rrgResizeTimer = setTimeout(()=>{ if(allSectors.length) renderRRG(); }, 150);
+});
 
 // ─── EARNINGS ────────────────────────────────────────────────────
 const EARN=[
