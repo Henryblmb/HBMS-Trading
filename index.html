@@ -310,6 +310,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
           <div class="rrg-desc">Outperforming but losing momentum</div>
           <div class="rrg-chips" id="rrg-weakening"></div>
         </div>
+        <div style="grid-column:1/-1;background:#111;border:1px solid #1e1e1e;padding:12px 14px">
+          <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">⚠ Diverging — Short & Long Term Disagree</div>
+          <div class="rrg-chips" id="rrg-diverging"></div>
+          <div style="font-size:9px;color:#333;margin-top:6px">Long term (1Y) and short term (3M) momentum point in different directions — watch closely for rotation</div>
+        </div>
       </div>
 
       <div class="section-title">Sector Detail</div>
@@ -558,11 +563,20 @@ function renderHeatmap(){
 function renderRRG(){
   const quads=["leading","weakening","lagging","improving"];
   quads.forEach(q=>{
-    const items=allSectors.filter(s=>s.quadrant===q);
+    const items=allSectors.filter(s=>s.quadrant===q&&s.sector!=="Benchmark");
     document.getElementById("rrg-"+q).innerHTML=items.length
-      ?items.map(s=>`<span class="rrg-chip ${q}">${s.sector}</span>`).join("")
+      ?items.map(s=>{
+        const div=s.diverging?'<span style="font-size:9px;color:#EF9F27;margin-left:3px">⚠</span>':'';
+        const tooltip=s.q_long&&s.q_short?`Long:${s.q_long} Short:${s.q_short}`:'';
+        return`<span class="rrg-chip ${q}" title="${tooltip}">${s.sector}${div}</span>`;
+      }).join("")
       :`<span style="font-size:10px;color:#333">None</span>`;
   });
+  // Diverging
+  const divItems=allSectors.filter(s=>s.diverging&&s.sector!=="Benchmark");
+  document.getElementById("rrg-diverging").innerHTML=divItems.length
+    ?divItems.map(s=>`<span class="rrg-chip weakening" title="Long:${s.q_long} Short:${s.q_short}">${s.sector} <span style="font-size:9px">${s.q_long}→${s.q_short}</span></span>`).join("")
+    :`<span style="font-size:10px;color:#333">None</span>`;
 }
 
 function renderSectorDetail(){
