@@ -494,6 +494,7 @@ function showTab(id,el){
   if(el)el.classList.add("active");
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
   document.getElementById("tab-"+id).classList.add("active");
+  if(id==="breadth") renderBreadth();
 }
 async function loadData(){
   try{
@@ -921,8 +922,12 @@ let breadthData = {};
 
 function renderBreadth(){
   const b = breadthData;
+  console.log("Breadth data:", b);
   if(!b || !b.universe_size){
-    document.getElementById("b200").textContent="—";
+    ["b200","b100","b50","b20","b10"].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.textContent="Run screener.py";
+    });
     return;
   }
 
