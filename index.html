@@ -113,9 +113,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 <div id="lockScreen" class="lock">
   <div class="lock-card">
     <div class="logo">HBMS <span>Trading</span></div>
-    <div class="lock-sub">Privates Trading Dashboard</div>
-    <input class="lock-input" type="password" id="pwInput" placeholder="Passwort" autocomplete="off"/>
-    <div class="lock-err" id="lockErr">Falsches Passwort.</div>
+    <div class="lock-sub">Private Trading Dashboard</div>
+    <input class="lock-input" type="password" id="pwInput" placeholder="Password" autocomplete="off"/>
+    <div class="lock-err" id="lockErr">Falsches Password.</div>
     <button class="lock-btn" onclick="checkPass()">Einloggen</button>
   </div>
 </div>
@@ -124,9 +124,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   <div class="header">
     <div class="header-logo">HBMS <span>Trading</span></div>
     <div class="hright">
-      <span class="last-upd" id="lastUpd">Lädt...</span>
+      <span class="last-upd" id="lastUpd">Loading...</span>
       <span class="badge" id="apiBadge">LIVE</span>
-      <button class="btn" onclick="logout()">Ausloggen</button>
+      <button class="btn" onclick="logout()">Logout</button>
     </div>
   </div>
 
@@ -134,8 +134,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-section">Screener</div>
     <div class="nav-item active" onclick="showTab('gp')">Golden Pocket</div>
     <div class="nav-item" onclick="showTab('os')">Oversold</div>
-    <div class="nav-item" onclick="showTab('trend')">Trend Stärke</div>
-    <div class="nav-section">Kalender</div>
+    <div class="nav-item" onclick="showTab('trend')">Trend Strength</div>
+    <div class="nav-section">Calendar</div>
     <div class="nav-item" onclick="showTab('earn')">Earnings</div>
   </div>
 
@@ -155,28 +155,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 
     <div class="panel active" id="tab-gp">
       <div class="filter-row">
-        <label>Move-Typ:</label>
+        <label>Move Type:</label>
         <select id="gpSig" onchange="filterGP()">
-          <option value="all">Alle</option>
+          <option value="all">All</option>
           <option value="52w">52W High/Low</option>
           <option value="ytd">YTD Move</option>
         </select>
         <label>Index:</label>
         <select id="gpIdx" onchange="filterGP()">
-          <option value="all">Alle</option>
+          <option value="all">All</option>
           <option value="SP500">S&P 500</option>
           <option value="DAX">DAX</option>
           <option value="HSI">Hang Seng</option>
         </select>
-        <label>Richtung:</label>
+        <label>Direction:</label>
         <select id="gpDir" onchange="filterGP()">
-          <option value="all">Alle</option>
+          <option value="all">All</option>
           <option value="bullish">Bullish</option>
           <option value="bearish">Bearish</option>
         </select>
       </div>
       <div class="section-title">Fibonacci 61.8 – 65% Golden Pocket</div>
-      <div class="stock-grid" id="gpGrid"><div class="empty">Daten werden geladen...</div></div>
+      <div class="stock-grid" id="gpGrid"><div class="empty">Loading data...</div></div>
     </div>
 
     <div class="panel" id="tab-os">
@@ -187,56 +187,56 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <label>Max RSI Daily:</label>
         <input type="range" min="10" max="45" value="35" id="rsiD" step="1" oninput="updateSliders();filterOS()">
         <span class="fval" id="rsiDval">35</span>
-        <label>Modus:</label>
+        <label>Mode:</label>
         <select id="osMode" onchange="filterOS()">
-          <option value="either">W oder D</option>
-          <option value="both">W UND D</option>
-          <option value="weekly">Nur Weekly</option>
-          <option value="daily">Nur Daily</option>
+          <option value="either">W or D</option>
+          <option value="both">W AND D</option>
+          <option value="weekly">Weekly only</option>
+          <option value="daily">Daily only</option>
         </select>
         <label>Index:</label>
         <select id="osSec" onchange="filterOS()">
-          <option value="all">Alle</option>
+          <option value="all">All</option>
           <option value="SP500">S&P 500</option>
           <option value="DAX">DAX</option>
           <option value="HSI">Hang Seng</option>
         </select>
       </div>
       <div class="section-title">RSI Oversold Scanner</div>
-      <div class="stock-grid" id="osGrid"><div class="empty">Daten werden geladen...</div></div>
+      <div class="stock-grid" id="osGrid"><div class="empty">Loading data...</div></div>
     </div>
 
     <div class="panel" id="tab-trend">
       <div class="filter-row">
-        <label>Gruppe:</label>
+        <label>Group:</label>
         <select id="trendGrp" onchange="filterTrend()">
-          <option value="all">Alle</option>
-          <option value="Index">Indizes</option>
+          <option value="all">All</option>
+          <option value="Index">Indices</option>
           <option value="Forex">Forex</option>
-          <option value="Metall">Metalle</option>
-          <option value="Rohstoff">Rohstoffe</option>
+          <option value="Metall">Metals</option>
+          <option value="Rohstoff">Commodities</option>
         </select>
-        <label>Richtung:</label>
+        <label>Direction:</label>
         <select id="trendDir" onchange="filterTrend()">
-          <option value="all">Alle</option>
+          <option value="all">All</option>
           <option value="bullish">Bullish</option>
           <option value="bearish">Bearish</option>
-          <option value="strong">Stark (|Score|≥4)</option>
+          <option value="strong">Strong (|Score|≥4)</option>
         </select>
-        <label>Sortierung:</label>
+        <label>Sort:</label>
         <select id="trendSort" onchange="filterTrend()">
-          <option value="score_desc">Score: Hoch → Tief</option>
-          <option value="score_asc">Score: Tief → Hoch</option>
-          <option value="chg_desc">1D: Beste zuerst</option>
-          <option value="chg_1m_desc">1M: Beste zuerst</option>
+          <option value="score_desc">Score: High → Low</option>
+          <option value="score_asc">Score: Low → High</option>
+          <option value="chg_desc">1D: Best first</option>
+          <option value="chg_1m_desc">1M: Best first</option>
         </select>
       </div>
-      <div class="section-title">EMA Stack Score — über EMA 10/20/50/100/200 = +1 pro EMA</div>
-      <div class="score-grid" id="trendGrid"><div class="empty">Daten werden geladen...</div></div>
+      <div class="section-title">EMA Stack Score — above EMA 10/20/50/100/200 = +1 per EMA</div>
+      <div class="score-grid" id="trendGrid"><div class="empty">Loading data...</div></div>
     </div>
 
     <div class="panel" id="tab-earn">
-      <div class="section-title">Earnings — Kein Trading 2 Tage vor/nach High Impact!</div>
+      <div class="section-title">Earnings — No trading 2 days before/after High Impact!</div>
       <div class="earn-list" id="earnList"></div>
     </div>
   </div>
@@ -275,18 +275,18 @@ function showTab(id){
 }
 async function loadData(){
   try{
-    document.getElementById("apiBadge").textContent="Lädt...";
-    const r=await fetch(DATA_URL);
+    document.getElementById("apiBadge").textContent="Loading...";
+    const r=await fetch(DATA_URL+"?t="+Date.now());
     if(!r.ok)throw new Error("HTTP "+r.status);
     const json=await r.json();
     allStocks=json.stocks||[];
     allTrending=json.trending||[];
-    document.getElementById("lastUpd").textContent="Stand: "+(json.generated||"—");
+    document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
     updateStats();filterGP();filterOS();filterTrend();
   }catch(e){
     document.getElementById("apiBadge").textContent="Fehler";
-    document.getElementById("gpGrid").innerHTML=`<div class="empty">Fehler: ${e.message}<br>screener.py ausführen</div>`;
+    document.getElementById("gpGrid").innerHTML=`<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
   }
 }
 function updateStats(){
@@ -317,7 +317,7 @@ function filterGP(){
     return true;
   });
   const grid=document.getElementById("gpGrid");
-  if(!f.length){grid.innerHTML=allStocks.length>0?'<div class="empty">Kein Stock im Golden Pocket</div>':'<div class="empty">screener.py ausführen</div>';return;}
+  if(!f.length){grid.innerHTML=allStocks.length>0?'<div class="empty">No stocks in Golden Pocket</div>':'<div class="empty">Run screener.py</div>';return;}
   grid.innerHTML=f.map(d=>{
     const u=sig==="52w"||(sig==="all"&&d.in_gp_52w);
     const hi=u?d.hi52:d.hi_ytd,lo=u?d.lo52:d.lo_ytd,fib=u?d.fib_52w:d.fib_ytd;
@@ -354,7 +354,7 @@ function filterOS(){
     return dd!=null&&dd<=mD;
   });
   const grid=document.getElementById("osGrid");
-  if(!f.length){grid.innerHTML=allStocks.length>0?`<div class="empty">Kein Stock mit RSI W≤${mW}/D≤${mD}</div>`:'<div class="empty">screener.py ausführen</div>';return;}
+  if(!f.length){grid.innerHTML=allStocks.length>0?`<div class="empty">No stocks with RSI W≤${mW}/D≤${mD}</div>`:'<div class="empty">Run screener.py</div>';return;}
   grid.innerHTML=[...f].sort((a,b)=>(a.rsi_weekly||99)-(b.rsi_weekly||99)).map(d=>{
     const cW=rsiColor(d.rsi_weekly),cD=rsiColor(d.rsi_daily);
     const wOk=d.rsi_weekly!=null&&d.rsi_weekly<=mW,dOk=d.rsi_daily!=null&&d.rsi_daily<=mD;
@@ -364,11 +364,11 @@ function filterOS(){
       <div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${d.chg>=0?"pos":"neg"}">${d.chg>=0?"+":""}${d.chg.toFixed(2)}%</span></div>
       <div class="rsi-row"><span class="rsi-lbl">RSI Weekly</span><div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsi_weekly||0}%;background:${cW}"></div></div><span class="rsi-val" style="color:${cW}">${d.rsi_weekly??'—'}</span></div>
       <div class="rsi-row"><span class="rsi-lbl">RSI Daily</span><div class="rsi-bar"><div class="rsi-fill" style="width:${d.rsi_daily||0}%;background:${cD}"></div></div><span class="rsi-val" style="color:${cD}">${d.rsi_daily??'—'}</span></div>
-      ${d.dist_from_hi!=null?`<div style="font-size:9px;color:#444;margin-bottom:3px">${d.dist_from_hi}% vom 52W-Hoch</div>`:""}
+      ${d.dist_from_hi!=null?`<div style="font-size:9px;color:#444;margin-bottom:3px">${d.dist_from_hi}% from 52W High</div>`:""}
       <div class="tf-chips">
         ${wOk?'<span class="tf-chip ok">W-Oversold</span>':'<span class="tf-chip">W normal</span>'}
         ${dOk?'<span class="tf-chip ok">D-Oversold</span>':'<span class="tf-chip">D normal</span>'}
-        <span class="tf-chip warn">Nur Long-Bias!</span>
+        <span class="tf-chip warn">Long Bias Only!</span>
       </div>
     </div>`;
   }).join("");
@@ -403,7 +403,7 @@ function filterTrend(){
   });
   const grid=document.getElementById("trendGrid");
   if(!f.length){
-    grid.innerHTML=allTrending.length>0?'<div class="empty">Keine Assets mit diesen Filtern</div>':'<div class="empty">screener.py ausführen</div>';
+    grid.innerHTML=allTrending.length>0?'<div class="empty">No assets with these filters</div>':'<div class="empty">Run screener.py</div>';
     return;
   }
   grid.innerHTML=f.map(d=>{
@@ -421,7 +421,7 @@ function filterTrend(){
       const c=d.price>dot.ema?"#1D9E75":"#e05050";
       return`<div class="ma-dot" style="background:${c}" title="EMA${dot.label}: ${dot.ema.toFixed(2)}">${dot.label}</div>`;
     }).join("");
-    const trendTxt=sc>=4?"▲▲ Stark Bullish":sc>=2?"▲ Bullish":sc>0?"▲ Leicht Bullish":sc<=-4?"▼▼ Stark Bearish":sc<=-2?"▼ Bearish":sc<0?"▼ Leicht Bearish":"↔ Neutral";
+    const trendTxt=sc>=4?"▲▲ Strong Bullish":sc>=2?"▲ Bullish":sc>0?"▲ Slightly Bullish":sc<=-4?"▼▼ Strong Bearish":sc<=-2?"▼ Bearish":sc<0?"▼ Slightly Bearish":"↔ Neutral";
     return`<div class="score-card ${cls}">
       <div class="scard-header"><span class="ticker">${d.name}</span><span class="stag">${d.group}</span></div>
       <div class="sname">${d.ticker}</div>
@@ -449,16 +449,16 @@ function filterTrend(){
 }
 
 const EARN=[
-  {t:"NVDA",n:"Nvidia",day:28,mo:"Mär",time:"Nach Börsenschluss",eps:"$8.42",imp:"high",avoid:true},
-  {t:"NKE",n:"Nike",day:1,mo:"Apr",time:"Nach Börsenschluss",eps:"$0.72",imp:"high",avoid:true},
-  {t:"JPM",n:"JPMorgan",day:11,mo:"Apr",time:"Vor Öffnung",eps:"$4.62",imp:"high",avoid:true},
-  {t:"GS",n:"Goldman Sachs",day:14,mo:"Apr",time:"Vor Öffnung",eps:"$12.08",imp:"high",avoid:true},
-  {t:"NFLX",n:"Netflix",day:15,mo:"Apr",time:"Nach Börsenschluss",eps:"$5.74",imp:"high",avoid:true},
-  {t:"TSLA",n:"Tesla",day:22,mo:"Apr",time:"Nach Börsenschluss",eps:"$0.42",imp:"high",avoid:true},
-  {t:"META",n:"Meta",day:23,mo:"Apr",time:"Nach Börsenschluss",eps:"$6.18",imp:"high",avoid:true},
-  {t:"MSFT",n:"Microsoft",day:23,mo:"Apr",time:"Nach Börsenschluss",eps:"$3.22",imp:"high",avoid:true},
-  {t:"GOOGL",n:"Alphabet",day:24,mo:"Apr",time:"Nach Börsenschluss",eps:"$2.01",imp:"high",avoid:true},
-  {t:"AMZN",n:"Amazon",day:30,mo:"Apr",time:"Nach Börsenschluss",eps:"$1.36",imp:"high",avoid:true},
+  {t:"NVDA",n:"Nvidia",day:28,mo:"Mär",time:"After market close",eps:"$8.42",imp:"high",avoid:true},
+  {t:"NKE",n:"Nike",day:1,mo:"Apr",time:"After market close",eps:"$0.72",imp:"high",avoid:true},
+  {t:"JPM",n:"JPMorgan",day:11,mo:"Apr",time:"Before market open",eps:"$4.62",imp:"high",avoid:true},
+  {t:"GS",n:"Goldman Sachs",day:14,mo:"Apr",time:"Before market open",eps:"$12.08",imp:"high",avoid:true},
+  {t:"NFLX",n:"Netflix",day:15,mo:"Apr",time:"After market close",eps:"$5.74",imp:"high",avoid:true},
+  {t:"TSLA",n:"Tesla",day:22,mo:"Apr",time:"After market close",eps:"$0.42",imp:"high",avoid:true},
+  {t:"META",n:"Meta",day:23,mo:"Apr",time:"After market close",eps:"$6.18",imp:"high",avoid:true},
+  {t:"MSFT",n:"Microsoft",day:23,mo:"Apr",time:"After market close",eps:"$3.22",imp:"high",avoid:true},
+  {t:"GOOGL",n:"Alphabet",day:24,mo:"Apr",time:"After market close",eps:"$2.01",imp:"high",avoid:true},
+  {t:"AMZN",n:"Amazon",day:30,mo:"Apr",time:"After market close",eps:"$1.36",imp:"high",avoid:true},
 ];
 function renderEarn(){
   document.getElementById("earnList").innerHTML=EARN.map(d=>`
@@ -469,7 +469,7 @@ function renderEarn(){
         <div class="earn-meta">
           <span class="earn-time">${d.time}</span>
           <span class="wtag ${d.imp==="high"?"high":"med"}">${d.imp==="high"?"High Impact":"Med"}</span>
-          ${d.avoid?'<span class="wtag avoid">Nicht traden!</span>':""}
+          ${d.avoid?'<span class="wtag avoid">Do not trade!</span>':""}
         </div>
       </div>
       <div class="earn-eps"><span>EPS est.</span><strong>${d.eps}</strong></div>
@@ -479,9 +479,9 @@ function renderEarn(){
 function checkNoTrade(){
   const h=new Date().getHours(),day=new Date().getDay();
   const msgs=[];
-  if(day===1&&h<10)msgs.push("Montag Pre-Market – geringes Volumen!");
-  if(day===5&&h>=18)msgs.push("Freitag nach 18 Uhr – Weekend-Gap-Risiko!");
-  if(h>=22||h<7)msgs.push("Ausserhalb Hauptsessions – niedrige Liquiditaet!");
+  if(day===1&&h<10)msgs.push("Monday Pre-Market – low volume!");
+  if(day===5&&h>=18)msgs.push("Friday after 6pm – weekend gap risk!");
+  if(h>=22||h<7)msgs.push("Outside main sessions – low liquidity!");
   const b=document.getElementById("noTradeBanner");
   if(msgs.length){b.style.display="flex";document.getElementById("noTradeText").textContent=msgs[0];}
 }
