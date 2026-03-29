@@ -545,9 +545,10 @@ function renderHeatmap(){
 function renderRRG(){
   const canvas = document.getElementById("rrgCanvas");
   if(!canvas) return;
-  const wrap = document.getElementById("rrgCanvasWrap");
   const dpr = window.devicePixelRatio || 1;
-  const cssW = Math.max(wrap.getBoundingClientRect().width, wrap.offsetWidth, 600);
+  // Calculate from main content area: viewport minus sidebar (180px) minus padding (40px)
+  const mainEl = document.querySelector(".main");
+  const cssW = mainEl ? (mainEl.clientWidth - 20) : (window.innerWidth - 220);
   const cssH = Math.round(cssW * 0.52);
   canvas.width  = Math.round(cssW * dpr);
   canvas.height = Math.round(cssH * dpr);
