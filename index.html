@@ -289,8 +289,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 
       <div class="section-title" style="margin-top:1.5rem">Sector Rotation — Relative Rotation Graph (vs S&P 500)</div>
       <div style="font-size:11px;color:#555;margin-bottom:1rem">X-axis = RS Ratio (outperforming if >100) · Y-axis = RS Momentum (gaining if >100) · Dot position = exact strength within quadrant</div>
-      <div style="position:relative;width:100%;max-width:700px">
-        <canvas id="rrgCanvas" width="700" height="500" style="width:100%;border:1px solid #1e1e1e;display:block"></canvas>
+      <div style="position:relative;width:100%" id="rrgCanvasWrap">
+        <canvas id="rrgCanvas" style="width:100%;border:1px solid #1e1e1e;display:block;image-rendering:crisp-edges"></canvas>
       </div>
       <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap" id="rrgLegend"></div>
       <div style="background:#111;border:1px solid #1e1e1e;padding:12px 14px;margin-top:10px">
@@ -545,9 +545,18 @@ function renderHeatmap(){
 function renderRRG(){
   const canvas = document.getElementById("rrgCanvas");
   if(!canvas) return;
+  const wrap = document.getElementById("rrgCanvasWrap");
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = wrap.clientWidth || 900;
+  const cssH = Math.round(cssW * 0.55);
+  canvas.width  = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width  = cssW + "px";
+  canvas.style.height = cssH + "px";
   const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height;
-  const PAD = {top:50, right:80, bottom:55, left:60};
+  ctx.scale(dpr, dpr);
+  const W = cssW, H = cssH;
+  const PAD = {top:50, right:90, bottom:55, left:65};
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
 
