@@ -284,11 +284,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <button class="tf-btn" onclick="setTF('3m',this)">3M</button>
         <button class="tf-btn" onclick="setTF('6m',this)">6M</button>
         <button class="tf-btn" onclick="setTF('ytd',this)">YTD</button>
+        <button class="tf-btn" onclick="setTF('1y',this)">1Y</button>
+        <button class="tf-btn" onclick="setTF('2y',this)">2Y</button>
       </div>
       <div class="heatmap-grid" id="heatmapGrid"><div class="empty" style="grid-column:1/-1">Loading data...</div></div>
 
       <div class="section-title" style="margin-top:1.5rem">Sector Rotation — Relative Rotation Graph (vs S&P 500)</div>
-      <div style="font-size:11px;color:#555;margin-bottom:1rem">X-axis = RS Ratio (outperforming if >100) · Y-axis = RS Momentum (gaining if >100) · Dot position = exact strength within quadrant</div>
+      <div style="font-size:11px;color:#555;margin-bottom:1rem">Timeframe synced with heatmap above · X = RS Ratio (>100 = outperforming SPY) · Y = RS Momentum (>100 = gaining strength)</div>
       <div style="position:relative;width:100%" id="rrgCanvasWrap">
         <canvas id="rrgCanvas" style="width:100%;border:1px solid #1e1e1e;display:block;image-rendering:crisp-edges"></canvas>
       </div>
@@ -313,7 +315,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 
 <script>
 const PASS="HBMS2026";
-const DATA_URL = "https://cdn.jsdelivr.net/gh/Henryblmb/HBMS-Trading@main/data.json";
+const DATA_URL="https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/refs/heads/main/data.json";
 let allStocks=[],allTrending=[],allSectors=[];
 let currentTF="1d";
 
@@ -515,6 +517,15 @@ function setTF(tf,btn){
   document.querySelectorAll(".tf-btn").forEach(b=>b.classList.remove("active"));
   if(btn)btn.classList.add("active");
   renderHeatmap();
+  // Update sector RS values for selected TF then redraw RRG
+  allSectors.forEach(s=>{
+    if(s.rrg && s.rrg[tf]){
+      s.rs_ratio    = s.rrg[tf].rs_ratio;
+      s.rs_momentum = s.rrg[tf].rs_momentum;
+      s.quadrant    = s.rrg[tf].quadrant;
+    }
+  });
+  setTimeout(()=>renderRRG(), 20);
 }
 
 function renderHeatmap(){
@@ -523,7 +534,7 @@ function renderHeatmap(){
     document.getElementById("heatmapGrid").innerHTML='<div class="empty" style="grid-column:1/-1">Run screener.py to load sector data</div>';
     return;
   }
-  const tfMap={"1d":"chg_1d","1w":"chg_1w","1m":"chg_1m","3m":"chg_3m","6m":"chg_6m","ytd":"chg_ytd"};
+  const tfMap={"1d":"chg_1d","1w":"chg_1w","1m":"chg_1m","3m":"chg_3m","6m":"chg_6m","ytd":"chg_ytd","1y":"chg_1y","2y":"chg_2y"};
   const key=tfMap[currentTF]||"chg_1d";
   const spy=allSectors.find(s=>s.ticker==="SPY");
   const spyVal=spy?spy[key]:null;
@@ -726,7 +737,14 @@ function renderSectorDetail(){
 
 function renderSectors(){
   renderHeatmap();
-  // Small delay to ensure layout is complete before measuring canvas width
+  // Set 1M as default RRG view on load
+  allSectors.forEach(s=>{
+    if(s.rrg && s.rrg["1m"]){
+      s.rs_ratio    = s.rrg["1m"].rs_ratio;
+      s.rs_momentum = s.rrg["1m"].rs_momentum;
+      s.quadrant    = s.rrg["1m"].quadrant;
+    }
+  });
   setTimeout(()=>{ renderRRG(); renderSectorDetail(); }, 50);
 }
 
