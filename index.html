@@ -163,6 +163,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .econ-prev{text-align:right;min-width:80px;font-size:11px;color:#555}
 .econ-prev strong{display:block;font-size:12px;color:#aaa;font-weight:500}
 .no-trade-tag{font-size:10px;padding:1px 7px;border-radius:0;font-weight:600;background:#e05050;color:#fff}
+
+/* BREADTH */
+.ma-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ma-bar-label{font-size:11px;color:#888;min-width:60px}
+.ma-bar-track{flex:1;height:6px;background:#1a1a1a;position:relative;border-radius:0}
+.ma-bar-fill{height:100%;border-radius:0;transition:width 0.4s}
+.ma-bar-pct{font-size:12px;font-weight:600;min-width:40px;text-align:right}
+.ma-bar-line50{position:absolute;left:50%;top:-2px;width:1px;height:10px;background:#333}
 </style>
 </head>
 <body>
@@ -193,6 +201,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-item" onclick="showTab('os',this)">Oversold</div>
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
+    <div class="nav-item" onclick="showTab('breadth',this)">Market Breadth</div>
     <div class="nav-section">Calendar</div>
     <div class="nav-item" onclick="showTab('econ',this)">Economic Calendar</div>
   </div>
@@ -326,6 +335,94 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     </div>
 
     <!-- EARNINGS -->
+    <div class="panel" id="tab-breadth">
+      <div class="section-title">Market Breadth — S&P 500 Universe</div>
+
+      <!-- Breadth Stats Bar -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:1.25rem" id="breadthStats">
+        <div class="stat"><div class="stat-val" id="b200">—</div><div class="stat-lbl">Above 200D</div></div>
+        <div class="stat"><div class="stat-val" id="b100">—</div><div class="stat-lbl">Above 100D</div></div>
+        <div class="stat"><div class="stat-val" id="b50">—</div><div class="stat-lbl">Above 50D</div></div>
+        <div class="stat"><div class="stat-val" id="b20">—</div><div class="stat-lbl">Above 20D</div></div>
+        <div class="stat"><div class="stat-val" id="b10">—</div><div class="stat-lbl">Above 10D</div></div>
+      </div>
+
+      <!-- MA Breadth Bars -->
+      <div style="background:#111;border:1px solid #1e1e1e;padding:14px 16px;margin-bottom:1rem" id="breadthBars">
+        <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">% of S&P 500 Stocks Above Moving Average</div>
+        <div id="maBarsContainer"></div>
+      </div>
+
+      <!-- A/D + New Highs/Lows -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+        <div style="background:#111;border:1px solid #1e1e1e;padding:14px 16px">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Advance / Decline</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:22px;font-weight:600;color:#1D9E75" id="adv">—</span>
+            <span style="color:#444">advancing</span>
+            <span style="font-size:22px;font-weight:600;color:#e05050;margin-left:auto" id="dec">—</span>
+            <span style="color:#444">declining</span>
+          </div>
+          <div style="height:8px;background:#1a1a1a;border-radius:0;overflow:hidden">
+            <div id="adBar" style="height:100%;background:#1D9E75;transition:width 0.3s"></div>
+          </div>
+          <div style="font-size:10px;color:#555;margin-top:4px" id="adRatioTxt">—</div>
+        </div>
+        <div style="background:#111;border:1px solid #1e1e1e;padding:14px 16px">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">New 52W Highs / Lows</div>
+          <div style="display:flex;gap:16px;margin-bottom:8px">
+            <div><div style="font-size:22px;font-weight:600;color:#1D9E75" id="nh">—</div><div style="font-size:10px;color:#555">New Highs</div></div>
+            <div><div style="font-size:22px;font-weight:600;color:#e05050" id="nl">—</div><div style="font-size:10px;color:#555">New Lows</div></div>
+          </div>
+          <div style="font-size:10px;color:#555" id="nhlPct">—</div>
+        </div>
+      </div>
+
+      <!-- Zweig Breadth Thrust -->
+      <div style="background:#111;border:1px solid #1e1e1e;padding:14px 16px;margin-bottom:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Zweig Breadth Thrust</div>
+          <div id="zweigBadge" style="font-size:11px;padding:2px 8px;border-radius:0;font-weight:600">—</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1">
+            <div style="height:8px;background:#1a1a1a;position:relative;border-radius:0">
+              <div style="position:absolute;left:0;top:0;height:100%;width:40%;background:#3a1a1a;border-right:1px dashed #e05050"></div>
+              <div style="position:absolute;left:61.5%;top:0;height:100%;width:38.5%;background:#0a1a0a;border-left:1px dashed #1D9E75"></div>
+              <div id="zweigBar" style="position:absolute;top:-3px;width:10px;height:14px;background:#EF9F27;transform:translateX(-50%);transition:left 0.3s"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:#333;margin-top:2px"><span>0</span><span style="color:#e05050">0.40</span><span style="color:#1D9E75">0.615</span><span>1.0</span></div>
+          </div>
+          <div style="font-size:18px;font-weight:600;color:#EF9F27;min-width:48px;text-align:right" id="zweigVal">—</div>
+        </div>
+        <div style="font-size:10px;color:#555;margin-top:8px">Thrust triggered when ratio crosses from &lt;0.40 to &gt;0.615 within 10 days. Rare bullish signal (+25% avg in 12m).</div>
+      </div>
+
+      <!-- Hindenburg Omen -->
+      <div id="hindenburgCard" style="background:#111;border:1px solid #1e1e1e;padding:14px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Hindenburg Omen</div>
+          <div id="hindenburgBadge" style="font-size:11px;padding:2px 8px;border-radius:0;font-weight:600">—</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px">
+          <div>
+            <div style="font-size:10px;color:#555">NH% &gt; 2.2%</div>
+            <div style="font-size:14px;font-weight:600" id="hindNH">—</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#555">NL% &gt; 2.2%</div>
+            <div style="font-size:14px;font-weight:600" id="hindNL">—</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#555">McClellan</div>
+            <div style="font-size:14px;font-weight:600" id="hindMcC">—</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#555">Conditions: NH% AND NL% both &gt;2.2% of issues + McClellan Oscillator negative. Warns of potential market crash within 40 days.</div>
+      </div>
+
+    </div>
+
     <div class="panel" id="tab-econ">
       <div class="section-title">Economic Calendar — No trading around High Impact events!</div>
 
@@ -407,6 +504,7 @@ async function loadData(){
     allStocks  =json.stocks  ||[];
     allTrending=json.trending||[];
     allSectors =json.sectors ||[];
+    breadthData = json.breadth || {};
     ECON       =(json.economic_calendar||[]).map(e=>({
       ...e,
       cat: inferCat(e.name||""),
@@ -414,7 +512,7 @@ async function loadData(){
     }));
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();
+    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();
   }catch(e){
     document.getElementById("apiBadge").textContent="Error";
     document.getElementById("gpGrid").innerHTML=`<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -818,6 +916,110 @@ window.addEventListener("resize", ()=>{
 // Economic calendar loaded from data.json
 let ECON = [];
 
+
+let breadthData = {};
+
+function renderBreadth(){
+  const b = breadthData;
+  if(!b || !b.universe_size){
+    document.getElementById("b200").textContent="—";
+    return;
+  }
+
+  // MA stats
+  const maData = [
+    {id:"b200", key:"pct_above_200", label:"Above 200D", val:b.pct_above_200},
+    {id:"b100", key:"pct_above_100", label:"Above 100D", val:b.pct_above_100},
+    {id:"b50",  key:"pct_above_50",  label:"Above 50D",  val:b.pct_above_50},
+    {id:"b20",  key:"pct_above_20",  label:"Above 20D",  val:b.pct_above_20},
+    {id:"b10",  key:"pct_above_10",  label:"Above 10D",  val:b.pct_above_10},
+  ];
+
+  maData.forEach(m=>{
+    const v = m.val;
+    if(v==null) return;
+    const el = document.getElementById(m.id);
+    if(el){
+      el.textContent = v.toFixed(1)+"%";
+      el.style.color = v>=70?"#1D9E75":v>=50?"#facc15":v>=30?"#EF9F27":"#e05050";
+    }
+  });
+
+  // MA bars
+  const bars = document.getElementById("maBarsContainer");
+  if(bars){
+    bars.innerHTML = maData.map(m=>{
+      const v = m.val ?? 0;
+      const col = v>=70?"#1D9E75":v>=50?"#facc15":v>=30?"#EF9F27":"#e05050";
+      return`<div class="ma-bar-row">
+        <span class="ma-bar-label">${m.label}</span>
+        <div class="ma-bar-track">
+          <div class="ma-bar-fill" style="width:${v}%;background:${col}"></div>
+          <div class="ma-bar-line50"></div>
+        </div>
+        <span class="ma-bar-pct" style="color:${col}">${v.toFixed(1)}%</span>
+      </div>`;
+    }).join("");
+  }
+
+  // A/D
+  const adv = b.advancing||0, dec = b.declining||0, tot = adv+dec;
+  document.getElementById("adv").textContent = adv;
+  document.getElementById("dec").textContent = dec;
+  const adPct = tot>0?(adv/tot*100):50;
+  document.getElementById("adBar").style.width = adPct+"%";
+  document.getElementById("adRatioTxt").textContent = `A/D Ratio: ${adv}:${dec} (${adPct.toFixed(1)}% advancing)`;
+
+  // New Highs/Lows
+  document.getElementById("nh").textContent = b.new_highs??0;
+  document.getElementById("nl").textContent = b.new_lows??0;
+  document.getElementById("nhlPct").textContent = `NH: ${b.nh_pct??0}% · NL: ${b.nl_pct??0}% of universe (${b.universe_size} stocks)`;
+
+  // Zweig Breadth Thrust
+  const zr = b.zweig_ratio??0.5;
+  const zPct = (zr*100).toFixed(1)+"%";
+  document.getElementById("zweigVal").textContent = zr.toFixed(3);
+  document.getElementById("zweigBar").style.left = (zr*100)+"%";
+  const zBadge = document.getElementById("zweigBadge");
+  if(b.zweig_active){
+    zBadge.textContent="★ THRUST ACTIVE";
+    zBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#0a1a0a;color:#1D9E75;border:1px solid #1D9E75";
+  } else if(b.zweig_setup){
+    zBadge.textContent="⚡ Setup Phase (<0.40)";
+    zBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#3a1a1a;color:#e05050;border:1px solid #5a1a1a";
+  } else {
+    zBadge.textContent="Neutral";
+    zBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#1a1a1a;color:#555;border:1px solid #222";
+  }
+
+  // Hindenburg Omen
+  const hActive = b.hindenburg_active;
+  const hCard = document.getElementById("hindenburgCard");
+  const hBadge = document.getElementById("hindenburgBadge");
+  const nhPct = b.hindenburg_nh_pct??0;
+  const nlPct = b.hindenburg_nl_pct??0;
+  const mcc   = b.mclellan??0;
+
+  document.getElementById("hindNH").textContent = nhPct.toFixed(2)+"%";
+  document.getElementById("hindNH").style.color = nhPct>2.2?"#e05050":"#1D9E75";
+  document.getElementById("hindNL").textContent = nlPct.toFixed(2)+"%";
+  document.getElementById("hindNL").style.color = nlPct>2.2?"#e05050":"#1D9E75";
+  document.getElementById("hindMcC").textContent = mcc.toFixed(1);
+  document.getElementById("hindMcC").style.color = mcc<0?"#e05050":"#1D9E75";
+
+  if(hActive){
+    hCard.style.borderColor="#e05050";
+    hBadge.textContent="⚠ OMEN ACTIVE";
+    hBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#3a1a1a;color:#e05050;border:1px solid #5a1a1a";
+  } else {
+    hCard.style.borderColor="#1e1e1e";
+    const condsMet = (nhPct>2.2?1:0)+(nlPct>2.2?1:0)+(mcc<0?1:0);
+    hBadge.textContent = condsMet===0?"Clear":`${condsMet}/3 conditions`;
+    hBadge.style.cssText = condsMet>=2
+      ? "font-size:11px;padding:2px 8px;font-weight:600;background:#3a2a1a;color:#EF9F27;border:1px solid #5a3a1a"
+      : "font-size:11px;padding:2px 8px;font-weight:600;background:#1a1a1a;color:#1D9E75;border:1px solid #1D9E75";
+  }
+}
 
 function inferCat(name){
   const n = name.toLowerCase();
