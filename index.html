@@ -473,7 +473,7 @@ function checkPass(){
   if(document.getElementById("pwInput").value===PASS){
     document.getElementById("lockScreen").style.display="none";
     document.getElementById("dashboard").style.display="grid";
-    checkNoTrade();loadData();
+    checkNoTrade();loadData();renderEcon();
   } else {
     const e=document.getElementById("lockErr");
     e.style.display="block";
@@ -506,11 +506,6 @@ async function loadData(){
     allTrending=json.trending||[];
     allSectors =json.sectors ||[];
     breadthData = json.breadth || {};
-    ECON       =(json.economic_calendar||[]).map(e=>({
-      ...e,
-      cat: inferCat(e.name||""),
-      avoid: e.avoid || (e.impact==="high" && /nonfarm|payroll|cpi|fomc|rate decision|gdp|pce/i.test(e.name||"")),
-    }));
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
     updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();
@@ -914,8 +909,48 @@ window.addEventListener("resize", ()=>{
 
 // ─── EARNINGS ────────────────────────────────────────────────────
 // ─── ECONOMIC CALENDAR DATA ──────────────────────────────────────
-// Economic calendar loaded from data.json
-let ECON = [];
+const ECON = [
+  // April 2026
+  {date:"2026-04-01",name:"ISM Manufacturing PMI",time:"10:00 ET",impact:"high",cat:"growth",prev:"50.3",note:"Below 50 = contraction",avoid:false},
+  {date:"2026-04-02",name:"JOLTS Job Openings",time:"10:00 ET",impact:"medium",cat:"jobs",prev:"7.74M",note:"",avoid:false},
+  {date:"2026-04-03",name:"ADP Employment Change",time:"08:15 ET",impact:"high",cat:"jobs",prev:"+77K",note:"Preview of NFP",avoid:false},
+  {date:"2026-04-03",name:"ISM Services PMI",time:"10:00 ET",impact:"high",cat:"growth",prev:"53.5",note:"",avoid:false},
+  {date:"2026-04-04",name:"Non-Farm Payrolls (NFP)",time:"08:30 ET",impact:"high",cat:"jobs",prev:"+151K",note:"Most market-moving report",avoid:true},
+  {date:"2026-04-04",name:"Unemployment Rate",time:"08:30 ET",impact:"high",cat:"jobs",prev:"4.1%",note:"",avoid:true},
+  {date:"2026-04-10",name:"CPI Inflation (MoM)",time:"08:30 ET",impact:"high",cat:"inflation",prev:"+0.2%",note:"Core CPI most watched",avoid:true},
+  {date:"2026-04-10",name:"Core CPI (YoY)",time:"08:30 ET",impact:"high",cat:"inflation",prev:"3.1%",note:"Fed target: 2%",avoid:true},
+  {date:"2026-04-11",name:"PPI (Producer Price Index)",time:"08:30 ET",impact:"medium",cat:"inflation",prev:"-0.1%",note:"Leading indicator for CPI",avoid:false},
+  {date:"2026-04-14",name:"JPMorgan Earnings",time:"Before open",impact:"high",cat:"other",prev:"$4.81 EPS",note:"Kicks off bank earnings season",avoid:true},
+  {date:"2026-04-15",name:"Retail Sales (MoM)",time:"08:30 ET",impact:"high",cat:"growth",prev:"-0.9%",note:"Consumer spending health",avoid:false},
+  {date:"2026-04-16",name:"Fed Beige Book",time:"14:00 ET",impact:"medium",cat:"fed",prev:"",note:"Regional economic conditions",avoid:false},
+  {date:"2026-04-17",name:"Initial Jobless Claims",time:"08:30 ET",impact:"medium",cat:"jobs",prev:"223K",note:"Weekly employment gauge",avoid:false},
+  {date:"2026-04-17",name:"Philadelphia Fed Index",time:"08:30 ET",impact:"medium",cat:"growth",prev:"-26.4",note:"Manufacturing sentiment",avoid:false},
+  {date:"2026-04-23",name:"Flash PMI (Composite)",time:"09:45 ET",impact:"medium",cat:"growth",prev:"53.5",note:"Early economic activity signal",avoid:false},
+  {date:"2026-04-25",name:"GDP Growth Rate Q1 (Advance)",time:"08:30 ET",impact:"high",cat:"growth",prev:"+2.4%",note:"First estimate – highly volatile",avoid:true},
+  {date:"2026-04-25",name:"PCE Price Index (Core)",time:"08:30 ET",impact:"high",cat:"inflation",prev:"+0.4%",note:"Fed's preferred inflation gauge",avoid:true},
+  {date:"2026-04-29",name:"Consumer Confidence",time:"10:00 ET",impact:"medium",cat:"growth",prev:"92.9",note:"",avoid:false},
+  {date:"2026-04-30",name:"FOMC Meeting Begins",time:"All day",impact:"high",cat:"fed",prev:"",note:"Rate decision May 7",avoid:false},
+  // May 2026
+  {date:"2026-05-02",name:"Non-Farm Payrolls (NFP)",time:"08:30 ET",impact:"high",cat:"jobs",prev:"+151K",note:"",avoid:true},
+  {date:"2026-05-07",name:"FOMC Rate Decision",time:"14:00 ET",impact:"high",cat:"fed",prev:"4.25-4.50%",note:"Powell press conference 14:30",avoid:true},
+  {date:"2026-05-08",name:"Powell Press Conference",time:"14:30 ET",impact:"high",cat:"fed",prev:"",note:"Forward guidance key",avoid:true},
+  {date:"2026-05-13",name:"CPI Inflation",time:"08:30 ET",impact:"high",cat:"inflation",prev:"",note:"",avoid:true},
+  {date:"2026-05-15",name:"Retail Sales",time:"08:30 ET",impact:"high",cat:"growth",prev:"",note:"",avoid:false},
+  {date:"2026-05-22",name:"Flash PMI",time:"09:45 ET",impact:"medium",cat:"growth",prev:"",note:"",avoid:false},
+  {date:"2026-05-29",name:"GDP Q1 (Second Estimate)",time:"08:30 ET",impact:"medium",cat:"growth",prev:"",note:"Revision to advance estimate",avoid:false},
+  // June 2026
+  {date:"2026-06-06",name:"Non-Farm Payrolls",time:"08:30 ET",impact:"high",cat:"jobs",prev:"",note:"",avoid:true},
+  {date:"2026-06-10",name:"CPI Inflation",time:"08:30 ET",impact:"high",cat:"inflation",prev:"",note:"",avoid:true},
+  {date:"2026-06-17",name:"FOMC Meeting Begins",time:"All day",impact:"high",cat:"fed",prev:"",note:"Rate decision June 18",avoid:false},
+  {date:"2026-06-18",name:"FOMC Rate Decision",time:"14:00 ET",impact:"high",cat:"fed",prev:"",note:"Powell press conference 14:30",avoid:true},
+  {date:"2026-06-25",name:"Flash PMI",time:"09:45 ET",impact:"medium",cat:"growth",prev:"",note:"",avoid:false},
+  // July 2026
+  {date:"2026-07-02",name:"Non-Farm Payrolls",time:"08:30 ET",impact:"high",cat:"jobs",prev:"",note:"",avoid:true},
+  {date:"2026-07-10",name:"CPI Inflation",time:"08:30 ET",impact:"high",cat:"inflation",prev:"",note:"",avoid:true},
+  {date:"2026-07-28",name:"FOMC Rate Decision",time:"14:00 ET",impact:"high",cat:"fed",prev:"",note:"",avoid:true},
+  {date:"2026-07-30",name:"GDP Q2 Advance Estimate",time:"08:30 ET",impact:"high",cat:"growth",prev:"",note:"",avoid:true},
+];
+
 
 
 let breadthData = {};
@@ -1036,12 +1071,6 @@ function inferCat(name){
 }
 
 function renderEcon(){
-  if(!ECON.length){
-    document.getElementById("econList").innerHTML='<div class="empty">Economic calendar data loading... Run screener.py to fetch live events.</div>';
-    document.getElementById("nextEventName").textContent="Run screener.py";
-    document.getElementById("nextEventDate").textContent="to load live calendar data";
-    return;
-  }
   const filterImp = document.getElementById("econFilter").value;
   const filterCat = document.getElementById("econCat").value;
   const today = new Date(); today.setHours(0,0,0,0);
