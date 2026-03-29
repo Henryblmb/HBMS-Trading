@@ -288,33 +288,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="heatmap-grid" id="heatmapGrid"><div class="empty" style="grid-column:1/-1">Loading data...</div></div>
 
       <div class="section-title" style="margin-top:1.5rem">Sector Rotation — Relative Rotation Graph (vs S&P 500)</div>
-      <div style="font-size:11px;color:#555;margin-bottom:1rem">RS Ratio > 100 = outperforming benchmark · RS Momentum > 100 = gaining strength</div>
-      <div class="rrg-wrap" id="rrgWrap">
-        <div class="rrg-quad improving">
-          <div class="rrg-label improving">↗ Improving</div>
-          <div class="rrg-desc">Underperforming but gaining momentum</div>
-          <div class="rrg-chips" id="rrg-improving"></div>
-        </div>
-        <div class="rrg-quad leading">
-          <div class="rrg-label leading">★ Leading</div>
-          <div class="rrg-desc">Outperforming & gaining strength</div>
-          <div class="rrg-chips" id="rrg-leading"></div>
-        </div>
-        <div class="rrg-quad lagging">
-          <div class="rrg-label lagging">↙ Lagging</div>
-          <div class="rrg-desc">Underperforming & losing momentum</div>
-          <div class="rrg-chips" id="rrg-lagging"></div>
-        </div>
-        <div class="rrg-quad weakening">
-          <div class="rrg-label weakening">↘ Weakening</div>
-          <div class="rrg-desc">Outperforming but losing momentum</div>
-          <div class="rrg-chips" id="rrg-weakening"></div>
-        </div>
-        <div style="grid-column:1/-1;background:#111;border:1px solid #1e1e1e;padding:12px 14px">
-          <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">⚠ Diverging — Short & Long Term Disagree</div>
-          <div class="rrg-chips" id="rrg-diverging"></div>
-          <div style="font-size:9px;color:#333;margin-top:6px">Long term (1Y) and short term (3M) momentum point in different directions — watch closely for rotation</div>
-        </div>
+      <div style="font-size:11px;color:#555;margin-bottom:1rem">X-axis = RS Ratio (outperforming if >100) · Y-axis = RS Momentum (gaining if >100) · Dot position = exact strength within quadrant</div>
+      <div style="position:relative;width:100%;max-width:700px">
+        <canvas id="rrgCanvas" width="700" height="500" style="width:100%;border:1px solid #1e1e1e;display:block"></canvas>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap" id="rrgLegend"></div>
+      <div style="background:#111;border:1px solid #1e1e1e;padding:12px 14px;margin-top:10px">
+        <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">⚠ Diverging — Short & Long Term Disagree</div>
+        <div class="rrg-chips" id="rrg-diverging"></div>
+        <div style="font-size:9px;color:#333;margin-top:6px">Long term (1Y) and short term (3M) momentum point in different directions — watch closely for rotation</div>
       </div>
 
       <div class="section-title">Sector Detail</div>
@@ -561,21 +543,160 @@ function renderHeatmap(){
 }
 
 function renderRRG(){
-  const quads=["leading","weakening","lagging","improving"];
-  quads.forEach(q=>{
-    const items=allSectors.filter(s=>s.quadrant===q&&s.sector!=="Benchmark");
-    document.getElementById("rrg-"+q).innerHTML=items.length
-      ?items.map(s=>{
-        const div=s.diverging?'<span style="font-size:9px;color:#EF9F27;margin-left:3px">⚠</span>':'';
-        const tooltip=s.q_long&&s.q_short?`Long:${s.q_long} Short:${s.q_short}`:'';
-        return`<span class="rrg-chip ${q}" title="${tooltip}">${s.sector}${div}</span>`;
-      }).join("")
-      :`<span style="font-size:10px;color:#333">None</span>`;
+  const canvas = document.getElementById("rrgCanvas");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const PAD = 60;
+  const cX = PAD + (W-PAD*2)/2; // center X (RS Ratio = 100)
+  const cY = PAD + (H-PAD*2)/2; // center Y (RS Momentum = 100)
+  const plotW = W - PAD*2;
+  const plotH = H - PAD*2;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Get data range
+  const sectors = allSectors.filter(s=>s.sector!=="Benchmark"&&s.rs_ratio!=null&&s.rs_momentum!=null);
+  if(!sectors.length) return;
+
+  const allR = sectors.map(s=>s.rs_ratio);
+  const allM = sectors.map(s=>s.rs_momentum);
+  const rMin = Math.min(...allR, 97), rMax = Math.max(...allR, 103);
+  const mMin = Math.min(...allM, 97), mMax = Math.max(...allM, 103);
+  const rRange = Math.max(rMax-rMin, 8);
+  const mRange = Math.max(mMax-mMin, 8);
+  const rCenter = 100, mCenter = 100;
+  const rScale = plotW / rRange;
+  const mScale = plotH / mRange;
+
+  function toX(r){ return PAD + (r - (rCenter - rRange/2)) * rScale; }
+  function toY(m){ return PAD + plotH - (m - (mCenter - mRange/2)) * mScale; }
+
+  const centerX = toX(100);
+  const centerY = toY(100);
+
+  // Quadrant backgrounds
+  ctx.fillStyle = "rgba(13,74,26,0.3)";  // Leading - top right
+  ctx.fillRect(centerX, PAD, W-PAD-centerX, centerY-PAD);
+  ctx.fillStyle = "rgba(74,26,26,0.3)";  // Lagging - bottom left
+  ctx.fillRect(PAD, centerY, centerX-PAD, H-PAD-centerY);
+  ctx.fillStyle = "rgba(26,20,0,0.3)";   // Weakening - bottom right
+  ctx.fillRect(centerX, centerY, W-PAD-centerX, H-PAD-centerY);
+  ctx.fillStyle = "rgba(10,15,26,0.3)";  // Improving - top left
+  ctx.fillRect(PAD, PAD, centerX-PAD, centerY-PAD);
+
+  // Grid lines
+  ctx.strokeStyle = "#1e1e1e";
+  ctx.lineWidth = 1;
+  // Vertical gridlines every 2 units
+  for(let r=Math.ceil(rCenter-rRange/2); r<=rCenter+rRange/2; r+=2){
+    const x = toX(r);
+    ctx.beginPath(); ctx.moveTo(x,PAD); ctx.lineTo(x,H-PAD); ctx.stroke();
+  }
+  for(let m=Math.ceil(mCenter-mRange/2); m<=mCenter+mRange/2; m+=2){
+    const y = toY(m);
+    ctx.beginPath(); ctx.moveTo(PAD,y); ctx.lineTo(W-PAD,y); ctx.stroke();
+  }
+
+  // Center crosshair
+  ctx.strokeStyle = "#333";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(centerX,PAD); ctx.lineTo(centerX,H-PAD); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD,centerY); ctx.lineTo(W-PAD,centerY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axis labels
+  ctx.fillStyle = "#555";
+  ctx.font = "10px -apple-system,sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("RS-Ratio", W/2, H-10);
+  ctx.save(); ctx.translate(14, H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText("RS-Momentum", 0, 0); ctx.restore();
+
+  // Quadrant labels
+  ctx.font = "bold 11px -apple-system,sans-serif";
+  ctx.fillStyle = "#1D9E75"; ctx.textAlign="right";
+  ctx.fillText("★ LEADING", W-PAD-6, PAD+16);
+  ctx.fillStyle = "#e05050"; ctx.textAlign="left";
+  ctx.fillText("↙ LAGGING", PAD+6, H-PAD-6);
+  ctx.fillStyle = "#EF9F27"; ctx.textAlign="right";
+  ctx.fillText("↘ WEAKENING", W-PAD-6, H-PAD-6);
+  ctx.fillStyle = "#60a5fa"; ctx.textAlign="left";
+  ctx.fillText("↗ IMPROVING", PAD+6, PAD+16);
+
+  // Axis tick values
+  ctx.fillStyle="#444"; ctx.font="9px -apple-system,sans-serif"; ctx.textAlign="center";
+  for(let r=Math.ceil(rCenter-rRange/2); r<=rCenter+rRange/2; r+=2){
+    ctx.fillText(r, toX(r), H-PAD+14);
+  }
+  ctx.textAlign="right";
+  for(let m=Math.ceil(mCenter-mRange/2); m<=mCenter+mRange/2; m+=2){
+    ctx.fillText(m, PAD-6, toY(m)+3);
+  }
+
+  // Sector colors
+  const COLORS = {
+    "Tech":"#60a5fa","Healthcare":"#a78bfa","Real Estate":"#fb923c",
+    "Energy":"#facc15","Consumer Staples":"#86efac","Commodities":"#fde68a",
+    "Metals":"#d4d4d8","Finance":"#67e8f9","Software":"#c084fc","Industrial":"#fdba74"
+  };
+
+  // Draw dots + labels
+  const legendData = [];
+  sectors.forEach(s=>{
+    const x = toX(s.rs_ratio);
+    const y = toY(s.rs_momentum);
+    const col = COLORS[s.sector] || "#888";
+
+    // Glow for diverging
+    if(s.diverging){
+      ctx.beginPath();
+      ctx.arc(x, y, 10, 0, Math.PI*2);
+      ctx.fillStyle = "rgba(239,159,39,0.2)";
+      ctx.fill();
+    }
+
+    // Dot
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI*2);
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.strokeStyle = "#0a0a0a";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 10px -apple-system,sans-serif";
+    ctx.textAlign = x > W*0.7 ? "right" : "left";
+    const lx = x > W*0.7 ? x-10 : x+10;
+    ctx.fillText(s.sector, lx, y-10);
+
+    // Diverging warning
+    if(s.diverging){
+      ctx.fillStyle = "#EF9F27";
+      ctx.font = "10px -apple-system,sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("⚠", x+8, y+4);
+    }
+
+    legendData.push({sector: s.sector, col, quadrant: s.quadrant, diverging: s.diverging, q_long: s.q_long, q_short: s.q_short});
   });
-  // Diverging
-  const divItems=allSectors.filter(s=>s.diverging&&s.sector!=="Benchmark");
-  document.getElementById("rrg-diverging").innerHTML=divItems.length
-    ?divItems.map(s=>`<span class="rrg-chip weakening" title="Long:${s.q_long} Short:${s.q_short}">${s.sector} <span style="font-size:9px">${s.q_long}→${s.q_short}</span></span>`).join("")
+
+  // Legend
+  const qColor = {leading:"#1D9E75",weakening:"#EF9F27",lagging:"#e05050",improving:"#60a5fa"};
+  document.getElementById("rrgLegend").innerHTML = legendData.map(l=>`
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#aaa">
+      <div style="width:10px;height:10px;background:${l.col};flex-shrink:0"></div>
+      <span style="color:${qColor[l.quadrant]||"#888"}">${l.sector}</span>
+      ${l.diverging?`<span style="color:#EF9F27;font-size:9px">⚠${l.q_long}→${l.q_short}</span>`:""}
+    </div>`).join("");
+
+  // Diverging section
+  const divItems = allSectors.filter(s=>s.diverging&&s.sector!=="Benchmark");
+  document.getElementById("rrg-diverging").innerHTML = divItems.length
+    ?divItems.map(s=>`<span class="rrg-chip weakening">${s.sector} <span style="font-size:9px">${s.q_long}→${s.q_short}</span></span>`).join("")
     :`<span style="font-size:10px;color:#333">None</span>`;
 }
 
