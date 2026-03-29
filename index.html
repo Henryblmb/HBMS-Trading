@@ -38,8 +38,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .filter-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#111;border:1px solid #1e1e1e;border-radius:0}
 .filter-row label{font-size:11px;color:#555;white-space:nowrap}
 .filter-row select{padding:5px 8px;font-size:12px;border:1px solid #252525;border-radius:0;background:#1a1a1a;color:#ccc;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;min-width:120px;}
-.filter-row select:hover{background:#141414;border-color:#222;}
-.filter-row select:focus{background:#141414;border-color:#222;outline:none;}
+.filter-row select:hover,.filter-row select:focus{background:#141414;border-color:#222;outline:none;}
 .filter-row input[type=range]{width:90px;accent-color:#1D9E75}
 .fval{font-size:12px;font-weight:600;color:#aaa;min-width:24px}
 .section-title{font-size:10px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
@@ -106,6 +105,42 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .perf-item{font-size:10px;color:#444}
 input[type=range]{-webkit-appearance:none;height:3px;border-radius:0;background:#2a2a2a;outline:none}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:0;background:#1D9E75;cursor:pointer}
+
+/* SECTOR HEATMAP */
+.heatmap-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:1.5rem}
+.heat-cell{border-radius:0;padding:14px 10px;text-align:center;cursor:default;border:1px solid #1e1e1e;transition:opacity 0.15s}
+.heat-cell:hover{opacity:0.85}
+.heat-name{font-size:12px;font-weight:600;color:#fff;margin-bottom:4px}
+.heat-chg{font-size:18px;font-weight:600}
+.heat-sub{font-size:10px;color:rgba(255,255,255,0.6);margin-top:3px}
+
+/* RRG */
+.rrg-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1e1e1e;border:1px solid #1e1e1e;margin-bottom:1.5rem}
+.rrg-quad{padding:16px;display:flex;flex-direction:column;gap:8px;min-height:160px}
+.rrg-quad.leading{background:#0a1a0a}
+.rrg-quad.weakening{background:#1a1400}
+.rrg-quad.lagging{background:#1a0a0a}
+.rrg-quad.improving{background:#0a0f1a}
+.rrg-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.rrg-label.leading{color:#1D9E75}
+.rrg-label.weakening{color:#EF9F27}
+.rrg-label.lagging{color:#e05050}
+.rrg-label.improving{color:#60a5fa}
+.rrg-desc{font-size:9px;color:#555;margin-bottom:8px}
+.rrg-chips{display:flex;flex-wrap:wrap;gap:5px}
+.rrg-chip{font-size:11px;font-weight:600;padding:4px 10px;border-radius:0;border:1px solid}
+.rrg-chip.leading{color:#1D9E75;border-color:#1a3a1a;background:#0a1a0a}
+.rrg-chip.weakening{color:#EF9F27;border-color:#3a2a1a;background:#1a1200}
+.rrg-chip.lagging{color:#e05050;border-color:#3a1a1a;background:#1a0a0a}
+.rrg-chip.improving{color:#60a5fa;border-color:#1a2a3a;background:#0a0f1a}
+.timeframe-btns{display:flex;gap:4px;margin-bottom:1rem}
+.tf-btn{font-size:11px;padding:4px 12px;border:1px solid #252525;border-radius:0;background:#1a1a1a;color:#888;cursor:pointer}
+.tf-btn.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.sector-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.sec-card{background:#111;border:1px solid #1e1e1e;border-radius:0;padding:10px 12px}
+.sec-name{font-size:12px;font-weight:600;color:#fff;margin-bottom:6px}
+.sec-perf-row{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:2px}
+.sec-perf-row span:last-child{font-weight:600}
 </style>
 </head>
 <body>
@@ -115,8 +150,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="logo">HBMS <span>Trading</span></div>
     <div class="lock-sub">Private Trading Dashboard</div>
     <input class="lock-input" type="password" id="pwInput" placeholder="Password" autocomplete="off"/>
-    <div class="lock-err" id="lockErr">Falsches Password.</div>
-    <button class="lock-btn" onclick="checkPass()">Einloggen</button>
+    <div class="lock-err" id="lockErr">Wrong password.</div>
+    <button class="lock-btn" onclick="checkPass()">Login</button>
   </div>
 </div>
 
@@ -132,11 +167,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 
   <div class="sidebar">
     <div class="nav-section">Screener</div>
-    <div class="nav-item active" onclick="showTab('gp')">Golden Pocket</div>
-    <div class="nav-item" onclick="showTab('os')">Oversold</div>
-    <div class="nav-item" onclick="showTab('trend')">Trend Strength</div>
+    <div class="nav-item active" onclick="showTab('gp',this)">Golden Pocket</div>
+    <div class="nav-item" onclick="showTab('os',this)">Oversold</div>
+    <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
+    <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-section">Calendar</div>
-    <div class="nav-item" onclick="showTab('earn')">Earnings</div>
+    <div class="nav-item" onclick="showTab('earn',this)">Earnings</div>
   </div>
 
   <div class="main">
@@ -153,6 +189,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="stat"><div class="stat-val" id="s6">—</div><div class="stat-lbl">Assets</div></div>
     </div>
 
+    <!-- GOLDEN POCKET -->
     <div class="panel active" id="tab-gp">
       <div class="filter-row">
         <label>Move Type:</label>
@@ -179,6 +216,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="stock-grid" id="gpGrid"><div class="empty">Loading data...</div></div>
     </div>
 
+    <!-- OVERSOLD -->
     <div class="panel" id="tab-os">
       <div class="filter-row">
         <label>Max RSI Weekly:</label>
@@ -206,6 +244,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="stock-grid" id="osGrid"><div class="empty">Loading data...</div></div>
     </div>
 
+    <!-- TREND STRENGTH -->
     <div class="panel" id="tab-trend">
       <div class="filter-row">
         <label>Group:</label>
@@ -235,6 +274,49 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="score-grid" id="trendGrid"><div class="empty">Loading data...</div></div>
     </div>
 
+    <!-- SECTOR HEATMAP -->
+    <div class="panel" id="tab-sectors">
+      <div class="section-title">Sector Heatmap — Performance vs S&P 500 Benchmark</div>
+      <div class="timeframe-btns">
+        <button class="tf-btn active" onclick="setTF('1d',this)">1D</button>
+        <button class="tf-btn" onclick="setTF('1w',this)">1W</button>
+        <button class="tf-btn" onclick="setTF('1m',this)">1M</button>
+        <button class="tf-btn" onclick="setTF('3m',this)">3M</button>
+        <button class="tf-btn" onclick="setTF('6m',this)">6M</button>
+        <button class="tf-btn" onclick="setTF('ytd',this)">YTD</button>
+      </div>
+      <div class="heatmap-grid" id="heatmapGrid"><div class="empty" style="grid-column:1/-1">Loading data...</div></div>
+
+      <div class="section-title" style="margin-top:1.5rem">Sector Rotation — Relative Rotation Graph (vs S&P 500)</div>
+      <div style="font-size:11px;color:#555;margin-bottom:1rem">RS Ratio > 100 = outperforming benchmark · RS Momentum > 100 = gaining strength</div>
+      <div class="rrg-wrap" id="rrgWrap">
+        <div class="rrg-quad improving">
+          <div class="rrg-label improving">↗ Improving</div>
+          <div class="rrg-desc">Underperforming but gaining momentum</div>
+          <div class="rrg-chips" id="rrg-improving"></div>
+        </div>
+        <div class="rrg-quad leading">
+          <div class="rrg-label leading">★ Leading</div>
+          <div class="rrg-desc">Outperforming & gaining strength</div>
+          <div class="rrg-chips" id="rrg-leading"></div>
+        </div>
+        <div class="rrg-quad lagging">
+          <div class="rrg-label lagging">↙ Lagging</div>
+          <div class="rrg-desc">Underperforming & losing momentum</div>
+          <div class="rrg-chips" id="rrg-lagging"></div>
+        </div>
+        <div class="rrg-quad weakening">
+          <div class="rrg-label weakening">↘ Weakening</div>
+          <div class="rrg-desc">Outperforming but losing momentum</div>
+          <div class="rrg-chips" id="rrg-weakening"></div>
+        </div>
+      </div>
+
+      <div class="section-title">Sector Detail</div>
+      <div class="sector-detail-grid" id="sectorDetailGrid"></div>
+    </div>
+
+    <!-- EARNINGS -->
     <div class="panel" id="tab-earn">
       <div class="section-title">Earnings — No trading 2 days before/after High Impact!</div>
       <div class="earn-list" id="earnList"></div>
@@ -245,7 +327,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 <script>
 const PASS="HBMS2026";
 const DATA_URL="https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/refs/heads/main/data.json";
-let allStocks=[],allTrending=[];
+let allStocks=[],allTrending=[],allSectors=[];
+let currentTF="1d";
 
 function checkPass(){
   if(document.getElementById("pwInput").value===PASS){
@@ -265,27 +348,28 @@ document.addEventListener("DOMContentLoaded",()=>{
 function logout(){
   document.getElementById("dashboard").style.display="none";
   document.getElementById("lockScreen").style.display="flex";
-  allStocks=[];allTrending=[];
+  allStocks=[];allTrending=[];allSectors=[];
 }
-function showTab(id){
+function showTab(id,el){
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
-  event.target.classList.add("active");
+  if(el)el.classList.add("active");
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
   document.getElementById("tab-"+id).classList.add("active");
 }
 async function loadData(){
   try{
     document.getElementById("apiBadge").textContent="Loading...";
-    const r=await fetch(DATA_URL+"?t="+Date.now());
+    const r=await fetch(DATA_URL);
     if(!r.ok)throw new Error("HTTP "+r.status);
     const json=await r.json();
-    allStocks=json.stocks||[];
+    allStocks  =json.stocks  ||[];
     allTrending=json.trending||[];
+    allSectors =json.sectors ||[];
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    updateStats();filterGP();filterOS();filterTrend();
+    updateStats();filterGP();filterOS();filterTrend();renderSectors();
   }catch(e){
-    document.getElementById("apiBadge").textContent="Fehler";
+    document.getElementById("apiBadge").textContent="Error";
     document.getElementById("gpGrid").innerHTML=`<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
   }
 }
@@ -297,12 +381,13 @@ function updateStats(){
   document.getElementById("s5").textContent=allStocks.length;
   document.getElementById("s6").textContent=allTrending.length;
 }
-function fmtP(p){return p==null?"—":p<10?p.toFixed(4):p.toLocaleString("de-DE",{maximumFractionDigits:2});}
+function fmtP(p){return p==null?"—":p<10?p.toFixed(4):p.toLocaleString("en-US",{maximumFractionDigits:2});}
 function fmtChg(c,sfx=""){
   if(c==null)return'<span style="color:#444">—</span>';
   return`<span class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}${sfx}</span>`;
 }
 
+// ─── GOLDEN POCKET ───────────────────────────────────────────────
 function filterGP(){
   const sig=document.getElementById("gpSig").value;
   const idx=document.getElementById("gpIdx").value;
@@ -334,12 +419,12 @@ function filterGP(){
   }).join("");
 }
 
+// ─── OVERSOLD ────────────────────────────────────────────────────
 function updateSliders(){
   document.getElementById("rsiWval").textContent=document.getElementById("rsiW").value;
   document.getElementById("rsiDval").textContent=document.getElementById("rsiD").value;
 }
 function rsiColor(v){if(v==null)return"#444";if(v<20)return"#e05050";if(v<25)return"#EF9F27";if(v<30)return"#facc15";return"#1D9E75";}
-
 function filterOS(){
   const mW=parseInt(document.getElementById("rsiW").value);
   const mD=parseInt(document.getElementById("rsiD").value);
@@ -374,16 +459,9 @@ function filterOS(){
   }).join("");
 }
 
-function scoreColor(s){
-  if(s>=4)return"#1D9E75";if(s>=2)return"#5DCAA5";if(s>0)return"#9FE1CB";
-  if(s===0)return"#555";if(s>=-2)return"#f09595";if(s>=-4)return"#e05050";
-  return"#A32D2D";
-}
-function scoreClass(s){
-  if(s>=4)return"bull-strong";if(s>=2)return"bull-med";
-  if(s<=-4)return"bear-strong";if(s<=-2)return"bear-med";return"";
-}
-
+// ─── TREND STRENGTH ───────────────────────────────────────────────
+function scoreColor(s){if(s>=4)return"#1D9E75";if(s>=2)return"#5DCAA5";if(s>0)return"#9FE1CB";if(s===0)return"#555";if(s>=-2)return"#f09595";if(s>=-4)return"#e05050";return"#A32D2D";}
+function scoreClass(s){if(s>=4)return"bull-strong";if(s>=2)return"bull-med";if(s<=-4)return"bear-strong";if(s<=-2)return"bear-med";return"";}
 function filterTrend(){
   const grp=document.getElementById("trendGrp").value;
   const dir=document.getElementById("trendDir").value;
@@ -395,31 +473,15 @@ function filterTrend(){
     if(dir==="strong"&&(d.score==null||Math.abs(d.score)<4))return false;
     return true;
   });
-  f.sort((a,b)=>{
-    if(srt==="score_desc")return(b.score||0)-(a.score||0);
-    if(srt==="score_asc")return(a.score||0)-(b.score||0);
-    if(srt==="chg_desc")return(b.chg||0)-(a.chg||0);
-    return(b.chg_1m||0)-(a.chg_1m||0);
-  });
+  f.sort((a,b)=>srt==="score_desc"?(b.score||0)-(a.score||0):srt==="score_asc"?(a.score||0)-(b.score||0):srt==="chg_desc"?(b.chg||0)-(a.chg||0):(b.chg_1m||0)-(a.chg_1m||0));
   const grid=document.getElementById("trendGrid");
-  if(!f.length){
-    grid.innerHTML=allTrending.length>0?'<div class="empty">No assets with these filters</div>':'<div class="empty">Run screener.py</div>';
-    return;
-  }
+  if(!f.length){grid.innerHTML=allTrending.length>0?'<div class="empty">No assets with these filters</div>':'<div class="empty">Run screener.py</div>';return;}
   grid.innerHTML=f.map(d=>{
-    const sc=d.score??0;
-    const absScore=Math.abs(sc);
-    const col=scoreColor(sc);
-    const cls=scoreClass(sc);
-    const bull=sc>0;
+    const sc=d.score??0,absScore=Math.abs(sc),col=scoreColor(sc),cls=scoreClass(sc),bull=sc>0;
     const scoreDisplay=sc>0?`+${sc}/5`:sc<0?`${sc}/5`:`0/5`;
-    const dots=[
-      {label:"10",ema:d.ema10},{label:"20",ema:d.ema20},{label:"50",ema:d.ema50},
-      {label:"100",ema:d.ema100},{label:"200",ema:d.ema200},
-    ].map(dot=>{
+    const dots=[{label:"10",ema:d.ema10},{label:"20",ema:d.ema20},{label:"50",ema:d.ema50},{label:"100",ema:d.ema100},{label:"200",ema:d.ema200}].map(dot=>{
       if(dot.ema==null)return`<div class="ma-dot" style="background:#222;opacity:0.4">${dot.label}</div>`;
-      const c=d.price>dot.ema?"#1D9E75":"#e05050";
-      return`<div class="ma-dot" style="background:${c}" title="EMA${dot.label}: ${dot.ema.toFixed(2)}">${dot.label}</div>`;
+      return`<div class="ma-dot" style="background:${d.price>dot.ema?"#1D9E75":"#e05050"}">${dot.label}</div>`;
     }).join("");
     const trendTxt=sc>=4?"▲▲ Strong Bullish":sc>=2?"▲ Bullish":sc>0?"▲ Slightly Bullish":sc<=-4?"▼▼ Strong Bearish":sc<=-2?"▼ Bearish":sc<0?"▼ Slightly Bearish":"↔ Neutral";
     return`<div class="score-card ${cls}">
@@ -448,8 +510,84 @@ function filterTrend(){
   }).join("");
 }
 
+// ─── SECTOR HEATMAP + RRG ────────────────────────────────────────
+function heatColor(v){
+  if(v==null)return"#1a1a1a";
+  if(v>=4)  return"#0d4a1a";
+  if(v>=2)  return"#145a22";
+  if(v>=0.5)return"#1a7a2a";
+  if(v>0)   return"#1a5a20";
+  if(v>=-0.5)return"#4a1a1a";
+  if(v>=-2) return"#6a1a1a";
+  if(v>=-4) return"#8a1a1a";
+  return"#aa1a1a";
+}
+
+function setTF(tf,btn){
+  currentTF=tf;
+  document.querySelectorAll(".tf-btn").forEach(b=>b.classList.remove("active"));
+  if(btn)btn.classList.add("active");
+  renderHeatmap();
+}
+
+function renderHeatmap(){
+  const sectors=allSectors.filter(s=>s.sector!=="Benchmark");
+  if(!sectors.length){
+    document.getElementById("heatmapGrid").innerHTML='<div class="empty" style="grid-column:1/-1">Run screener.py to load sector data</div>';
+    return;
+  }
+  const tfMap={"1d":"chg_1d","1w":"chg_1w","1m":"chg_1m","3m":"chg_3m","6m":"chg_6m","ytd":"chg_ytd"};
+  const key=tfMap[currentTF]||"chg_1d";
+  const spy=allSectors.find(s=>s.ticker==="SPY");
+  const spyVal=spy?spy[key]:null;
+
+  const sorted=[...sectors].sort((a,b)=>(b[key]||0)-(a[key]||0));
+  document.getElementById("heatmapGrid").innerHTML=sorted.map(s=>{
+    const v=s[key];
+    const bg=heatColor(v);
+    const cs=v==null?"":v>=0?"+":"";
+    const vsStr=v!=null&&spyVal!=null?`vs SPY: ${(v-spyVal)>=0?"+":""}${(v-spyVal).toFixed(2)}%`:"";
+    return`<div class="heat-cell" style="background:${bg}">
+      <div class="heat-name">${s.sector}</div>
+      <div class="heat-chg ${v>=0?"pos":"neg"}">${v!=null?cs+v.toFixed(2)+"%":"—"}</div>
+      <div class="heat-sub">${vsStr}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderRRG(){
+  const quads=["leading","weakening","lagging","improving"];
+  quads.forEach(q=>{
+    const items=allSectors.filter(s=>s.quadrant===q);
+    document.getElementById("rrg-"+q).innerHTML=items.length
+      ?items.map(s=>`<span class="rrg-chip ${q}">${s.sector}</span>`).join("")
+      :`<span style="font-size:10px;color:#333">None</span>`;
+  });
+}
+
+function renderSectorDetail(){
+  const sectors=allSectors.filter(s=>s.sector!=="Benchmark");
+  document.getElementById("sectorDetailGrid").innerHTML=sectors.map(s=>`
+    <div class="sec-card">
+      <div class="sec-name">${s.sector} <span style="font-size:10px;color:#555">${s.ticker}</span></div>
+      <div class="sec-perf-row"><span>1D</span><span class="${(s.chg_1d||0)>=0?"pos":"neg"}">${s.chg_1d!=null?(s.chg_1d>=0?"+":"")+s.chg_1d.toFixed(2)+"%":"—"}</span></div>
+      <div class="sec-perf-row"><span>1W</span><span class="${(s.chg_1w||0)>=0?"pos":"neg"}">${s.chg_1w!=null?(s.chg_1w>=0?"+":"")+s.chg_1w.toFixed(2)+"%":"—"}</span></div>
+      <div class="sec-perf-row"><span>1M</span><span class="${(s.chg_1m||0)>=0?"pos":"neg"}">${s.chg_1m!=null?(s.chg_1m>=0?"+":"")+s.chg_1m.toFixed(2)+"%":"—"}</span></div>
+      <div class="sec-perf-row"><span>3M</span><span class="${(s.chg_3m||0)>=0?"pos":"neg"}">${s.chg_3m!=null?(s.chg_3m>=0?"+":"")+s.chg_3m.toFixed(2)+"%":"—"}</span></div>
+      <div class="sec-perf-row"><span>YTD</span><span class="${(s.chg_ytd||0)>=0?"pos":"neg"}">${s.chg_ytd!=null?(s.chg_ytd>=0?"+":"")+s.chg_ytd.toFixed(2)+"%":"—"}</span></div>
+      ${s.quadrant&&s.quadrant!=="benchmark"?`<div style="margin-top:6px"><span class="rrg-chip ${s.quadrant}" style="font-size:10px">${s.quadrant.charAt(0).toUpperCase()+s.quadrant.slice(1)}</span></div>`:""}
+    </div>`).join("");
+}
+
+function renderSectors(){
+  renderHeatmap();
+  renderRRG();
+  renderSectorDetail();
+}
+
+// ─── EARNINGS ────────────────────────────────────────────────────
 const EARN=[
-  {t:"NVDA",n:"Nvidia",day:28,mo:"Mär",time:"After market close",eps:"$8.42",imp:"high",avoid:true},
+  {t:"NVDA",n:"Nvidia",day:28,mo:"Mar",time:"After market close",eps:"$8.42",imp:"high",avoid:true},
   {t:"NKE",n:"Nike",day:1,mo:"Apr",time:"After market close",eps:"$0.72",imp:"high",avoid:true},
   {t:"JPM",n:"JPMorgan",day:11,mo:"Apr",time:"Before market open",eps:"$4.62",imp:"high",avoid:true},
   {t:"GS",n:"Goldman Sachs",day:14,mo:"Apr",time:"Before market open",eps:"$12.08",imp:"high",avoid:true},
