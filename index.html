@@ -141,6 +141,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .sec-name{font-size:12px;font-weight:600;color:#fff;margin-bottom:6px}
 .sec-perf-row{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:2px}
 .sec-perf-row span:last-child{font-weight:600}
+
+/* ECONOMIC CALENDAR */
+.econ-month{font-size:10px;font-weight:600;color:#444;text-transform:uppercase;letter-spacing:0.08em;padding:8px 0 4px;margin-top:8px;border-bottom:1px solid #1e1e1e;margin-bottom:6px}
+.econ-card{background:#111;border:1px solid #1e1e1e;border-radius:0;padding:10px 14px;display:flex;align-items:center;gap:14px;margin-bottom:4px;transition:border-color 0.1s}
+.econ-card:hover{border-color:#2a2a2a}
+.econ-card.today{border-left:2px solid #EF9F27}
+.econ-card.past{opacity:0.45}
+.econ-date{text-align:center;min-width:44px;flex-shrink:0}
+.econ-day{font-size:18px;font-weight:600;color:#fff}
+.econ-weekday{font-size:9px;color:#555;text-transform:uppercase}
+.econ-info{flex:1}
+.econ-name{font-size:13px;font-weight:600;color:#fff}
+.econ-detail{font-size:11px;color:#555;margin-top:2px}
+.econ-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.econ-time{font-size:10px;padding:1px 6px;border-radius:0;background:#1a1a1a;color:#666;border:1px solid #222}
+.econ-cat{font-size:10px;padding:1px 6px;border-radius:0;border:1px solid #222;color:#666}
+.impact-high{font-size:10px;padding:1px 7px;border-radius:0;font-weight:600;background:#3a1a1a;color:#e05050;border:1px solid #5a1a1a}
+.impact-medium{font-size:10px;padding:1px 7px;border-radius:0;font-weight:600;background:#3a2a1a;color:#EF9F27;border:1px solid #5a3a1a}
+.impact-low{font-size:10px;padding:1px 7px;border-radius:0;color:#555;border:1px solid #222}
+.econ-prev{text-align:right;min-width:80px;font-size:11px;color:#555}
+.econ-prev strong{display:block;font-size:12px;color:#aaa;font-weight:500}
+.no-trade-tag{font-size:10px;padding:1px 7px;border-radius:0;font-weight:600;background:#e05050;color:#fff}
 </style>
 </head>
 <body>
@@ -172,7 +194,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-section">Calendar</div>
-    <div class="nav-item" onclick="showTab('earn',this)">Earnings</div>
+    <div class="nav-item" onclick="showTab('econ',this)">Economic Calendar</div>
   </div>
 
   <div class="main">
@@ -304,9 +326,42 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     </div>
 
     <!-- EARNINGS -->
-    <div class="panel" id="tab-earn">
-      <div class="section-title">Earnings — No trading 2 days before/after High Impact!</div>
-      <div class="earn-list" id="earnList"></div>
+    <div class="panel" id="tab-econ">
+      <div class="section-title">Economic Calendar — No trading around High Impact events!</div>
+
+      <!-- Upcoming High Impact -->
+      <div style="background:#1a1200;border:1px solid #3a2a00;border-radius:0;padding:12px 16px;margin-bottom:1rem;display:flex;align-items:center;gap:16px" id="nextEventBanner">
+        <div style="text-align:center;min-width:60px">
+          <div style="font-size:10px;color:#EF9F27;text-transform:uppercase;letter-spacing:0.05em">Next</div>
+          <div style="font-size:20px;font-weight:600;color:#fff" id="nextEventDays">—</div>
+          <div style="font-size:9px;color:#888">days</div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#fff" id="nextEventName">Loading...</div>
+          <div style="font-size:11px;color:#666;margin-top:2px" id="nextEventDate"></div>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="filter-row" style="margin-bottom:1rem">
+        <label>Impact:</label>
+        <select id="econFilter" onchange="renderEcon()">
+          <option value="all">All Events</option>
+          <option value="high">High Impact only</option>
+          <option value="medium">Medium & High</option>
+        </select>
+        <label>Category:</label>
+        <select id="econCat" onchange="renderEcon()">
+          <option value="all">All</option>
+          <option value="fed">Fed / Central Banks</option>
+          <option value="jobs">Jobs & Employment</option>
+          <option value="inflation">Inflation</option>
+          <option value="growth">Growth & GDP</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div id="econList"></div>
     </div>
   </div>
 </div>
@@ -321,7 +376,7 @@ function checkPass(){
   if(document.getElementById("pwInput").value===PASS){
     document.getElementById("lockScreen").style.display="none";
     document.getElementById("dashboard").style.display="grid";
-    checkNoTrade();loadData();renderEarn();
+    checkNoTrade();loadData();
   } else {
     const e=document.getElementById("lockErr");
     e.style.display="block";
@@ -352,9 +407,14 @@ async function loadData(){
     allStocks  =json.stocks  ||[];
     allTrending=json.trending||[];
     allSectors =json.sectors ||[];
+    ECON       =(json.economic_calendar||[]).map(e=>({
+      ...e,
+      cat: inferCat(e.name||""),
+      avoid: e.avoid || (e.impact==="high" && /nonfarm|payroll|cpi|fomc|rate decision|gdp|pce/i.test(e.name||"")),
+    }));
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    updateStats();filterGP();filterOS();filterTrend();renderSectors();
+    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();
   }catch(e){
     document.getElementById("apiBadge").textContent="Error";
     document.getElementById("gpGrid").innerHTML=`<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -754,32 +814,97 @@ window.addEventListener("resize", ()=>{
 });
 
 // ─── EARNINGS ────────────────────────────────────────────────────
-const EARN=[
-  {t:"NVDA",n:"Nvidia",day:28,mo:"Mar",time:"After market close",eps:"$8.42",imp:"high",avoid:true},
-  {t:"NKE",n:"Nike",day:1,mo:"Apr",time:"After market close",eps:"$0.72",imp:"high",avoid:true},
-  {t:"JPM",n:"JPMorgan",day:11,mo:"Apr",time:"Before market open",eps:"$4.62",imp:"high",avoid:true},
-  {t:"GS",n:"Goldman Sachs",day:14,mo:"Apr",time:"Before market open",eps:"$12.08",imp:"high",avoid:true},
-  {t:"NFLX",n:"Netflix",day:15,mo:"Apr",time:"After market close",eps:"$5.74",imp:"high",avoid:true},
-  {t:"TSLA",n:"Tesla",day:22,mo:"Apr",time:"After market close",eps:"$0.42",imp:"high",avoid:true},
-  {t:"META",n:"Meta",day:23,mo:"Apr",time:"After market close",eps:"$6.18",imp:"high",avoid:true},
-  {t:"MSFT",n:"Microsoft",day:23,mo:"Apr",time:"After market close",eps:"$3.22",imp:"high",avoid:true},
-  {t:"GOOGL",n:"Alphabet",day:24,mo:"Apr",time:"After market close",eps:"$2.01",imp:"high",avoid:true},
-  {t:"AMZN",n:"Amazon",day:30,mo:"Apr",time:"After market close",eps:"$1.36",imp:"high",avoid:true},
-];
-function renderEarn(){
-  document.getElementById("earnList").innerHTML=EARN.map(d=>`
-    <div class="earn-card">
-      <div class="earn-date"><div class="earn-day">${d.day}</div><div class="earn-month">${d.mo}</div></div>
-      <div class="earn-info">
-        <div class="earn-ticker">${d.t}</div><div class="earn-name">${d.n}</div>
-        <div class="earn-meta">
-          <span class="earn-time">${d.time}</span>
-          <span class="wtag ${d.imp==="high"?"high":"med"}">${d.imp==="high"?"High Impact":"Med"}</span>
-          ${d.avoid?'<span class="wtag avoid">Do not trade!</span>':""}
+// ─── ECONOMIC CALENDAR DATA ──────────────────────────────────────
+// Economic calendar loaded from data.json
+let ECON = [];
+
+
+function inferCat(name){
+  const n = name.toLowerCase();
+  if(/fomc|federal reserve|rate|powell|beige|ecb|boe/.test(n)) return "fed";
+  if(/payroll|employment|jobs|jobless|claims|adp|jolts|unemployment/.test(n)) return "jobs";
+  if(/cpi|ppi|pce|inflation|price/.test(n)) return "inflation";
+  if(/gdp|retail|ism|pmi|manufacturing|services|confidence|housing|durable|trade/.test(n)) return "growth";
+  return "other";
+}
+
+function renderEcon(){
+  if(!ECON.length){
+    document.getElementById("econList").innerHTML='<div class="empty">Economic calendar data loading... Run screener.py to fetch live events.</div>';
+    document.getElementById("nextEventName").textContent="Run screener.py";
+    document.getElementById("nextEventDate").textContent="to load live calendar data";
+    return;
+  }
+  const filterImp = document.getElementById("econFilter").value;
+  const filterCat = document.getElementById("econCat").value;
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let filtered = ECON.filter(e=>{
+    if(filterImp==="high" && e.impact!=="high") return false;
+    if(filterImp==="medium" && e.impact==="low") return false;
+    if(filterCat!=="all" && e.cat!==filterCat) return false;
+    return true;
+  });
+
+  // Find next high impact event
+  const upcoming = ECON.filter(e=>e.impact==="high" && new Date(e.date)>=today);
+  if(upcoming.length){
+    const next = upcoming[0];
+    const days = Math.ceil((new Date(next.date)-today)/(1000*60*60*24));
+    document.getElementById("nextEventDays").textContent = days===0?"Today":days;
+    document.getElementById("nextEventName").textContent = next.name;
+    document.getElementById("nextEventDate").textContent = formatDate(next.date)+" · "+next.time;
+  }
+
+  // Group by month
+  const months = {};
+  filtered.forEach(e=>{
+    const d = new Date(e.date);
+    const mk = d.getFullYear()+"-"+(d.getMonth()+1);
+    const ml = d.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+    if(!months[mk]) months[mk]={label:ml,events:[]};
+    months[mk].events.push(e);
+  });
+
+  const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  let html = "";
+  Object.values(months).forEach(m=>{
+    html += `<div class="econ-month">${m.label}</div>`;
+    m.events.forEach(e=>{
+      const d = new Date(e.date+"T12:00:00");
+      const isToday = d.toDateString()===today.toDateString();
+      const isPast  = d < today;
+      const impCls  = e.impact==="high"?"impact-high":e.impact==="medium"?"impact-medium":"impact-low";
+      const impTxt  = e.impact==="high"?"● High Impact":e.impact==="medium"?"● Medium":"● Low";
+      const catLabels={fed:"Fed",jobs:"Jobs",inflation:"Inflation",growth:"GDP/Growth",other:"Other"};
+      html += `<div class="econ-card${isToday?" today":""}${isPast?" past":""}">
+        <div class="econ-date">
+          <div class="econ-day">${d.getDate()}</div>
+          <div class="econ-weekday">${weekdays[d.getDay()]}</div>
         </div>
-      </div>
-      <div class="earn-eps"><span>EPS est.</span><strong>${d.eps}</strong></div>
-    </div>`).join("");
+        <div class="econ-info">
+          <div class="econ-name">${e.name}</div>
+          ${e.note?`<div class="econ-detail">${e.note}</div>`:""}
+          <div class="econ-meta">
+            <span class="econ-time">${e.time}</span>
+            <span class="${impCls}">${impTxt}</span>
+            <span class="econ-cat">${catLabels[e.cat]||e.cat}</span>
+            ${e.avoid?'<span class="no-trade-tag">No Trade!</span>':""}
+          </div>
+        </div>
+        <div class="econ-prev">
+          ${e.prev?`<span>Prev</span><strong>${e.prev}</strong>`:""}
+        </div>
+      </div>`;
+    });
+  });
+
+  document.getElementById("econList").innerHTML = html || '<div class="empty">No events match this filter</div>';
+}
+
+function formatDate(str){
+  const d = new Date(str+"T12:00:00");
+  return d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
 }
 
 function checkNoTrade(){
