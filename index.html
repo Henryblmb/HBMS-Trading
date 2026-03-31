@@ -175,8 +175,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="stats-bar">
       <div class="stat"><div class="stat-val" id="s1">—</div><div class="stat-lbl">Golden Pocket</div></div>
       <div class="stat"><div class="stat-val" id="s2">—</div><div class="stat-lbl">RSI W&lt;35</div></div>
-      <div class="stat"><div class="stat-val" id="s3" style="color:#1D9E75">—</div><div class="stat-lbl">Trend 6-8</div></div>
-      <div class="stat"><div class="stat-val" id="s4" style="color:#e05050">—</div><div class="stat-lbl">Trend -6/-8</div></div>
+      <div class="stat"><div class="stat-val" id="s3" style="color:#1D9E75">—</div><div class="stat-lbl">Trend 4-5</div></div>
+      <div class="stat"><div class="stat-val" id="s4" style="color:#e05050">—</div><div class="stat-lbl">Trend -4/-5</div></div>
       <div class="stat"><div class="stat-val" id="s5">—</div><div class="stat-lbl">Stocks</div></div>
       <div class="stat"><div class="stat-val" id="s6">—</div><div class="stat-lbl">Assets</div></div>
     </div>
@@ -223,7 +223,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <label>Sort:</label>
         <select id="trendSort" onchange="filterTrend()"><option value="score_desc">Score: High → Low</option><option value="score_asc">Score: Low → High</option><option value="chg_desc">1D: Best first</option><option value="chg_1m_desc">1M: Best first</option></select>
       </div>
-      <div class="section-title">EMA Stack Score — EMA 5/10/20/50/100/200/50W/100W = +1 per EMA above price</div>
+      <div class="section-title">EMA Stack Score — above EMA 10/20/50/100/200 = +1 per EMA</div>
       <div class="score-grid" id="trendGrid"><div class="empty">Loading data...</div></div>
     </div>
 
@@ -419,8 +419,8 @@ async function loadData(){
 function updateStats(){
   document.getElementById("s1").textContent=allStocks.filter(d=>d.in_gp_52w||d.in_gp_ytd).length;
   document.getElementById("s2").textContent=allStocks.filter(d=>d.rsi_weekly&&d.rsi_weekly<=35).length;
-  document.getElementById("s3").textContent=allTrending.filter(d=>d.score!=null&&d.score>=6).length;
-  document.getElementById("s4").textContent=allTrending.filter(d=>d.score!=null&&d.score<=-6).length;
+  document.getElementById("s3").textContent=allTrending.filter(d=>d.score!=null&&d.score>=4).length;
+  document.getElementById("s4").textContent=allTrending.filter(d=>d.score!=null&&d.score<=-4).length;
   document.getElementById("s5").textContent=allStocks.length;
   document.getElementById("s6").textContent=allTrending.length;
 }
@@ -501,7 +501,7 @@ function filterOS(){
 }
 
 function scoreColor(s){if(s>=4)return"#1D9E75";if(s>=2)return"#5DCAA5";if(s>0)return"#9FE1CB";if(s===0)return"#555";if(s>=-2)return"#f09595";if(s>=-4)return"#e05050";return"#A32D2D";}
-function scoreClass(s){if(s>=6)return"bull-strong";if(s>=3)return"bull-med";if(s<=-6)return"bear-strong";if(s<=-3)return"bear-med";return"";}
+function scoreClass(s){if(s>=4)return"bull-strong";if(s>=2)return"bull-med";if(s<=-4)return"bear-strong";if(s<=-2)return"bear-med";return"";}
 function filterTrend(){
   const grp=document.getElementById("trendGrp").value;
   const dir=document.getElementById("trendDir").value;
@@ -510,7 +510,7 @@ function filterTrend(){
     if(grp!=="all"&&d.group!==grp)return false;
     if(dir==="bullish"&&(d.score==null||d.score<=0))return false;
     if(dir==="bearish"&&(d.score==null||d.score>=0))return false;
-    if(dir==="strong"&&(d.score==null||Math.abs(d.score)<6))return false;
+    if(dir==="strong"&&(d.score==null||Math.abs(d.score)<4))return false;
     return true;
   });
   f.sort((a,b)=>srt==="score_desc"?(b.score||0)-(a.score||0):srt==="score_asc"?(a.score||0)-(b.score||0):srt==="chg_desc"?(b.chg||0)-(a.chg||0):(b.chg_1m||0)-(a.chg_1m||0));
@@ -518,8 +518,8 @@ function filterTrend(){
   if(!f.length){grid.innerHTML=allTrending.length>0?'<div class="empty">No assets with these filters</div>':'<div class="empty">Run screener.py</div>';return;}
   grid.innerHTML=f.map(d=>{
     const sc=d.score??0,absScore=Math.abs(sc),col=scoreColor(sc),cls=scoreClass(sc),bull=sc>0;
-    const scoreDisplay=sc>0?`+${sc}/8`:sc<0?`${sc}/8`:`0/8`;
-    const dots=[{label:"5",ema:d.ema5},{label:"10",ema:d.ema10},{label:"20",ema:d.ema20},{label:"50",ema:d.ema50},{label:"100",ema:d.ema100},{label:"200",ema:d.ema200},{label:"50W",ema:d.ema50w},{label:"100W",ema:d.ema100w}].map(dot=>{
+    const scoreDisplay=sc>0?`+${sc}/5`:sc<0?`${sc}/5`:`0/5`;
+    const dots=[{label:"10",ema:d.ema10},{label:"20",ema:d.ema20},{label:"50",ema:d.ema50},{label:"100",ema:d.ema100},{label:"200",ema:d.ema200}].map(dot=>{
       if(dot.ema==null)return`<div class="ma-dot" style="background:#222;opacity:0.4">${dot.label}</div>`;
       return`<div class="ma-dot" style="background:${d.price>dot.ema?"#1D9E75":"#e05050"}">${dot.label}</div>`;
     }).join("");
@@ -532,10 +532,10 @@ function filterTrend(){
         <span style="color:${col};font-size:17px;font-weight:600;min-width:52px">${scoreDisplay}</span>
         <div style="flex:1">
           <div style="height:5px;background:#1a1a1a;position:relative">
-            ${bull?`<div style="position:absolute;left:50%;width:${absScore/8*50}%;height:100%;background:${col}"></div>`:`<div style="position:absolute;right:50%;width:${absScore/8*50}%;height:100%;background:${col}"></div>`}
+            ${bull?`<div style="position:absolute;left:50%;width:${absScore/5*50}%;height:100%;background:${col}"></div>`:`<div style="position:absolute;right:50%;width:${absScore/5*50}%;height:100%;background:${col}"></div>`}
             <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#333"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:8px;color:#333;margin-top:1px"><span>-8</span><span>0</span><span>+8</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:#333;margin-top:1px"><span>-5</span><span>0</span><span>+5</span></div>
         </div>
       </div>
       <div style="font-size:10px;color:#555;font-weight:600;margin-bottom:4px">${trendTxt}</div>
@@ -585,7 +585,7 @@ function renderHeatmap(){
 const SECTOR_COLORS={"Tech":"#60a5fa","Healthcare":"#a78bfa","Real Estate":"#fb923c","Energy":"#facc15","Consumer Staples":"#4ade80","Gold":"#fde047","Finance":"#22d3ee","Software":"#c084fc","Industrial":"#f97316"};
 const Q_COL={leading:"#1D9E75",weakening:"#EF9F27",lagging:"#e05050",improving:"#60a5fa"};
 
-function drawRRG(canvasId,wrapId,getXY){
+function drawRRG(canvasId,wrapId,getXY,subtitle){
   const canvas=document.getElementById(canvasId);
   if(!canvas)return;
   const dpr=window.devicePixelRatio||1;
@@ -601,7 +601,14 @@ function drawRRG(canvasId,wrapId,getXY){
   ctx.clearRect(0,0,W,H);
   const valid=allSectors.filter(s=>s.sector!=="Benchmark");
   const pts=valid.map(s=>getXY(s)).filter(p=>p&&p.r!=null&&p.m!=null);
-  if(!pts.length){ctx.fillStyle="#555";ctx.font="11px sans-serif";ctx.textAlign="center";ctx.fillText("Run screener.py",W/2,H/2);return;}
+  if(!pts.length){
+    ctx.fillStyle="#555";ctx.font="11px sans-serif";ctx.textAlign="center";
+    ctx.fillText(subtitle||"Run screener.py",W/2,H/2-8);
+    if(subtitle){ctx.font="10px sans-serif";ctx.fillStyle="#333";ctx.fillText("(old data format detected)",W/2,H/2+10);}
+    return;
+  }
+  // Show subtitle watermark if old format
+  if(subtitle){ctx.fillStyle="rgba(239,159,39,0.5)";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("⚠ "+subtitle,W/2,PAD.top-6);}
   const allR=pts.map(p=>p.r),allM=pts.map(p=>p.m);
   const rPad=(Math.max(...allR)-Math.min(...allR))*0.2+1.5;
   const mPad=(Math.max(...allM)-Math.min(...allM))*0.2+1.5;
@@ -639,11 +646,12 @@ function drawRRG(canvasId,wrapId,getXY){
         const alpha=i/pt.tail.length;
         const tx0=toX(pt.tail[i-1][0]),ty0=toY(pt.tail[i-1][1]);
         const tx1=toX(pt.tail[i][0]),  ty1=toY(pt.tail[i][1]);
+        ctx.globalAlpha=alpha*0.75;
         ctx.beginPath();ctx.moveTo(tx0,ty0);ctx.lineTo(tx1,ty1);
-        const aHex=Math.round(alpha*180).toString(16).padStart(2,"0");
-        ctx.strokeStyle=col+aHex;ctx.lineWidth=1.5;ctx.stroke();
-        ctx.beginPath();ctx.arc(tx1,ty1,1.5,0,Math.PI*2);
-        ctx.fillStyle=col+Math.round(alpha*140).toString(16).padStart(2,"0");ctx.fill();
+        ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+        ctx.beginPath();ctx.arc(tx1,ty1,2,0,Math.PI*2);
+        ctx.fillStyle=col;ctx.fill();
+        ctx.globalAlpha=1;
       }
     }
     if(s.agreement){ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.strokeStyle="#1D9E75";ctx.lineWidth=1.5;ctx.stroke();}
@@ -659,17 +667,18 @@ function drawRRG(canvasId,wrapId,getXY){
 }
 
 function renderRRG(){
-  // Support both new (rrg_12m/rrg_3m) and old (rs_ratio direct) data formats
+  // 12M: fallback to old format if new not available
+  const hasNewFmt = allSectors.some(s=>s.rrg_12m&&s.rrg_12m.rs_ratio!=null);
   drawRRG("rrgCanvas12","rrgWrap12",s=>{
     if(s.rrg_12m&&s.rrg_12m.rs_ratio!=null) return{r:s.rrg_12m.rs_ratio,m:s.rrg_12m.rs_momentum,tail:s.rrg_12m.tail||[]};
     if(s.rs_ratio!=null) return{r:s.rs_ratio,m:s.rs_momentum,tail:[]};
     return null;
-  });
+  }, hasNewFmt ? "" : "Old data — run screener.py");
+  // 3M: only show if new format available (no fallback – would be identical to 12M)
   drawRRG("rrgCanvas3","rrgWrap3",s=>{
     if(s.rrg_3m&&s.rrg_3m.rs_ratio!=null) return{r:s.rrg_3m.rs_ratio,m:s.rrg_3m.rs_momentum,tail:s.rrg_3m.tail||[]};
-    if(s.rs_ratio!=null) return{r:s.rs_ratio,m:s.rs_momentum,tail:[]};
     return null;
-  });
+  }, hasNewFmt ? "" : "Run screener.py for 3M data");
   const nonBench=allSectors.filter(s=>s.sector!=="Benchmark");
   const agreeEl=document.getElementById("rrgAgreement");
   if(agreeEl){agreeEl.innerHTML=nonBench.map(s=>{
