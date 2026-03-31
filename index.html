@@ -672,6 +672,36 @@ function drawRRG(canvasId,wrapId,getXY,subtitle){
 
 function renderRRG(){
   const hasNewFmt = allSectors.some(s=>s.rrg_12m&&s.rrg_12m.rs_ratio!=null);
+
+  // If old format: compute approximated 3M quadrants from cross-sectional z-scores
+  // and write them back to sector objects so chips show correct values
+  if(!hasNewFmt){
+    const peers3m = allSectors.filter(ss=>ss.sector!=="Benchmark"&&ss.chg_3m!=null);
+    const peers1m = allSectors.filter(ss=>ss.sector!=="Benchmark"&&ss.chg_1m!=null);
+    const vals3m  = peers3m.map(ss=>ss.chg_3m);
+    const mean3m  = vals3m.reduce((a,b)=>a+b,0)/vals3m.length;
+    const std3m   = Math.sqrt(vals3m.map(v=>(v-mean3m)**2).reduce((a,b)=>a+b,0)/vals3m.length)||1;
+    const vals1m  = peers1m.map(ss=>ss.chg_1m);
+    const mean1m  = vals1m.reduce((a,b)=>a+b,0)/vals1m.length;
+    const std1m   = Math.sqrt(vals1m.map(v=>(v-mean1m)**2).reduce((a,b)=>a+b,0)/vals1m.length)||1;
+
+    allSectors.forEach(s=>{
+      if(s.sector==="Benchmark"||s.chg_3m==null) return;
+      const z3m  = (s.chg_3m - mean3m) / std3m;
+      const z1m  = s.chg_1m!=null ? (s.chg_1m - mean1m) / std1m : 0;
+      const zMom = z1m - z3m * 0.5;
+      const r = 100 + z3m * 3.0;
+      const m = 100 + zMom * 2.5;
+      // Determine quadrant
+      let q3;
+      if(r>=100&&m>=100)      q3="leading";
+      else if(r>=100&&m<100)  q3="weakening";
+      else if(r<100&&m<100)   q3="lagging";
+      else                    q3="improving";
+      s.q_3m_approx = q3;
+    });
+  }
+
   // 12M chart
   drawRRG("rrgCanvas12","rrgWrap12", s=>{
     if(s.rrg_12m&&s.rrg_12m.rs_ratio!=null) return{r:s.rrg_12m.rs_ratio,m:s.rrg_12m.rs_momentum,tail:s.rrg_12m.tail||[]};
@@ -716,15 +746,16 @@ function renderRRG(){
   const agreeEl=document.getElementById("rrgAgreement");
   if(agreeEl){agreeEl.innerHTML=nonBench.map(s=>{
     const col=SECTOR_COLORS[s.sector]||"#888";
-    const q12=s.q_12m||(s.quadrant||"?"),q3=s.q_3m||(s.quadrant||"?");
-    const agree=s.agreement!=null?s.agreement:(q12===q3&&q12!=="?");
+    const q12 = s.q_12m||(s.quadrant||"?");
+    const q3  = hasNewFmt ? (s.q_3m||"?") : (s.q_3m_approx||s.q_3m||"?");
+    const agree = (q12===q3 && q12!=="?" && q12!=="benchmark");
     const border=agree?"#1D9E75":"#EF9F27";
     const bg=agree?"rgba(29,158,117,0.08)":"rgba(239,159,39,0.06)";
     return`<div style="background:${bg};border:1px solid ${border};padding:5px 10px;font-size:10px">
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
         <div style="width:7px;height:7px;background:${col};flex-shrink:0;border-radius:50%"></div>
         <span style="color:#fff;font-weight:600">${s.sector}</span>
-        <span style="color:${border};font-size:9px">${agree?"✓":"⚠"}</span>
+        <span style="color:${border};font-size:9px">${agree?"✓":"⚠"}${!hasNewFmt?"~":""}</span>
       </div>
       <div style="font-size:9px;color:#666">12M:<span style="color:${Q_COL[q12]||"#888"}">${q12}</span> 3M:<span style="color:${Q_COL[q3]||"#888"}">${q3}</span></div>
     </div>`;
@@ -732,7 +763,8 @@ function renderRRG(){
   const legendEl=document.getElementById("rrgLegend");
   if(legendEl){legendEl.innerHTML=nonBench.map(s=>{
     const col=SECTOR_COLORS[s.sector]||"#888";
-    const q12=s.q_12m||(s.quadrant||"?"),q3=s.q_3m||(s.quadrant||"?");
+    const q12=s.q_12m||(s.quadrant||"?");
+    const q3 = hasNewFmt ? (s.q_3m||"?") : (s.q_3m_approx||s.q_3m||"?");
     return`<div style="display:flex;align-items:center;gap:4px;font-size:10px">
       <div style="width:7px;height:7px;border-radius:50%;background:${col};flex-shrink:0"></div>
       <span style="color:${col}">${s.sector}</span>
@@ -741,7 +773,13 @@ function renderRRG(){
   }).join("");}
   const divEl=document.getElementById("rrg-diverging");
   if(divEl){
-    const divItems=allSectors.filter(s=>s.diverging&&s.sector!=="Benchmark");
+    const divItems=allSectors.filter(s=>{
+      if(s.sector==="Benchmark") return false;
+      if(hasNewFmt) return s.diverging;
+      const q12=s.q_12m||(s.quadrant||"?");
+      const q3=s.q_3m_approx||s.q_3m||"?";
+      return q12!==q3 && q12!=="?" && q3!=="?";
+    });
     // Fallback: detect diverging from old format if needed
     divEl.innerHTML=divItems.length?divItems.map(s=>`<span class="rrg-chip weakening">${s.sector} <span style="font-size:9px">${s.q_12m||"?"}→${s.q_3m||"?"}</span></span>`).join(""):'<span style="font-size:10px;color:#333">None — all sectors aligned</span>';
   }
@@ -750,8 +788,9 @@ function renderRRG(){
 function renderSectorDetail(){
   const sectors=allSectors.filter(s=>s.sector!=="Benchmark");
   document.getElementById("sectorDetailGrid").innerHTML=sectors.map(s=>{
-    const q12=s.q_12m||(s.quadrant||"?"),q3=s.q_3m||(s.quadrant||"?");
-    const agree=s.agreement!=null?s.agreement:(q12===q3&&q12!=="?");
+    const q12 = s.q_12m||(s.quadrant||"?");
+    const q3  = hasNewFmt ? (s.q_3m||"?") : (s.q_3m_approx||s.q_3m||"?");
+    const agree = (q12===q3 && q12!=="?" && q12!=="benchmark");
     return`<div class="sec-card" style="border-color:${agree?"#1D9E75":"#1e1e1e"}">
       <div class="sec-name">${s.sector} <span style="font-size:10px;color:#555">${s.ticker}</span></div>
       <div class="sec-perf-row"><span>1D</span><span class="${(s.chg_1d||0)>=0?"pos":"neg"}">${s.chg_1d!=null?(s.chg_1d>=0?"+":"")+s.chg_1d.toFixed(2)+"%":"—"}</span></div>
