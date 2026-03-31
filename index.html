@@ -667,18 +667,26 @@ function drawRRG(canvasId,wrapId,getXY,subtitle){
 }
 
 function renderRRG(){
-  // 12M: fallback to old format if new not available
   const hasNewFmt = allSectors.some(s=>s.rrg_12m&&s.rrg_12m.rs_ratio!=null);
-  drawRRG("rrgCanvas12","rrgWrap12",s=>{
+  // 12M chart
+  drawRRG("rrgCanvas12","rrgWrap12", s=>{
     if(s.rrg_12m&&s.rrg_12m.rs_ratio!=null) return{r:s.rrg_12m.rs_ratio,m:s.rrg_12m.rs_momentum,tail:s.rrg_12m.tail||[]};
     if(s.rs_ratio!=null) return{r:s.rs_ratio,m:s.rs_momentum,tail:[]};
     return null;
-  }, hasNewFmt ? "" : "Old data — run screener.py");
-  // 3M: only show if new format available (no fallback – would be identical to 12M)
-  drawRRG("rrgCanvas3","rrgWrap3",s=>{
+  }, "");
+  // 3M chart — use rrg_3m if available, otherwise approximate from chg_3m vs SPY
+  const spy3m = (() => { const spy=allSectors.find(s=>s.ticker==="SPY"); return spy?spy.chg_3m:null; })();
+  drawRRG("rrgCanvas3","rrgWrap3", s=>{
     if(s.rrg_3m&&s.rrg_3m.rs_ratio!=null) return{r:s.rrg_3m.rs_ratio,m:s.rrg_3m.rs_momentum,tail:s.rrg_3m.tail||[]};
+    // Fallback: approximate from chg_3m relative to SPY (no tails)
+    if(s.chg_3m!=null && spy3m!=null && s.sector!=="Benchmark"){
+      const relPerf = (s.chg_3m - spy3m);
+      const r = 100 + relPerf * 0.4;
+      const m = 100 + relPerf * 0.3;
+      return{r:Math.round(r*100)/100, m:Math.round(m*100)/100, tail:[]};
+    }
     return null;
-  }, hasNewFmt ? "" : "Run screener.py for 3M data");
+  }, hasNewFmt ? "" : "Approx. — run screener.py for exact 3M");
   const nonBench=allSectors.filter(s=>s.sector!=="Benchmark");
   const agreeEl=document.getElementById("rrgAgreement");
   if(agreeEl){agreeEl.innerHTML=nonBench.map(s=>{
