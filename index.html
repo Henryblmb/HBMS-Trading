@@ -692,8 +692,12 @@ function renderRRG(){
     const r3m = (s.chg_3m!=null && spy3m!=null) ? s.chg_3m - spy3m : null;
     const r1m = (s.chg_1m!=null && spy1m!=null) ? s.chg_1m - spy1m : null;
     if(r3m==null) return null;
-    const r = 100 + r3m * 0.12;   // e.g. +20% outperf → 102.4
-    const m = 100 + (r1m!=null ? r1m * 0.10 : r3m * 0.08);
+    // Scale to match typical RS-Ratio spread (±3-5 units)
+    // r3m relative perf ±15% → ±3-4 RS units → mult ~0.25
+    // Momentum uses 1M vs 3M delta to show acceleration/deceleration
+    const r = 100 + r3m * 0.25;
+    const momentum = r1m!=null ? (r1m - r3m/3) * 0.25 : r3m * 0.15;
+    const m = 100 + momentum;
     return{r:Math.round(r*100)/100, m:Math.round(m*100)/100, tail:[]};
   }, hasNewFmt ? "" : "Approx. (3M/1M vs SPY) — run screener.py for exact");
   const nonBench=allSectors.filter(s=>s.sector!=="Benchmark");
