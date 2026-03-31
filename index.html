@@ -678,28 +678,40 @@ function renderRRG(){
     if(s.rs_ratio!=null) return{r:s.rs_ratio,m:s.rs_momentum,tail:[]};
     return null;
   }, "");
-  // 3M chart — use rrg_3m if available, otherwise approximate
-  const spySec  = allSectors.find(s=>s.ticker==="SPY");
-  const spy3m   = spySec ? spySec.chg_3m  : null;
-  const spy1m   = spySec ? spySec.chg_1m  : null;
+  // 3M chart — use rrg_3m if available, otherwise cross-sectional rank approach
   drawRRG("rrgCanvas3","rrgWrap3", s=>{
     if(s.rrg_3m&&s.rrg_3m.rs_ratio!=null) return{r:s.rrg_3m.rs_ratio,m:s.rrg_3m.rs_momentum,tail:s.rrg_3m.tail||[]};
     if(s.sector==="Benchmark") return null;
-    // Approximate:
-    // RS Ratio  ← 3M relative performance vs SPY (strength direction)
-    // RS Momentum ← 1M relative performance vs SPY (recent acceleration)
-    // Small multipliers so scale stays realistic (95–105)
-    const r3m = (s.chg_3m!=null && spy3m!=null) ? s.chg_3m - spy3m : null;
-    const r1m = (s.chg_1m!=null && spy1m!=null) ? s.chg_1m - spy1m : null;
-    if(r3m==null) return null;
-    // Scale to match typical RS-Ratio spread (±3-5 units)
-    // r3m relative perf ±15% → ±3-4 RS units → mult ~0.25
-    // Momentum uses 1M vs 3M delta to show acceleration/deceleration
-    const r = 100 + r3m * 0.25;
-    const momentum = r1m!=null ? (r1m - r3m/3) * 0.25 : r3m * 0.15;
-    const m = 100 + momentum;
+
+    // Cross-sectional approach: rank each sector against all others
+    // This avoids the "everything vs SPY in a bear market" compression problem
+    const peers = allSectors.filter(ss=>ss.sector!=="Benchmark"&&ss.chg_3m!=null);
+    if(!peers.length || s.chg_3m==null) return null;
+
+    // 3M cross-sectional z-score → RS Ratio (where does this sector rank?)
+    const vals3m = peers.map(ss=>ss.chg_3m);
+    const mean3m = vals3m.reduce((a,b)=>a+b,0)/vals3m.length;
+    const std3m  = Math.sqrt(vals3m.map(v=>(v-mean3m)**2).reduce((a,b)=>a+b,0)/vals3m.length)||1;
+    const z3m    = (s.chg_3m - mean3m) / std3m;
+
+    // 1M cross-sectional z-score → RS Momentum (recent acceleration vs peers)
+    const peers1m = allSectors.filter(ss=>ss.sector!=="Benchmark"&&ss.chg_1m!=null);
+    let z1m = 0;
+    if(peers1m.length && s.chg_1m!=null){
+      const vals1m = peers1m.map(ss=>ss.chg_1m);
+      const mean1m = vals1m.reduce((a,b)=>a+b,0)/vals1m.length;
+      const std1m  = Math.sqrt(vals1m.map(v=>(v-mean1m)**2).reduce((a,b)=>a+b,0)/vals1m.length)||1;
+      z1m = (s.chg_1m - mean1m) / std1m;
+    }
+
+    // Momentum = change in rank (1M rank vs 3M rank) → is sector improving or weakening?
+    const zMom = z1m - z3m * 0.5;   // positive = recent acceleration vs 3M trend
+
+    // Scale z-scores to RS units (±1 std ≈ ±3 RS units → spread similar to 12M)
+    const r = 100 + z3m * 3.0;
+    const m = 100 + zMom * 2.5;
     return{r:Math.round(r*100)/100, m:Math.round(m*100)/100, tail:[]};
-  }, hasNewFmt ? "" : "Approx. (3M/1M vs SPY) — run screener.py for exact");
+  }, hasNewFmt ? "" : "Approx. (cross-sectional rank) — run screener.py for exact");
   const nonBench=allSectors.filter(s=>s.sector!=="Benchmark");
   const agreeEl=document.getElementById("rrgAgreement");
   if(agreeEl){agreeEl.innerHTML=nonBench.map(s=>{
