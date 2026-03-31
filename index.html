@@ -610,10 +610,14 @@ function drawRRG(canvasId,wrapId,getXY,subtitle){
   // Show subtitle watermark if old format
   if(subtitle){ctx.fillStyle="rgba(239,159,39,0.5)";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("⚠ "+subtitle,W/2,PAD.top-6);}
   const allR=pts.map(p=>p.r),allM=pts.map(p=>p.m);
-  const rPad=(Math.max(...allR)-Math.min(...allR))*0.2+1.5;
-  const mPad=(Math.max(...allM)-Math.min(...allM))*0.2+1.5;
-  const rMin=Math.min(...allR,100)-rPad,rMax=Math.max(...allR,100)+rPad;
-  const mMin=Math.min(...allM,100)-mPad,mMax=Math.max(...allM,100)+mPad;
+  // Always center on 100/100 with symmetric axes → equal quadrant sizes
+  const rSpread = Math.max(Math.abs(Math.max(...allR)-100), Math.abs(Math.min(...allR)-100), 1.5);
+  const mSpread = Math.max(Math.abs(Math.max(...allM)-100), Math.abs(Math.min(...allM)-100), 1.5);
+  const pad = 0.3; // 30% breathing room
+  const rRange = rSpread * (1 + pad);
+  const mRange = mSpread * (1 + pad);
+  const rMin = 100 - rRange, rMax = 100 + rRange;
+  const mMin = 100 - mRange, mMax = 100 + mRange;
   function toX(r){return PAD.left+(r-rMin)/(rMax-rMin)*plotW;}
   function toY(m){return PAD.top+plotH-(m-mMin)/(mMax-mMin)*plotH;}
   const cx=toX(100),cy=toY(100);
@@ -674,19 +678,24 @@ function renderRRG(){
     if(s.rs_ratio!=null) return{r:s.rs_ratio,m:s.rs_momentum,tail:[]};
     return null;
   }, "");
-  // 3M chart — use rrg_3m if available, otherwise approximate from chg_3m vs SPY
-  const spy3m = (() => { const spy=allSectors.find(s=>s.ticker==="SPY"); return spy?spy.chg_3m:null; })();
+  // 3M chart — use rrg_3m if available, otherwise approximate
+  const spySec  = allSectors.find(s=>s.ticker==="SPY");
+  const spy3m   = spySec ? spySec.chg_3m  : null;
+  const spy1m   = spySec ? spySec.chg_1m  : null;
   drawRRG("rrgCanvas3","rrgWrap3", s=>{
     if(s.rrg_3m&&s.rrg_3m.rs_ratio!=null) return{r:s.rrg_3m.rs_ratio,m:s.rrg_3m.rs_momentum,tail:s.rrg_3m.tail||[]};
-    // Fallback: approximate from chg_3m relative to SPY (no tails)
-    if(s.chg_3m!=null && spy3m!=null && s.sector!=="Benchmark"){
-      const relPerf = (s.chg_3m - spy3m);
-      const r = 100 + relPerf * 0.4;
-      const m = 100 + relPerf * 0.3;
-      return{r:Math.round(r*100)/100, m:Math.round(m*100)/100, tail:[]};
-    }
-    return null;
-  }, hasNewFmt ? "" : "Approx. — run screener.py for exact 3M");
+    if(s.sector==="Benchmark") return null;
+    // Approximate:
+    // RS Ratio  ← 3M relative performance vs SPY (strength direction)
+    // RS Momentum ← 1M relative performance vs SPY (recent acceleration)
+    // Small multipliers so scale stays realistic (95–105)
+    const r3m = (s.chg_3m!=null && spy3m!=null) ? s.chg_3m - spy3m : null;
+    const r1m = (s.chg_1m!=null && spy1m!=null) ? s.chg_1m - spy1m : null;
+    if(r3m==null) return null;
+    const r = 100 + r3m * 0.12;   // e.g. +20% outperf → 102.4
+    const m = 100 + (r1m!=null ? r1m * 0.10 : r3m * 0.08);
+    return{r:Math.round(r*100)/100, m:Math.round(m*100)/100, tail:[]};
+  }, hasNewFmt ? "" : "Approx. (3M/1M vs SPY) — run screener.py for exact");
   const nonBench=allSectors.filter(s=>s.sector!=="Benchmark");
   const agreeEl=document.getElementById("rrgAgreement");
   if(agreeEl){agreeEl.innerHTML=nonBench.map(s=>{
