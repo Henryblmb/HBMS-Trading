@@ -143,6 +143,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .ins-sentiment{display:flex;gap:12px;align-items:center;background:#111;border:1px solid #1e1e1e;padding:12px 16px;margin-bottom:1rem}
 .ins-bar-wrap{flex:1;height:8px;background:#1a0a0a;position:relative;overflow:hidden}
 .ins-bar-buy{height:100%;background:#1D9E75;transition:width 0.4s}
+/* 52W HEATMAP */
+.hilo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:3px;margin-bottom:1rem}
+.hilo-cell{padding:6px 5px;text-align:center;cursor:default;border:1px solid transparent;transition:opacity 0.1s;position:relative}
+.hilo-cell:hover{opacity:0.8;border-color:rgba(255,255,255,0.1)}
+.hilo-ticker{font-size:10px;font-weight:700;color:#fff;line-height:1}
+.hilo-dist{font-size:13px;font-weight:700;margin:2px 0;line-height:1}
+.hilo-chg{font-size:9px;opacity:0.75;line-height:1}
+.hilo-legend{display:flex;gap:6px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.hilo-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#555}
+.hilo-leg-swatch{width:14px;height:14px;flex-shrink:0}
 /* BREADTH */
 .ma-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .ma-bar-label{font-size:11px;color:#888;min-width:60px}
@@ -178,6 +188,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-item" onclick="showTab('os',this)">Oversold</div>
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
+    <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
     <div class="nav-item" onclick="showTab('breadth',this)">Market Breadth</div>
     <div class="nav-item" onclick="showTab('insider',this)">Insider Trading</div>
     <div class="nav-section">Calendar</div>
@@ -284,6 +295,56 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 
       <div class="section-title" style="margin-top:1.5rem">Sector Detail</div>
       <div class="sector-detail-grid" id="sectorDetailGrid"></div>
+    </div>
+
+    <!-- 52W HIGH/LOW HEATMAP -->
+    <div class="panel" id="tab-hilo">
+      <div class="section-title">52W High/Low Heatmap — Distance from 52-Week High</div>
+
+      <!-- Legend -->
+      <div class="hilo-legend">
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#0d4a1a"></div>0–5% (Near High)</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#145a22"></div>5–10%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#1a7a2a"></div>10–20%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#4a1a1a"></div>20–30%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#7a1a1a"></div>30–40%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#aa1a1a"></div>40%+ (Near Low)</div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:1rem" id="hiloStats">
+        <div class="stat"><div class="stat-val" id="hiloNearHigh" style="color:#1D9E75">—</div><div class="stat-lbl">Within 5% of High</div></div>
+        <div class="stat"><div class="stat-val" id="hiloAvgDist">—</div><div class="stat-lbl">Avg Distance</div></div>
+        <div class="stat"><div class="stat-val" id="hiloAtHigh" style="color:#1D9E75">—</div><div class="stat-lbl">At 52W High</div></div>
+        <div class="stat"><div class="stat-val" id="hiloAtLow" style="color:#e05050">—</div><div class="stat-lbl">At 52W Low</div></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-row" style="margin-bottom:1rem">
+        <label>Index:</label>
+        <select id="hiloIdx" onchange="renderHiLo()">
+          <option value="all">All</option>
+          <option value="SP500">S&P 500</option>
+          <option value="DAX">DAX</option>
+          <option value="HSI">Hang Seng</option>
+        </select>
+        <label>Sort:</label>
+        <select id="hiloSort" onchange="renderHiLo()">
+          <option value="dist_asc">Closest to High</option>
+          <option value="dist_desc">Furthest from High</option>
+          <option value="chg_desc">Best 1D</option>
+          <option value="chg_asc">Worst 1D</option>
+        </select>
+        <label>Min Dist:</label>
+        <select id="hiloMin" onchange="renderHiLo()">
+          <option value="0">All</option>
+          <option value="10">10%+ from High</option>
+          <option value="20">20%+ from High</option>
+          <option value="30">30%+ from High</option>
+        </select>
+      </div>
+
+      <div class="hilo-grid" id="hiloGrid"><div class="empty">Run screener.py</div></div>
     </div>
 
     <!-- MARKET BREADTH -->
@@ -478,6 +539,7 @@ function showTab(id,el){
   document.getElementById("tab-"+id).classList.add("active");
   if(id==="breadth") renderBreadth();
   if(id==="insider"){ window._insiderRaw=window._insiderRaw||[]; loadInsider(); }
+  if(id==="hilo") renderHiLo();
   if(id==="sectors"){ renderHeatmap(); setTimeout(renderRRG,80); setTimeout(renderSectorDetail,100); }
 }
 async function loadData(){
@@ -492,7 +554,7 @@ async function loadData(){
     breadthData=json.breadth ||{};
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();
+    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();
     window._insiderRaw=json.insider||[];
     if(window._insiderRaw.length) loadInsider();
   }catch(e){
@@ -1066,6 +1128,79 @@ function fmtM(v){
   if(v>=1000000) return (v/1000000).toFixed(2)+"M";
   if(v>=1000)    return (v/1000).toFixed(0)+"K";
   return v.toLocaleString();
+}
+
+// ─── 52W HEATMAP ─────────────────────────────────────────────────
+function hiloColor(dist){
+  if(dist == null) return "#1a1a1a";
+  if(dist <=  5)  return "#0d4a1a";
+  if(dist <= 10)  return "#145a22";
+  if(dist <= 20)  return "#1a7a2a";
+  if(dist <= 30)  return "#4a1a1a";
+  if(dist <= 40)  return "#7a1a1a";
+  return "#aa1a1a";
+}
+
+function renderHiLo(){
+  const idx     = document.getElementById("hiloIdx").value;
+  const sort    = document.getElementById("hiloSort").value;
+  const minDist = parseInt(document.getElementById("hiloMin").value);
+
+  let stocks = allStocks.filter(s=>{
+    if(idx !== "all" && s.group !== idx) return false;
+    if(s.dist_from_hi == null) return false;
+    if(s.dist_from_hi < minDist) return false;
+    return true;
+  });
+
+  // Sort
+  stocks.sort((a,b)=>{
+    if(sort === "dist_asc")  return (a.dist_from_hi||0) - (b.dist_from_hi||0);
+    if(sort === "dist_desc") return (b.dist_from_hi||0) - (a.dist_from_hi||0);
+    if(sort === "chg_desc")  return (b.chg||0) - (a.chg||0);
+    if(sort === "chg_asc")   return (a.chg||0) - (b.chg||0);
+    return 0;
+  });
+
+  // Stats
+  const all = allStocks.filter(s=>idx==="all"||s.group===idx);
+  const nearHigh  = all.filter(s=>s.dist_from_hi!=null&&s.dist_from_hi<=5).length;
+  const atHigh    = all.filter(s=>s.dist_from_hi!=null&&s.dist_from_hi<=1).length;
+  const atLow     = all.filter(s=>{
+    if(!s.hi52||!s.lo52||!s.price) return false;
+    return s.price <= s.lo52 * 1.015;
+  }).length;
+  const dists     = all.map(s=>s.dist_from_hi).filter(d=>d!=null);
+  const avgDist   = dists.length ? (dists.reduce((a,b)=>a+b,0)/dists.length).toFixed(1) : "—";
+
+  const nh = document.getElementById("hiloNearHigh");
+  const ah = document.getElementById("hiloAtHigh");
+  const al = document.getElementById("hiloAtLow");
+  const av = document.getElementById("hiloAvgDist");
+  if(nh) nh.textContent = nearHigh;
+  if(ah) ah.textContent = atHigh;
+  if(al) al.textContent = atLow;
+  if(av) av.textContent = avgDist + "%";
+
+  const grid = document.getElementById("hiloGrid");
+  if(!stocks.length){
+    grid.innerHTML = allStocks.length > 0
+      ? '<div class="empty">No stocks match filter</div>'
+      : '<div class="empty">Run screener.py</div>';
+    return;
+  }
+
+  grid.innerHTML = stocks.map(s=>{
+    const dist = s.dist_from_hi;
+    const bg   = hiloColor(dist);
+    const chgSign = (s.chg||0) >= 0 ? "+" : "";
+    const chgCol  = (s.chg||0) >= 0 ? "#1D9E75" : "#e05050";
+    return `<div class="hilo-cell" style="background:${bg}" title="${s.name}&#10;${dist}% from 52W High&#10;Price: $${s.price}">
+      <div class="hilo-ticker">${s.ticker}</div>
+      <div class="hilo-dist">${dist != null ? dist.toFixed(1)+"%" : "—"}</div>
+      <div class="hilo-chg" style="color:${chgCol}">${chgSign}${(s.chg||0).toFixed(1)}%</div>
+    </div>`;
+  }).join("");
 }
 
 function renderEcon(){
