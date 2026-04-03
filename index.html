@@ -382,36 +382,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
           <div style="font-size:10px;color:#555" id="nhlPct">—</div>
         </div>
       </div>
-      <div style="background:#111;border:1px solid #1e1e1e;padding:14px 16px;margin-bottom:1rem">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Zweig Breadth Thrust</div>
-          <div id="zweigBadge" style="font-size:11px;padding:2px 8px;font-weight:600">—</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="flex:1">
-            <div style="height:8px;background:#1a1a1a;position:relative">
-              <div style="position:absolute;left:0;top:0;height:100%;width:40%;background:#3a1a1a;border-right:1px dashed #e05050"></div>
-              <div style="position:absolute;left:61.5%;top:0;height:100%;width:38.5%;background:#0a1a0a;border-left:1px dashed #1D9E75"></div>
-              <div id="zweigBar" style="position:absolute;top:-3px;width:10px;height:14px;background:#EF9F27;transform:translateX(-50%);transition:left 0.3s"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:8px;color:#333;margin-top:2px"><span>0</span><span style="color:#e05050">0.40</span><span style="color:#1D9E75">0.615</span><span>1.0</span></div>
-          </div>
-          <div style="font-size:18px;font-weight:600;color:#EF9F27;min-width:48px;text-align:right" id="zweigVal">—</div>
-        </div>
-        <div style="font-size:10px;color:#555;margin-top:8px">Thrust triggered when ratio crosses from &lt;0.40 to &gt;0.615 within 10 days.</div>
-      </div>
-      <div id="hindenburgCard" style="background:#111;border:1px solid #1e1e1e;padding:14px 16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Hindenburg Omen</div>
-          <div id="hindenburgBadge" style="font-size:11px;padding:2px 8px;font-weight:600">—</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px">
-          <div><div style="font-size:10px;color:#555">NH% &gt; 2.2%</div><div style="font-size:14px;font-weight:600" id="hindNH">—</div></div>
-          <div><div style="font-size:10px;color:#555">NL% &gt; 2.2%</div><div style="font-size:14px;font-weight:600" id="hindNL">—</div></div>
-          <div><div style="font-size:10px;color:#555">McClellan</div><div style="font-size:14px;font-weight:600" id="hindMcC">—</div></div>
-        </div>
-        <div style="font-size:10px;color:#555">NH% AND NL% both &gt;2.2% + McClellan negative. Warns of potential crash within 40 days.</div>
-      </div>
     </div>
 
     <!-- ECONOMIC CALENDAR -->
@@ -991,20 +961,7 @@ function renderBreadth(){
   document.getElementById("nh").textContent=b.new_highs??0;
   document.getElementById("nl").textContent=b.new_lows??0;
   document.getElementById("nhlPct").textContent=`NH: ${b.nh_pct??0}% · NL: ${b.nl_pct??0}% of universe (${b.universe_size} stocks)`;
-  const zr=b.zweig_ratio??0.5;
-  document.getElementById("zweigVal").textContent=zr.toFixed(3);
-  document.getElementById("zweigBar").style.left=(zr*100)+"%";
-  const zBadge=document.getElementById("zweigBadge");
-  if(b.zweig_active){zBadge.textContent="★ THRUST ACTIVE";zBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#0a1a0a;color:#1D9E75;border:1px solid #1D9E75";}
-  else if(b.zweig_setup){zBadge.textContent="⚡ Setup (<0.40)";zBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#3a1a1a;color:#e05050;border:1px solid #5a1a1a";}
-  else{zBadge.textContent="Neutral";zBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#1a1a1a;color:#555;border:1px solid #222";}
-  const hActive=b.hindenburg_active,hCard=document.getElementById("hindenburgCard"),hBadge=document.getElementById("hindenburgBadge");
-  const nhPct=b.hindenburg_nh_pct??0,nlPct=b.hindenburg_nl_pct??0,mcc=b.mclellan??0;
-  document.getElementById("hindNH").textContent=nhPct.toFixed(2)+"%";document.getElementById("hindNH").style.color=nhPct>2.2?"#e05050":"#1D9E75";
-  document.getElementById("hindNL").textContent=nlPct.toFixed(2)+"%";document.getElementById("hindNL").style.color=nlPct>2.2?"#e05050":"#1D9E75";
-  document.getElementById("hindMcC").textContent=mcc.toFixed(1);document.getElementById("hindMcC").style.color=mcc<0?"#e05050":"#1D9E75";
-  if(hActive){hCard.style.borderColor="#e05050";hBadge.textContent="⚠ OMEN ACTIVE";hBadge.style.cssText="font-size:11px;padding:2px 8px;font-weight:600;background:#3a1a1a;color:#e05050;border:1px solid #5a1a1a";}
-  else{hCard.style.borderColor="#1e1e1e";const condsMet=(nhPct>2.2?1:0)+(nlPct>2.2?1:0)+(mcc<0?1:0);hBadge.textContent=condsMet===0?"Clear":`${condsMet}/3 conditions`;hBadge.style.cssText=condsMet>=2?"font-size:11px;padding:2px 8px;font-weight:600;background:#3a2a1a;color:#EF9F27;border:1px solid #5a3a1a":"font-size:11px;padding:2px 8px;font-weight:600;background:#1a1a1a;color:#1D9E75;border:1px solid #1D9E75";}
+
 }
 
 // ─── ECONOMIC CALENDAR ───────────────────────────────────────────
