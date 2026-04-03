@@ -333,18 +333,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <div class="stat"><div class="stat-val" id="hiloAtLow" style="color:#e05050">—</div><div class="stat-lbl">At 52W Low</div></div>
       </div>
 
-      <!-- F&G History Chart -->
-      <div class="fg-chart-wrap">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0">
-          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Fear & Greed — 12 Month History</div>
-          <div style="display:flex;gap:10px;font-size:9px;color:#555">
-            <span><span style="color:#1D9E75">—</span> Fear & Greed</span>
-            <span><span style="color:#60a5fa">—</span> S&P 500</span>
-          </div>
-        </div>
-        <canvas id="fgChartCanvas" style="width:100%;display:block;image-rendering:crisp-edges"></canvas>
-      </div>
-
       <!-- Filters -->
       <div class="filter-row" style="margin-bottom:1rem">
         <label>Index:</label>
@@ -378,8 +366,38 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <div class="section-title">Momentum Screener — Stocks with building momentum</div>
 
       <!-- Signal explanation -->
-      <div style="background:#111;border:1px solid #1e1e1e;padding:10px 14px;margin-bottom:1rem;font-size:11px;color:#555;line-height:1.7">
-        Momentum Score (0–7): RSI 50-70 daily · RSI improving weekly · Above EMA20 · Above EMA50 · Outperforming SPY 1W · Positive 1D · Within 20% of 52W High
+      <div style="background:#111;border:1px solid #1e1e1e;padding:12px 16px;margin-bottom:1rem">
+        <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Momentum Score — 7 Signals (each = 1 point)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">
+          <div style="background:#161616;padding:8px 10px;border-left:2px solid #1D9E75">
+            <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:2px">① RSI Daily 50–70</div>
+            <div style="font-size:10px;color:#555">Momentum zone — not oversold, not overbought. Sweet spot for trending stocks.</div>
+          </div>
+          <div style="background:#161616;padding:8px 10px;border-left:2px solid #1D9E75">
+            <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:2px">② RSI Weekly 40–70</div>
+            <div style="font-size:10px;color:#555">Weekly RSI healthy — confirms the trend on a higher timeframe.</div>
+          </div>
+          <div style="background:#161616;padding:8px 10px;border-left:2px solid #1D9E75">
+            <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:2px">③ Above EMA 20</div>
+            <div style="font-size:10px;color:#555">Price above 20-day EMA — short-term trend is bullish.</div>
+          </div>
+          <div style="background:#161616;padding:8px 10px;border-left:2px solid #1D9E75">
+            <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:2px">④ Above EMA 50</div>
+            <div style="font-size:10px;color:#555">Price above 50-day EMA — medium-term trend is bullish.</div>
+          </div>
+          <div style="background:#161616;padding:8px 10px;border-left:2px solid #1D9E75">
+            <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:2px">⑤ Beats SPY this week</div>
+            <div style="font-size:10px;color:#555">Outperforming the S&P 500 on a 1-week basis — relative strength building.</div>
+          </div>
+          <div style="background:#161616;padding:8px 10px;border-left:2px solid #1D9E75">
+            <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:2px">⑥ Positive today</div>
+            <div style="font-size:10px;color:#555">Green on the day — current session confirms the bullish bias.</div>
+          </div>
+          <div style="background:#161616;padding:8px 10px;border-left:2px solid #1D9E75">
+            <div style="font-size:11px;font-weight:600;color:#fff;margin-bottom:2px">⑦ Within 20% of 52W High</div>
+            <div style="font-size:10px;color:#555">Not too far from the high — stock hasn't fallen into a deep downtrend.</div>
+          </div>
+        </div>
       </div>
 
       <!-- Filters -->
@@ -1412,9 +1430,49 @@ function drawFGChart(fgHist, spyDates, spyCloses){
     .filter(([d])=>d>=cutStr)
     .sort((a,b)=>a[0].localeCompare(b[0]));
 
+  // If only 1 or 0 FG points, still show SPY + a single dot
   if(fgEntries.length < 2){
-    ctx.fillStyle="#444"; ctx.font="12px sans-serif"; ctx.textAlign="center";
-    ctx.fillText("Building history... check back tomorrow",W/2,H/2);
+    // Still draw SPY line if available
+    if(spyDates && spyCloses && spyDates.length > 1){
+      const spyRecent = spyDates.map((d,i)=>({d,v:spyCloses[i]})).slice(-252);
+      if(spyRecent.length > 1){
+        const spyVals = spyRecent.map(s=>s.v);
+        const spyMin  = Math.min(...spyVals)*0.99;
+        const spyMax  = Math.max(...spyVals)*1.01;
+        const toYspy2 = v => PAD.top+plotH-((v-spyMin)/(spyMax-spyMin))*plotH;
+        const d0t = new Date(spyRecent[0].d).getTime();
+        const d1t = new Date(spyRecent[spyRecent.length-1].d).getTime();
+        const spant = d1t-d0t||1;
+        const toXt  = ds => PAD.left+((new Date(ds).getTime()-d0t)/spant)*plotW;
+        // Draw zones
+        const toY0t = v => PAD.top+plotH-(v/100)*plotH;
+        [{min:80,max:100,col:"rgba(29,158,117,0.08)"},{min:60,max:80,col:"rgba(93,202,165,0.06)"},
+         {min:40,max:60,col:"rgba(239,159,39,0.06)"},{min:20,max:40,col:"rgba(224,80,80,0.06)"},
+         {min:0,max:20,col:"rgba(170,26,26,0.10)"}].forEach(z=>{
+          ctx.fillStyle=z.col;
+          ctx.fillRect(PAD.left,toY0t(z.max),plotW,toY0t(z.min)-toY0t(z.max));
+        });
+        ctx.beginPath();
+        spyRecent.forEach(({d,v},i)=>{ i===0?ctx.moveTo(toXt(d),toYspy2(v)):ctx.lineTo(toXt(d),toYspy2(v)); });
+        ctx.strokeStyle="rgba(96,165,250,0.5)"; ctx.lineWidth=1.5; ctx.stroke();
+        [spyMin,spyMax,(spyMin+spyMax)/2].forEach(v=>{
+          ctx.fillStyle="rgba(96,165,250,0.5)";ctx.font="7px sans-serif";ctx.textAlign="left";
+          ctx.fillText("$"+Math.round(v),PAD.left+plotW+4,toYspy2(v)+3);
+        });
+      }
+    }
+    // Show today's dot if we have 1 entry
+    if(fgEntries.length===1){
+      const [ld,ls]=fgEntries[0];
+      const x=W/2, y=PAD.top+plotH-(ls/100)*plotH;
+      ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);
+      ctx.fillStyle=fgColor(ls);ctx.fill();
+      ctx.fillStyle=fgColor(ls);ctx.font="bold 10px sans-serif";ctx.textAlign="left";
+      ctx.fillText("Today: "+ls,x+10,y+4);
+    } else {
+      ctx.fillStyle="#555"; ctx.font="11px sans-serif"; ctx.textAlign="center";
+      ctx.fillText("F&G history builds daily — SPY shown above",W/2,H-PAD.bottom-8);
+    }
     return;
   }
 
