@@ -129,20 +129,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .econ-prev{text-align:right;min-width:80px;font-size:11px;color:#555}
 .econ-prev strong{display:block;font-size:12px;color:#aaa;font-weight:500}
 .no-trade-tag{font-size:10px;padding:1px 7px;font-weight:600;background:#e05050;color:#fff}
-/* INSIDER TRADING */
-.insider-table{width:100%;border-collapse:collapse}
-.insider-table th{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.06em;padding:6px 10px;border-bottom:1px solid #1e1e1e;text-align:left;font-weight:500;white-space:nowrap}
-.insider-table td{font-size:12px;color:#ccc;padding:8px 10px;border-bottom:1px solid #141414;vertical-align:middle}
-.insider-table tr:hover td{background:#111}
-.ins-buy{color:#1D9E75;font-weight:700;font-size:11px;padding:2px 8px;background:#0a1a0a;border:1px solid #1D9E75}
-.ins-sell{color:#e05050;font-weight:700;font-size:11px;padding:2px 8px;background:#1a0a0a;border:1px solid #e05050}
-.ins-ticker{font-size:13px;font-weight:600;color:#fff}
-.ins-val{font-weight:600}
-.ins-val.big{color:#fff}
-.ins-val.med{color:#aaa}
-.ins-sentiment{display:flex;gap:12px;align-items:center;background:#111;border:1px solid #1e1e1e;padding:12px 16px;margin-bottom:1rem}
-.ins-bar-wrap{flex:1;height:8px;background:#1a0a0a;position:relative;overflow:hidden}
-.ins-bar-buy{height:100%;background:#1D9E75;transition:width 0.4s}
 /* 52W HEATMAP */
 .hilo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:3px;margin-bottom:1rem}
 .hilo-cell{padding:6px 5px;text-align:center;cursor:default;border:1px solid transparent;transition:opacity 0.1s;position:relative}
@@ -213,9 +199,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
     <div class="nav-item" onclick="showTab('breadth',this)">Market Breadth</div>
-    <div class="nav-item" onclick="showTab('rs',this)">RS Scanner</div>
+    <div class="nav-item" onclick="showTab('rs',this)">Fear & Greed</div>
     <div class="nav-item" onclick="showTab('momentum',this)">Momentum</div>
-    <div class="nav-item" onclick="showTab('insider',this)">Insider Trading</div>
     <div class="nav-section">Calendar</div>
     <div class="nav-item" onclick="showTab('econ',this)">Economic Calendar</div>
   </div>
@@ -557,71 +542,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     </div>
 
     <!-- ECONOMIC CALENDAR -->
-    <!-- INSIDER TRADING -->
-    <div class="panel" id="tab-insider">
-      <div class="section-title">Insider Trading — SEC Form 4 Filings (last 14 days, >$50k)</div>
-
-      <!-- Sentiment Bar -->
-      <div class="ins-sentiment" id="insSentiment">
-        <div style="font-size:13px;font-weight:600;color:#fff" id="insBuysCount">— buys</div>
-        <div class="ins-bar-wrap">
-          <div class="ins-bar-buy" id="insSentBar" style="width:50%"></div>
-        </div>
-        <div style="font-size:13px;font-weight:600;color:#fff" id="insSellsCount">— sells</div>
-        <div style="font-size:11px;color:#555;margin-left:8px" id="insTotal"></div>
-      </div>
-
-      <!-- Cluster Buys Alert -->
-      <div id="insCluster" style="display:none;background:#0a1a0a;border:1px solid #1D9E75;padding:10px 14px;margin-bottom:1rem;font-size:12px;color:#1D9E75"></div>
-
-      <!-- Filters -->
-      <div class="filter-row" style="margin-bottom:1rem">
-        <label>Type:</label>
-        <select id="insType" onchange="filterInsider()">
-          <option value="all">All</option>
-          <option value="BUY">Buys only</option>
-          <option value="SELL">Sells only</option>
-        </select>
-        <label>Min Value:</label>
-        <select id="insMin" onchange="filterInsider()">
-          <option value="50000">$50k+</option>
-          <option value="100000">$100k+</option>
-          <option value="500000">$500k+</option>
-          <option value="1000000">$1M+</option>
-        </select>
-        <label>Sort:</label>
-        <select id="insSort" onchange="filterInsider()">
-          <option value="date">Latest first</option>
-          <option value="value">Largest first</option>
-        </select>
-      </div>
-
-      <!-- Table -->
-      <div style="overflow-x:auto">
-        <table class="insider-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Ticker</th>
-              <th>Company</th>
-              <th>Insider</th>
-              <th>Role</th>
-              <th>Type</th>
-              <th>Shares</th>
-              <th>Price</th>
-              <th>Value</th>
-              <th>Owned After</th>
-              <th>Filing</th>
-            </tr>
-          </thead>
-          <tbody id="insiderBody">
-            <tr><td colspan="11" style="text-align:center;color:#444;padding:2rem">
-              Run screener.py to load insider data
-            </td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
 
     <div class="panel" id="tab-econ">
       <div class="section-title">Economic Calendar — No trading around High Impact events!</div>
@@ -680,7 +600,6 @@ function showTab(id,el){
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
   document.getElementById("tab-"+id).classList.add("active");
   if(id==="breadth") renderBreadth();
-  if(id==="insider"){ window._insiderRaw=window._insiderRaw||[]; loadInsider(); }
   if(id==="hilo") renderHiLo();
   if(id==="rs"){ renderRS(); renderFearGreed(); }
   if(id==="momentum") renderMomentum();
@@ -700,8 +619,6 @@ async function loadData(){
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
     updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();
-    window._insiderRaw=json.insider||[];
-    if(window._insiderRaw.length) loadInsider();
   }catch(e){
     document.getElementById("apiBadge").textContent="Error";
     document.getElementById("gpGrid").innerHTML=`<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -1170,100 +1087,6 @@ const ECON=[
   {date:"2026-07-28",name:"FOMC Rate Decision",time:"14:00 ET",impact:"high",cat:"fed",prev:"",note:"",avoid:true},
   {date:"2026-07-30",name:"GDP Q2 Advance",time:"08:30 ET",impact:"high",cat:"growth",prev:"",note:"",avoid:true},
 ];
-
-// ─── INSIDER TRADING ─────────────────────────────────────────────
-let insiderData = [];
-
-function loadInsider(){
-  const raw = window._insiderRaw || [];
-  insiderData = raw;
-  renderInsiderSentiment(raw);
-  renderInsiderClusters(raw);
-  filterInsider();
-}
-
-function renderInsiderSentiment(trades){
-  const buys  = trades.filter(t=>t.type==="BUY");
-  const sells = trades.filter(t=>t.type==="SELL");
-  const total = buys.length + sells.length;
-  const pct   = total > 0 ? (buys.length / total * 100) : 50;
-
-  const buyVal  = buys.reduce((s,t)=>s+t.value, 0);
-  const sellVal = sells.reduce((s,t)=>s+t.value, 0);
-
-  document.getElementById("insBuysCount").textContent  = `${buys.length} buys ($${fmtM(buyVal)})`;
-  document.getElementById("insSellsCount").textContent = `${sells.length} sells ($${fmtM(sellVal)})`;
-  document.getElementById("insSentBar").style.width    = pct + "%";
-  document.getElementById("insSentBar").style.background = pct > 60 ? "#1D9E75" : pct < 40 ? "#e05050" : "#EF9F27";
-  document.getElementById("insTotal").textContent      = `${total} trades · last 14 days`;
-}
-
-function renderInsiderClusters(trades){
-  // Find tickers with 3+ insiders buying
-  const buysByTicker = {};
-  trades.filter(t=>t.type==="BUY").forEach(t=>{
-    if(!buysByTicker[t.ticker]) buysByTicker[t.ticker] = [];
-    buysByTicker[t.ticker].push(t);
-  });
-  const clusters = Object.entries(buysByTicker)
-    .filter(([,v])=>v.length>=3)
-    .sort((a,b)=>b[1].length-a[1].length);
-
-  const el = document.getElementById("insCluster");
-  if(clusters.length){
-    el.style.display = "block";
-    el.innerHTML = "🔔 <strong>Cluster Buys (3+ insiders):</strong> " +
-      clusters.map(([t,v])=>`<strong>${t}</strong> (${v.length} insiders, $${fmtM(v.reduce((s,x)=>s+x.value,0))})`).join(" · ");
-  } else {
-    el.style.display = "none";
-  }
-}
-
-function filterInsider(){
-  const type   = document.getElementById("insType").value;
-  const minVal = parseInt(document.getElementById("insMin").value);
-  const sort   = document.getElementById("insSort").value;
-
-  let f = insiderData.filter(t=>{
-    if(type !== "all" && t.type !== type) return false;
-    if(t.value < minVal) return false;
-    return true;
-  });
-
-  f.sort((a,b)=> sort === "value" ? b.value - a.value : b.date.localeCompare(a.date));
-
-  const body = document.getElementById("insiderBody");
-  if(!f.length){
-    body.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#444;padding:2rem">' +
-      (insiderData.length ? "No trades match filter" : "Run screener.py to load insider data") + '</td></tr>';
-    return;
-  }
-
-  body.innerHTML = f.map(t=>{
-    const isBuy = t.type === "BUY";
-    const valClass = t.value >= 1000000 ? "big" : t.value >= 100000 ? "med" : "";
-    const secUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${t.cik}&type=4&dateb=&owner=include&count=10`;
-    return `<tr>
-      <td style="color:#555;white-space:nowrap">${t.date}</td>
-      <td><span class="ins-ticker">${t.ticker}</span></td>
-      <td style="font-size:11px;color:#666;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.company}</td>
-      <td style="font-size:11px;color:#aaa">${t.insider}</td>
-      <td style="font-size:10px;color:#555">${t.role}</td>
-      <td><span class="${isBuy?"ins-buy":"ins-sell"}">${t.type}</span></td>
-      <td style="color:#888">${t.shares.toLocaleString()}</td>
-      <td style="color:#888">$${t.price.toLocaleString()}</td>
-      <td class="ins-val ${valClass}">$${fmtM(t.value)}</td>
-      <td style="font-size:11px;color:#555">${t.owned_after.toLocaleString()}</td>
-      <td><a href="${secUrl}" target="_blank" style="font-size:10px;color:#1D9E75;text-decoration:none">SEC →</a></td>
-    </tr>`;
-  }).join("");
-}
-
-function fmtM(v){
-  if(v>=1000000) return (v/1000000).toFixed(2)+"M";
-  if(v>=1000)    return (v/1000).toFixed(0)+"K";
-  return v.toLocaleString();
-}
 
 // ─── 52W HEATMAP ─────────────────────────────────────────────────
 function hiloColor(dist){
