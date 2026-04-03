@@ -681,7 +681,7 @@ function showTab(id,el){
   if(id==="hilo") renderHiLo();
   if(id==="rs"){ renderRS(); renderFearGreed(); }
   if(id==="momentum") renderMomentum();
-  if(id==="vix") renderVIX();
+  if(id==="vix") setTimeout(renderVIX, 50);
   if(id==="sectors"){ renderHeatmap(); setTimeout(renderRRG,80); setTimeout(renderSectorDetail,100); }
 }
 async function loadData(){
@@ -694,7 +694,8 @@ async function loadData(){
     allTrending=json.trending||[];
     allSectors =json.sectors ||[];
     breadthData=json.breadth ||{};
-    window._marketData=json.market||{}; if(Object.keys(window._marketData).length) renderVIX();
+    window._marketData=json.market||{};
+    updateVIXGauge();
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
     filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();
@@ -1300,6 +1301,11 @@ function calcFearGreed(){
 }
 
 // ─── VIX TERM STRUCTURE ──────────────────────────────────────────
+function updateVIXGauge(){
+  // Update header F&G badge only — no canvas needed
+  renderFearGreed();
+}
+
 function renderVIX(){
   const md = window._marketData || {};
 
@@ -1327,8 +1333,8 @@ function renderVIX(){
   set("vixSpread", spread!=null?(spread>=0?"+":"")+spread.toFixed(2):"—", spCol);
   set("vixRegime", regime, regCol);
 
-  // Draw chart
-  drawVIXChart(md.vix_history||[]);
+  // Draw chart — use requestAnimationFrame so canvas has correct size
+  requestAnimationFrame(()=>drawVIXChart(md.vix_history||[]));
 }
 
 function drawVIXChart(history){
