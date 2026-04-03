@@ -687,7 +687,9 @@ function showTab(id,el){
 async function loadData(){
   try{
     document.getElementById("apiBadge").textContent="Loading...";
-    const r=await fetch(DATA_URL);
+    // Add timestamp to bust CDN cache
+    const bustUrl = DATA_URL + "?t=" + Math.floor(Date.now()/300000); // refresh every 5min
+    const r=await fetch(bustUrl);
     if(!r.ok)throw new Error("HTTP "+r.status);
     const json=await r.json();
     allStocks  =json.stocks  ||[];
@@ -695,6 +697,7 @@ async function loadData(){
     allSectors =json.sectors ||[];
     breadthData=json.breadth ||{};
     window._marketData=json.market||{};
+    console.log("Market data:", window._marketData);
     updateVIXGauge();
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
