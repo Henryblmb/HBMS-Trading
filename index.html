@@ -147,6 +147,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .rs-bar-wrap{width:80px;height:5px;background:#1a1a1a;display:inline-block;vertical-align:middle;margin-left:4px}
 .rs-bar-fill{height:100%}
 .rs-rank{font-size:10px;color:#444;min-width:28px}
+/* VIX TERM STRUCTURE */
+.vix-metric{background:#111;border:1px solid #1e1e1e;padding:14px 16px;text-align:center}
+.vix-metric-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px}
+.vix-metric-lbl{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.06em}
+.vix-metric-sub{font-size:10px;color:#555;margin-top:3px}
 /* MOMENTUM SCREENER */
 .mom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
 .mom-card{background:#111;border:1px solid #1e1e1e;padding:12px 14px;border-left:3px solid #1D9E75;transition:border-color 0.1s}
@@ -200,6 +205,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-item" onclick="showTab('breadth',this)">Market Breadth</div>
     <div class="nav-item" onclick="showTab('rs',this)">Fear & Greed</div>
     <div class="nav-item" onclick="showTab('momentum',this)">Momentum</div>
+    <div class="nav-item" onclick="showTab('vix',this)">VIX Term Structure</div>
     <div class="nav-section">Calendar</div>
     <div class="nav-item" onclick="showTab('econ',this)">Economic Calendar</div>
     <div class="nav-section">Socials</div>
@@ -359,6 +365,56 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       </div>
 
       <div class="hilo-grid" id="hiloGrid"><div class="empty">Run screener.py</div></div>
+    </div>
+
+    <!-- VIX TERM STRUCTURE -->
+    <div class="panel" id="tab-vix">
+      <div class="section-title">VIX Term Structure — Implied Volatility Curve</div>
+
+      <!-- Regime explanation -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:1rem;font-size:11px">
+        <div style="background:#0a1a0a;border:1px solid #1a3a1a;padding:10px 14px">
+          <span style="color:#1D9E75;font-weight:600">Contango (VIX3M &gt; VIX) ✓</span><br>
+          <span style="color:#555">Normal regime — markets calm. VIX3M trades above spot VIX because uncertainty is priced further out.</span>
+        </div>
+        <div style="background:#1a0a0a;border:1px solid #3a1a1a;padding:10px 14px">
+          <span style="color:#e05050;font-weight:600">Backwardation (VIX &gt; VIX3M) ⚠</span><br>
+          <span style="color:#555">Fear/panic regime — near-term vol spikes above longer-term. Often signals a market bottom forming.</span>
+        </div>
+      </div>
+
+      <!-- Current readings -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:1.5rem" id="vixMetrics">
+        <div class="vix-metric"><div class="vix-metric-val" id="vixV9d">—</div><div class="vix-metric-lbl">VIX9D</div><div class="vix-metric-sub">9-day vol</div></div>
+        <div class="vix-metric"><div class="vix-metric-val" id="vixVix">—</div><div class="vix-metric-lbl">VIX (30D)</div><div class="vix-metric-sub">spot vol</div></div>
+        <div class="vix-metric"><div class="vix-metric-val" id="vixV3m">—</div><div class="vix-metric-lbl">VIX3M (93D)</div><div class="vix-metric-sub">term vol</div></div>
+        <div class="vix-metric"><div class="vix-metric-val" id="vixSpread">—</div><div class="vix-metric-lbl">Spread</div><div class="vix-metric-sub">VIX3M − VIX</div></div>
+        <div class="vix-metric"><div class="vix-metric-val" id="vixRegime">—</div><div class="vix-metric-lbl">Regime</div><div class="vix-metric-sub">structure</div></div>
+      </div>
+
+      <!-- Chart -->
+      <div style="background:#0d0d0d;border:1px solid #1e1e1e;margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">VIX Term Structure — 12 Month History</div>
+          <div style="display:flex;gap:12px;font-size:9px;color:#555">
+            <span><span style="color:#60a5fa">—</span> VIX (30D)</span>
+            <span><span style="color:#a78bfa">—</span> VIX3M (93D)</span>
+            <span><span style="color:#1D9E75">—</span> Spread (VIX3M−VIX)</span>
+          </div>
+        </div>
+        <canvas id="vixChartCanvas" style="width:100%;display:block;image-rendering:crisp-edges"></canvas>
+      </div>
+
+      <!-- Signal interpretation -->
+      <div style="background:#111;border:1px solid #1e1e1e;padding:14px 16px">
+        <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">How to use this</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;font-size:11px;color:#555;line-height:1.6">
+          <div><span style="color:#1D9E75;font-weight:600">Spread &gt; +3</span><br>Deep contango — market very calm, complacency risk. Consider hedges.</div>
+          <div><span style="color:#EF9F27;font-weight:600">Spread 0 to +3</span><br>Mild contango — normal environment. Trade with trend.</div>
+          <div><span style="color:#e05050;font-weight:600">Spread &lt; 0</span><br>Backwardation — elevated fear. Often near a local bottom. Watch for reversal.</div>
+          <div><span style="color:#aa1a1a;font-weight:600">Spread &lt; -5</span><br>Extreme backwardation — panic. Historically strong contrarian buy signal.</div>
+        </div>
+      </div>
     </div>
 
     <!-- MOMENTUM SCREENER -->
@@ -625,6 +681,7 @@ function showTab(id,el){
   if(id==="hilo") renderHiLo();
   if(id==="rs"){ renderRS(); renderFearGreed(); }
   if(id==="momentum") renderMomentum();
+  if(id==="vix") renderVIX();
   if(id==="sectors"){ renderHeatmap(); setTimeout(renderRRG,80); setTimeout(renderSectorDetail,100); }
 }
 async function loadData(){
@@ -637,7 +694,7 @@ async function loadData(){
     allTrending=json.trending||[];
     allSectors =json.sectors ||[];
     breadthData=json.breadth ||{};
-    window._marketData=json.market||{};
+    window._marketData=json.market||{}; if(Object.keys(window._marketData).length) renderVIX();
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
     filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();
@@ -1240,6 +1297,166 @@ function calcFearGreed(){
   }
 
   return { score, components, vix: md.vix, pc_ratio: md.pc_ratio };
+}
+
+// ─── VIX TERM STRUCTURE ──────────────────────────────────────────
+function renderVIX(){
+  const md = window._marketData || {};
+
+  // Current readings
+  const vix    = md.vix;
+  const vix3m  = md.vix3m;
+  const vix9d  = md.vix9d;
+  const spread = md.vix_spread;
+
+  // Colors
+  const vixCol = vix==null?"#555":vix>30?"#e05050":vix>20?"#EF9F27":"#1D9E75";
+  const v3mCol = vix3m==null?"#555":vix3m>30?"#e05050":vix3m>20?"#EF9F27":"#1D9E75";
+  const v9dCol = vix9d==null?"#555":vix9d>30?"#e05050":vix9d>20?"#EF9F27":"#1D9E75";
+  const spCol  = spread==null?"#555":spread>3?"#1D9E75":spread>=0?"#EF9F27":spread>-5?"#e05050":"#aa1a1a";
+
+  const regime = spread==null?"—":spread>3?"Contango":spread>=0?"Mild Contango":spread>-5?"Backwardation":"Extreme Bkwd";
+  const regCol = spread==null?"#555":spread>=0?"#1D9E75":"#e05050";
+
+  const el = id => document.getElementById(id);
+  const set = (id, val, col) => { const e=el(id); if(e){e.textContent=val;e.style.color=col||"#fff";} };
+
+  set("vixV9d",    vix9d!=null?vix9d.toFixed(1):"—",   v9dCol);
+  set("vixVix",    vix!=null?vix.toFixed(1):"—",        vixCol);
+  set("vixV3m",    vix3m!=null?vix3m.toFixed(1):"—",    v3mCol);
+  set("vixSpread", spread!=null?(spread>=0?"+":"")+spread.toFixed(2):"—", spCol);
+  set("vixRegime", regime, regCol);
+
+  // Draw chart
+  drawVIXChart(md.vix_history||[]);
+}
+
+function drawVIXChart(history){
+  const canvas = document.getElementById("vixChartCanvas");
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio||1;
+  const cssW = canvas.parentElement.clientWidth||800;
+  const cssH = 280;
+  canvas.width  = Math.round(cssW*dpr);
+  canvas.height = Math.round(cssH*dpr);
+  canvas.style.width=cssW+"px"; canvas.style.height=cssH+"px";
+  const ctx = canvas.getContext("2d"); ctx.scale(dpr,dpr);
+  const W=cssW, H=cssH;
+  const PAD={top:20,right:50,bottom:60,left:45};
+  const plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+  const SPREAD_H = Math.round(plotH*0.35); // bottom 35% for spread
+  const VIX_H    = plotH - SPREAD_H - 8;   // top 65% for VIX lines
+  ctx.clearRect(0,0,W,H);
+
+  if(!history.length){
+    ctx.fillStyle="#444";ctx.font="12px sans-serif";ctx.textAlign="center";
+    ctx.fillText("Run screener.py to load VIX history",W/2,H/2);
+    return;
+  }
+
+  const dates   = history.map(h=>h.date);
+  const vixVals = history.map(h=>h.vix);
+  const v3mVals = history.map(h=>h.vix3m);
+  const sprVals = history.map(h=>h.spread);
+
+  // ── VIX panel (top) ──────────────────────────────────────────
+  const vixMin  = Math.min(...vixVals,...v3mVals)*0.92;
+  const vixMax  = Math.max(...vixVals,...v3mVals)*1.05;
+  const vixTop  = PAD.top;
+  const toXv    = i => PAD.left + (i/(dates.length-1))*plotW;
+  const toYv    = v => vixTop + VIX_H - ((v-vixMin)/(vixMax-vixMin))*VIX_H;
+
+  // VIX danger zones background
+  const y20 = toYv(20), y30 = toYv(30);
+  ctx.fillStyle="rgba(74,26,26,0.12)";ctx.fillRect(PAD.left,vixTop,plotW,Math.max(0,y30-vixTop));
+  ctx.fillStyle="rgba(74,40,26,0.10)";ctx.fillRect(PAD.left,y30,plotW,Math.max(0,y20-y30));
+
+  // Grid lines
+  [15,20,25,30,40].forEach(v=>{
+    if(v<vixMin||v>vixMax) return;
+    const y=toYv(v);
+    ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+plotW,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle="#333";ctx.font="8px sans-serif";ctx.textAlign="right";
+    ctx.fillText(v,PAD.left-4,y+3);
+  });
+
+  // VIX3M line
+  ctx.beginPath();
+  v3mVals.forEach((v,i)=>i===0?ctx.moveTo(toXv(i),toYv(v)):ctx.lineTo(toXv(i),toYv(v)));
+  ctx.strokeStyle="#a78bfa";ctx.lineWidth=1.5;ctx.stroke();
+
+  // VIX line
+  ctx.beginPath();
+  vixVals.forEach((v,i)=>i===0?ctx.moveTo(toXv(i),toYv(v)):ctx.lineTo(toXv(i),toYv(v)));
+  ctx.strokeStyle="#60a5fa";ctx.lineWidth=2;ctx.stroke();
+
+  // VIX Y-axis label
+  ctx.fillStyle="#60a5fa";ctx.font="bold 8px sans-serif";ctx.textAlign="left";
+  ctx.fillText("VIX",PAD.left+plotW+4,toYv(vixVals[vixVals.length-1])+3);
+  ctx.fillStyle="#a78bfa";
+  ctx.fillText("3M",PAD.left+plotW+4,toYv(v3mVals[v3mVals.length-1])+3);
+
+  // ── Divider ──────────────────────────────────────────────────
+  const divY = vixTop + VIX_H + 4;
+  ctx.strokeStyle="#1e1e1e";ctx.lineWidth=1;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(PAD.left,divY);ctx.lineTo(PAD.left+plotW,divY);ctx.stroke();
+
+  // ── Spread panel (bottom) ─────────────────────────────────────
+  const sprTop  = divY + 4;
+  const sprBot  = H - PAD.bottom;
+  const sprH    = sprBot - sprTop;
+  const sprMin  = Math.min(...sprVals,-1);
+  const sprMax  = Math.max(...sprVals,1);
+  const toYs    = v => sprTop + sprH - ((v-sprMin)/(sprMax-sprMin))*sprH;
+  const zeroY   = toYs(0);
+
+  // Spread background — green above 0, red below
+  ctx.fillStyle="rgba(29,158,117,0.08)";ctx.fillRect(PAD.left,sprTop,plotW,Math.max(0,zeroY-sprTop));
+  ctx.fillStyle="rgba(224,80,80,0.08)";ctx.fillRect(PAD.left,zeroY,plotW,sprBot-zeroY);
+
+  // Zero line
+  ctx.strokeStyle="#2a2a2a";ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(PAD.left,zeroY);ctx.lineTo(PAD.left+plotW,zeroY);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle="#444";ctx.font="8px sans-serif";ctx.textAlign="right";
+  ctx.fillText("0",PAD.left-4,zeroY+3);
+
+  // Spread bars
+  const barW = Math.max(1, plotW/dates.length - 0.5);
+  sprVals.forEach((v,i)=>{
+    const x = toXv(i), y = toYs(v);
+    const col = v>=0?"rgba(29,158,117,0.7)":"rgba(224,80,80,0.7)";
+    ctx.fillStyle=col;
+    if(v>=0) ctx.fillRect(x-barW/2, y, barW, zeroY-y);
+    else     ctx.fillRect(x-barW/2, zeroY, barW, y-zeroY);
+  });
+
+  // Spread axis labels
+  [Math.round(sprMin),0,Math.round(sprMax)].forEach(v=>{
+    ctx.fillStyle="#333";ctx.font="8px sans-serif";ctx.textAlign="right";
+    ctx.fillText(v,PAD.left-4,toYs(v)+3);
+  });
+  ctx.fillStyle="#1D9E75";ctx.font="bold 8px sans-serif";ctx.textAlign="left";
+  ctx.fillText("Spread",PAD.left+plotW+4,toYs(sprVals[sprVals.length-1])+3);
+
+  // ── X axis labels ─────────────────────────────────────────────
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let lastM=-1;
+  dates.forEach((d,i)=>{
+    const dt=new Date(d), m=dt.getMonth();
+    if(m!==lastM){
+      lastM=m;
+      ctx.fillStyle="#333";ctx.font="8px sans-serif";ctx.textAlign="center";
+      ctx.fillText(months[m]+"'"+String(dt.getFullYear()).slice(2),toXv(i),H-PAD.bottom+12);
+    }
+  });
+
+  // Panel labels
+  ctx.fillStyle="#555";ctx.font="8px sans-serif";ctx.textAlign="left";
+  ctx.fillText("IMPLIED VOL",PAD.left+4,vixTop+10);
+  ctx.fillText("SPREAD (VIX3M−VIX)",PAD.left+4,sprTop+10);
 }
 
 // ─── MOMENTUM SCREENER ───────────────────────────────────────────
