@@ -153,6 +153,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .hilo-legend{display:flex;gap:6px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
 .hilo-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#555}
 .hilo-leg-swatch{width:14px;height:14px;flex-shrink:0}
+/* RS SCANNER */
+.rs-table{width:100%;border-collapse:collapse}
+.rs-table th{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.06em;padding:6px 10px;border-bottom:1px solid #1e1e1e;text-align:left;font-weight:500;cursor:pointer;white-space:nowrap;user-select:none}
+.rs-table th:hover{color:#aaa}
+.rs-table td{font-size:12px;color:#ccc;padding:7px 10px;border-bottom:1px solid #141414;vertical-align:middle}
+.rs-table tr:hover td{background:#111}
+.rs-bar-wrap{width:80px;height:5px;background:#1a1a1a;display:inline-block;vertical-align:middle;margin-left:4px}
+.rs-bar-fill{height:100%}
+.rs-rank{font-size:10px;color:#444;min-width:28px}
 /* BREADTH */
 .ma-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .ma-bar-label{font-size:11px;color:#888;min-width:60px}
@@ -178,6 +187,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="header-logo">HBMS <span>Trading</span></div>
     <div class="hright">
       <span class="last-upd" id="lastUpd">Loading...</span>
+      <span id="fgGauge" style="font-size:11px;padding:2px 10px;border:1px solid #333;font-weight:600;cursor:pointer" onclick="showTab('breadth',document.querySelector('[onclick*=breadth]'))">F&G: —</span>
       <span class="badge" id="apiBadge">LIVE</span>
       <button class="btn" onclick="logout()">Logout</button>
     </div>
@@ -190,6 +200,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
     <div class="nav-item" onclick="showTab('breadth',this)">Market Breadth</div>
+    <div class="nav-item" onclick="showTab('rs',this)">RS Scanner</div>
     <div class="nav-item" onclick="showTab('insider',this)">Insider Trading</div>
     <div class="nav-section">Calendar</div>
     <div class="nav-item" onclick="showTab('econ',this)">Economic Calendar</div>
@@ -345,6 +356,78 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       </div>
 
       <div class="hilo-grid" id="hiloGrid"><div class="empty">Run screener.py</div></div>
+    </div>
+
+    <!-- RS SCANNER -->
+    <div class="panel" id="tab-rs">
+      <div class="section-title">Relative Strength Scanner — Performance vs SPY</div>
+
+      <!-- Fear & Greed -->
+      <div id="fgCard" style="background:#111;border:1px solid #1e1e1e;padding:14px 16px;margin-bottom:1rem;display:flex;align-items:center;gap:20px">
+        <div style="text-align:center;min-width:80px">
+          <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Fear & Greed</div>
+          <div id="fgScore" style="font-size:36px;font-weight:700;line-height:1">—</div>
+          <div id="fgLabel" style="font-size:11px;font-weight:600;margin-top:2px">—</div>
+        </div>
+        <div style="flex:1">
+          <div style="height:10px;background:#1a1a1a;position:relative;margin-bottom:6px;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;height:100%;width:20%;background:#aa1a1a"></div>
+            <div style="position:absolute;left:20%;top:0;height:100%;width:20%;background:#7a3a1a"></div>
+            <div style="position:absolute;left:40%;top:0;height:100%;width:20%;background:#4a4a1a"></div>
+            <div style="position:absolute;left:60%;top:0;height:100%;width:20%;background:#1a5a22"></div>
+            <div style="position:absolute;left:80%;top:0;height:100%;width:20%;background:#0d4a1a"></div>
+            <div id="fgNeedle" style="position:absolute;top:-2px;width:3px;height:14px;background:#fff;transform:translateX(-50%);transition:left 0.5s;left:50%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:#333"><span>Extreme Fear</span><span>Fear</span><span>Neutral</span><span>Greed</span><span>Extreme Greed</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px" id="fgComponents"></div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-row" style="margin-bottom:1rem">
+        <label>Index:</label>
+        <select id="rsIdx" onchange="renderRS()">
+          <option value="SP500">S&P 500</option>
+          <option value="DAX">DAX</option>
+          <option value="HSI">Hang Seng</option>
+          <option value="all">All</option>
+        </select>
+        <label>Timeframe:</label>
+        <select id="rsTF" onchange="renderRS()">
+          <option value="chg_1m">1 Month</option>
+          <option value="chg_1w">1 Week</option>
+          <option value="chg_3m">3 Months</option>
+          <option value="chg">1 Day</option>
+        </select>
+        <label>Show:</label>
+        <select id="rsShow" onchange="renderRS()">
+          <option value="all">All</option>
+          <option value="top">Top 50 (Leaders)</option>
+          <option value="bottom">Bottom 50 (Laggards)</option>
+          <option value="positive">Outperforming SPY</option>
+          <option value="negative">Underperforming SPY</option>
+        </select>
+      </div>
+
+      <!-- Table -->
+      <div style="overflow-x:auto">
+        <table class="rs-table">
+          <thead>
+            <tr>
+              <th onclick="rsSortBy('rank')">#</th>
+              <th onclick="rsSortBy('ticker')">Ticker</th>
+              <th onclick="rsSortBy('name')">Name</th>
+              <th onclick="rsSortBy('price')">Price</th>
+              <th onclick="rsSortBy('perf')" id="rsPerfHeader">Perf (1M)</th>
+              <th onclick="rsSortBy('vs_spy')">vs SPY</th>
+              <th>RS Bar</th>
+              <th onclick="rsSortBy('rsi')">RSI W</th>
+              <th onclick="rsSortBy('score')">EMA Score</th>
+            </tr>
+          </thead>
+          <tbody id="rsBody"><tr><td colspan="9" style="text-align:center;color:#444;padding:2rem">Run screener.py</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- MARKET BREADTH -->
@@ -510,6 +593,7 @@ function showTab(id,el){
   if(id==="breadth") renderBreadth();
   if(id==="insider"){ window._insiderRaw=window._insiderRaw||[]; loadInsider(); }
   if(id==="hilo") renderHiLo();
+  if(id==="rs"){ renderRS(); renderFearGreed(); }
   if(id==="sectors"){ renderHeatmap(); setTimeout(renderRRG,80); setTimeout(renderSectorDetail,100); }
 }
 async function loadData(){
@@ -522,9 +606,10 @@ async function loadData(){
     allTrending=json.trending||[];
     allSectors =json.sectors ||[];
     breadthData=json.breadth ||{};
+    window._marketData=json.market||{};
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();
+    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();
     window._insiderRaw=json.insider||[];
     if(window._insiderRaw.length) loadInsider();
   }catch(e){
@@ -1157,6 +1242,197 @@ function renderHiLo(){
       <div class="hilo-dist">${dist != null ? dist.toFixed(1)+"%" : "—"}</div>
       <div class="hilo-chg" style="color:${chgCol}">${chgSign}${(s.chg||0).toFixed(1)}%</div>
     </div>`;
+  }).join("");
+}
+
+// ─── FEAR & GREED ────────────────────────────────────────────────
+function calcFearGreed(){
+  const b  = breadthData;
+  const md = window._marketData || {};
+  const sp = allStocks.filter(s=>s.group==="SP500");
+  if(!sp.length || !b.universe_size) return null;
+
+  // Component 1: Market Momentum (% above 200D MA) → 0-100
+  const c1 = b.pct_above_200 != null ? b.pct_above_200 : 50;
+
+  // Component 2: Breadth A/D ratio → 0-100
+  const adv = b.advancing||0, dec = b.declining||0;
+  const c2 = (adv+dec)>0 ? (adv/(adv+dec))*100 : 50;
+
+  // Component 3: New Highs/Lows ratio → 0-100
+  const nh = b.new_highs||0, nl = b.new_lows||0;
+  const c3 = (nh+nl)>0 ? (nh/(nh+nl))*100 : 50;
+
+  // Component 4: Avg RSI (normalized: 30=0, 70=100) → 0-100
+  const rsis = sp.map(s=>s.rsi_daily).filter(r=>r!=null);
+  const avgRsi = rsis.length ? rsis.reduce((a,b)=>a+b,0)/rsis.length : 50;
+  const c4 = Math.max(0, Math.min(100, (avgRsi - 30) / 40 * 100));
+
+  // Component 5: VIX (inverted — high VIX = fear)
+  // VIX 10 = extreme greed (100), VIX 20 = neutral (50), VIX 40+ = extreme fear (0)
+  let c5 = 50;
+  if(md.vix != null){
+    c5 = Math.max(0, Math.min(100, (40 - md.vix) / 30 * 100));
+  }
+
+  // Component 6: Put/Call Ratio (inverted — high P/C = fear)
+  // P/C 0.5 = extreme greed (100), P/C 1.0 = neutral (50), P/C 1.5+ = extreme fear (0)
+  let c6 = 50;
+  if(md.pc_ratio != null){
+    c6 = Math.max(0, Math.min(100, (1.5 - md.pc_ratio) / 1.0 * 100));
+  }
+
+  // Weighted composite (with or without VIX/PC)
+  const hasVix = md.vix != null;
+  const hasPC  = md.pc_ratio != null;
+  let score, components;
+
+  if(hasVix && hasPC){
+    score = Math.round(c1*0.20 + c2*0.15 + c3*0.10 + c4*0.15 + c5*0.25 + c6*0.15);
+    components = [
+      {label:"MA Momentum", val:Math.round(c1), raw: (b.pct_above_200||0).toFixed(1)+"%"},
+      {label:"Breadth A/D", val:Math.round(c2), raw: adv+"/"+dec},
+      {label:"VIX",         val:Math.round(c5), raw: md.vix, invert:true},
+      {label:"Put/Call",    val:Math.round(c6), raw: md.pc_ratio, invert:true},
+      {label:"Avg RSI",     val:Math.round(c4), raw: avgRsi.toFixed(1)},
+      {label:"NH/NL",       val:Math.round(c3), raw: nh+"/"+nl},
+    ];
+  } else {
+    score = Math.round(c1*0.25 + c2*0.25 + c3*0.15 + c4*0.20 + (hasVix?c5*0.15:c6*0.15));
+    components = [
+      {label:"MA Momentum", val:Math.round(c1), raw: (b.pct_above_200||0).toFixed(1)+"%"},
+      {label:"Breadth A/D", val:Math.round(c2), raw: adv+"/"+dec},
+      {label:"Avg RSI",     val:Math.round(c4), raw: avgRsi.toFixed(1)},
+      {label:"NH/NL",       val:Math.round(c3), raw: nh+"/"+nl},
+      ...(hasVix?[{label:"VIX", val:Math.round(c5), raw:md.vix, invert:true}]:[]),
+      ...(hasPC ?[{label:"Put/Call", val:Math.round(c6), raw:md.pc_ratio, invert:true}]:[]),
+    ];
+  }
+
+  return { score, components, vix: md.vix, pc_ratio: md.pc_ratio };
+}
+
+function renderFearGreed(){
+  const fg = calcFearGreed();
+  if(!fg) return;
+
+  const score = fg.score;
+  const label = score>=80?"Extreme Greed":score>=60?"Greed":score>=40?"Neutral":score>=20?"Fear":"Extreme Fear";
+  const col   = score>=80?"#1D9E75":score>=60?"#5DCAA5":score>=40?"#EF9F27":score>=20?"#e05050":"#aa1a1a";
+
+  // Header gauge
+  const hg = document.getElementById("fgGauge");
+  if(hg){ hg.textContent=`F&G: ${score}`; hg.style.color=col; hg.style.borderColor=col; hg.style.background=`${col}18`; }
+
+  // RS tab
+  const sc = document.getElementById("fgScore");
+  const lb = document.getElementById("fgLabel");
+  const nd = document.getElementById("fgNeedle");
+  if(sc){ sc.textContent=score; sc.style.color=col; }
+  if(lb){ lb.textContent=label; lb.style.color=col; }
+  if(nd){ nd.style.left=score+"%"; }
+
+  const comp = document.getElementById("fgComponents");
+  if(comp){ comp.innerHTML = fg.components.map(c=>{
+    // For inverted signals (VIX, P/C): low raw = good = green
+    const cc = c.val>=70?"#1D9E75":c.val>=50?"#EF9F27":"#e05050";
+    return`<div style="background:#161616;padding:6px 8px">
+      <div style="font-size:9px;color:#444;margin-bottom:2px">${c.label}</div>
+      <div style="font-size:14px;font-weight:600;color:${cc}">${c.val}</div>
+      ${c.raw!=null?`<div style="font-size:9px;color:#333;margin-top:1px">${c.raw}</div>`:""}
+    </div>`;
+  }).join("");}
+}
+
+// ─── RS SCANNER ──────────────────────────────────────────────────
+let rsSortCol = "vs_spy", rsSortDir = -1;
+
+function rsSortBy(col){
+  if(rsSortCol===col) rsSortDir*=-1;
+  else { rsSortCol=col; rsSortDir=-1; }
+  renderRS();
+}
+
+function renderRS(){
+  const idx   = document.getElementById("rsIdx").value;
+  const tf    = document.getElementById("rsTF").value;
+  const show  = document.getElementById("rsShow").value;
+
+  // Update perf header
+  const tfLabel = {chg:"1D",chg_1w:"1W",chg_1m:"1M",chg_3m:"3M"}[tf]||"1M";
+  const ph = document.getElementById("rsPerfHeader");
+  if(ph) ph.textContent = `Perf (${tfLabel})`;
+
+  // Get SPY benchmark performance for the timeframe
+  const spyStock = allStocks.find(s=>s.ticker==="SPY")||allTrending.find(s=>s.ticker==="^GSPC");
+  // Use sector SPY for benchmark
+  const spySec = allSectors.find(s=>s.ticker==="SPY");
+  const spyPerf = spySec ? (tf==="chg"?spySec.chg_1d:tf==="chg_1w"?spySec.chg_1w:tf==="chg_1m"?spySec.chg_1m:spySec.chg_3m) : 0;
+
+  let stocks = allStocks.filter(s=>{
+    if(idx!=="all"&&s.group!==idx) return false;
+    if(s[tf]==null) return false;
+    return true;
+  });
+
+  // Compute vs_spy for each
+  stocks = stocks.map(s=>({...s, perf:s[tf], vs_spy: spyPerf!=null ? s[tf]-spyPerf : s[tf]}));
+
+  // Filter
+  if(show==="top")      stocks = [...stocks].sort((a,b)=>b.vs_spy-a.vs_spy).slice(0,50);
+  else if(show==="bottom") stocks = [...stocks].sort((a,b)=>a.vs_spy-b.vs_spy).slice(0,50);
+  else if(show==="positive") stocks = stocks.filter(s=>s.vs_spy>0);
+  else if(show==="negative") stocks = stocks.filter(s=>s.vs_spy<0);
+
+  // Sort
+  stocks.sort((a,b)=>{
+    const v = rsSortCol==="ticker"?a.ticker.localeCompare(b.ticker):
+              rsSortCol==="name"  ?a.name.localeCompare(b.name):
+              rsSortCol==="price" ?(a.price-b.price):
+              rsSortCol==="perf"  ?(a.perf-b.perf):
+              rsSortCol==="rsi"   ?((a.rsi_weekly||0)-(b.rsi_weekly||0)):
+              rsSortCol==="score" ?((a.score||0)-(b.score||0)):
+              rsSortCol==="rank"  ?(a.vs_spy-b.vs_spy):
+                                   (a.vs_spy-b.vs_spy);
+    return v*rsSortDir;
+  });
+
+  // Rank by vs_spy
+  const ranked = [...stocks].sort((a,b)=>b.vs_spy-a.vs_spy);
+  const rankMap = {};
+  ranked.forEach((s,i)=>rankMap[s.ticker]=i+1);
+
+  // Scale bar: max absolute vs_spy
+  const maxAbs = Math.max(...stocks.map(s=>Math.abs(s.vs_spy)), 1);
+
+  const body = document.getElementById("rsBody");
+  if(!stocks.length){
+    body.innerHTML=`<tr><td colspan="9" style="text-align:center;color:#444;padding:2rem">${allStocks.length?"No stocks match":"Run screener.py"}</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = stocks.map(s=>{
+    const rank    = rankMap[s.ticker]||"—";
+    const perfCol = s.perf>=0?"#1D9E75":"#e05050";
+    const vsCol   = s.vs_spy>=0?"#1D9E75":"#e05050";
+    const barW    = Math.min(100, Math.abs(s.vs_spy)/maxAbs*100);
+    const rsiCol  = s.rsi_weekly==null?"#444":s.rsi_weekly<30?"#e05050":s.rsi_weekly<45?"#EF9F27":"#1D9E75";
+    const scoreCol= s.score==null?"#444":s.score>=3?"#1D9E75":s.score>0?"#5DCAA5":s.score<=-3?"#e05050":s.score<0?"#f09595":"#555";
+    return`<tr>
+      <td class="rs-rank">${rank}</td>
+      <td style="font-weight:600;color:#fff">${s.ticker}</td>
+      <td style="font-size:11px;color:#666;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</td>
+      <td style="color:#888">$${(s.price||0).toLocaleString("en-US",{maximumFractionDigits:2})}</td>
+      <td style="color:${perfCol};font-weight:600">${s.perf>=0?"+":""}${(s.perf||0).toFixed(2)}%</td>
+      <td style="color:${vsCol};font-weight:600">${s.vs_spy>=0?"+":""}${(s.vs_spy||0).toFixed(2)}%</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:3px">
+          <div class="rs-bar-wrap"><div class="rs-bar-fill" style="width:${barW}%;background:${vsCol};${s.vs_spy<0?"margin-left:auto":""}"></div></div>
+        </div>
+      </td>
+      <td style="color:${rsiCol}">${s.rsi_weekly!=null?s.rsi_weekly:"—"}</td>
+      <td style="color:${scoreCol}">${s.score!=null?(s.score>0?"+":"")+s.score+"/5":"—"}</td>
+    </tr>`;
   }).join("");
 }
 
