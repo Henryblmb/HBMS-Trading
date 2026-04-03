@@ -681,7 +681,12 @@ function showTab(id,el){
   if(id==="hilo") renderHiLo();
   if(id==="rs"){ renderRS(); renderFearGreed(); }
   if(id==="momentum") renderMomentum();
-  if(id==="vix") setTimeout(renderVIX, 50);
+  if(id==="vix"){
+    // Re-read market data from global
+    window._marketData = window._marketData || {};
+    console.log("Opening VIX tab, market data:", window._marketData);
+    setTimeout(renderVIX, 100);
+  }
   if(id==="sectors"){ renderHeatmap(); setTimeout(renderRRG,80); setTimeout(renderSectorDetail,100); }
 }
 async function loadData(){
@@ -697,7 +702,8 @@ async function loadData(){
     allSectors =json.sectors ||[];
     breadthData=json.breadth ||{};
     window._marketData=json.market||{};
-    console.log("Market data:", window._marketData);
+    console.log("Market data keys:", Object.keys(window._marketData));
+    console.log("VIX:", window._marketData.vix, "VIX3M:", window._marketData.vix3m, "VIX9D:", window._marketData.vix9d);
     updateVIXGauge();
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
