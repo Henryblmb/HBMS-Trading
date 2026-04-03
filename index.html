@@ -30,10 +30,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nav-item.active{color:#fff;background:#141414;border-left-color:#1D9E75}
 .nav-section{font-size:10px;color:#333;padding:12px 16px 4px;text-transform:uppercase;letter-spacing:0.08em}
 .main{padding:1.25rem;overflow-y:auto;background:#0a0a0a}
-.stats-bar{display:flex;gap:6px;margin-bottom:1rem}
-.stat{flex:1;background:#111;border:1px solid #1e1e1e;padding:8px 10px;text-align:center}
-.stat-val{font-size:20px;font-weight:600;color:#fff;line-height:1}
-.stat-lbl{font-size:9px;color:#444;margin-top:3px;text-transform:uppercase;letter-spacing:0.04em}
+
 .panel{display:none}.panel.active{display:block}
 .filter-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;padding:10px 12px;background:#111;border:1px solid #1e1e1e}
 .filter-row label{font-size:11px;color:#555;white-space:nowrap}
@@ -207,14 +204,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   <div class="main">
     <div id="noTradeBanner" class="no-trade" style="display:none">
       <div class="dot"></div><span id="noTradeText"></span>
-    </div>
-    <div class="stats-bar">
-      <div class="stat"><div class="stat-val" id="s1">—</div><div class="stat-lbl">Golden Pocket</div></div>
-      <div class="stat"><div class="stat-val" id="s2">—</div><div class="stat-lbl">RSI W&lt;35</div></div>
-      <div class="stat"><div class="stat-val" id="s3" style="color:#1D9E75">—</div><div class="stat-lbl">Trend 4-5</div></div>
-      <div class="stat"><div class="stat-val" id="s4" style="color:#e05050">—</div><div class="stat-lbl">Trend -4/-5</div></div>
-      <div class="stat"><div class="stat-val" id="s5">—</div><div class="stat-lbl">Stocks</div></div>
-      <div class="stat"><div class="stat-val" id="s6">—</div><div class="stat-lbl">Assets</div></div>
     </div>
 
     <!-- GOLDEN POCKET -->
@@ -618,19 +607,11 @@ async function loadData(){
     window._marketData=json.market||{};
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();
+    filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();
   }catch(e){
     document.getElementById("apiBadge").textContent="Error";
     document.getElementById("gpGrid").innerHTML=`<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
   }
-}
-function updateStats(){
-  document.getElementById("s1").textContent=allStocks.filter(d=>d.in_gp_52w||d.in_gp_ytd).length;
-  document.getElementById("s2").textContent=allStocks.filter(d=>d.rsi_weekly&&d.rsi_weekly<=35).length;
-  document.getElementById("s3").textContent=allTrending.filter(d=>d.score!=null&&d.score>=4).length;
-  document.getElementById("s4").textContent=allTrending.filter(d=>d.score!=null&&d.score<=-4).length;
-  document.getElementById("s5").textContent=allStocks.length;
-  document.getElementById("s6").textContent=allTrending.length;
 }
 function fmtP(p){return p==null?"—":p<10?p.toFixed(4):p.toLocaleString("en-US",{maximumFractionDigits:2});}
 function fmtChg(c,sfx=""){
