@@ -162,6 +162,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .rs-bar-wrap{width:80px;height:5px;background:#1a1a1a;display:inline-block;vertical-align:middle;margin-left:4px}
 .rs-bar-fill{height:100%}
 .rs-rank{font-size:10px;color:#444;min-width:28px}
+/* MOMENTUM SCREENER */
+.mom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.mom-card{background:#111;border:1px solid #1e1e1e;padding:12px 14px;border-left:3px solid #1D9E75;transition:border-color 0.1s}
+.mom-card:hover{border-color:#2a2a2a}
+.mom-score-bar{display:flex;gap:2px;margin:6px 0}
+.mom-score-dot{flex:1;height:4px;background:#1a1a1a;border-radius:1px}
+.mom-score-dot.on{background:#1D9E75}
+.mom-signal{font-size:9px;padding:1px 5px;border:1px solid;margin-right:3px;margin-top:3px;display:inline-block}
+.mom-signal.bull{color:#1D9E75;border-color:#1a3a1a;background:#0a1a0a}
+.mom-signal.warn{color:#EF9F27;border-color:#3a2a1a;background:#1a1200}
+.mom-signal.bear{color:#e05050;border-color:#3a1a1a;background:#1a0a0a}
 /* F&G CHART */
 .fg-chart-wrap{position:relative;width:100%;background:#0d0d0d;border:1px solid #1e1e1e;margin-bottom:1rem}
 /* BREADTH */
@@ -203,6 +214,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
     <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
     <div class="nav-item" onclick="showTab('breadth',this)">Market Breadth</div>
     <div class="nav-item" onclick="showTab('rs',this)">RS Scanner</div>
+    <div class="nav-item" onclick="showTab('momentum',this)">Momentum</div>
     <div class="nav-item" onclick="showTab('insider',this)">Insider Trading</div>
     <div class="nav-section">Calendar</div>
     <div class="nav-item" onclick="showTab('econ',this)">Economic Calendar</div>
@@ -370,6 +382,57 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       </div>
 
       <div class="hilo-grid" id="hiloGrid"><div class="empty">Run screener.py</div></div>
+    </div>
+
+    <!-- MOMENTUM SCREENER -->
+    <div class="panel" id="tab-momentum">
+      <div class="section-title">Momentum Screener — Stocks with building momentum</div>
+
+      <!-- Signal explanation -->
+      <div style="background:#111;border:1px solid #1e1e1e;padding:10px 14px;margin-bottom:1rem;font-size:11px;color:#555;line-height:1.7">
+        Momentum Score (0–7): RSI 50-70 daily · RSI improving weekly · Above EMA20 · Above EMA50 · Outperforming SPY 1W · Positive 1D · Within 20% of 52W High
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-row" style="margin-bottom:1rem">
+        <label>Index:</label>
+        <select id="momIdx" onchange="renderMomentum()">
+          <option value="SP500">S&P 500</option>
+          <option value="all">All</option>
+          <option value="DAX">DAX</option>
+          <option value="HSI">Hang Seng</option>
+        </select>
+        <label>Min Score:</label>
+        <select id="momMin" onchange="renderMomentum()">
+          <option value="4">4+ (Strong)</option>
+          <option value="3">3+ (Medium)</option>
+          <option value="5">5+ (Very Strong)</option>
+          <option value="6">6-7 (Elite)</option>
+        </select>
+        <label>Sort:</label>
+        <select id="momSort" onchange="renderMomentum()">
+          <option value="score">Score (High → Low)</option>
+          <option value="chg_1w">1W Perf</option>
+          <option value="chg">1D Perf</option>
+          <option value="rsi">RSI Daily</option>
+        </select>
+        <label>RSI Range:</label>
+        <select id="momRsi" onchange="renderMomentum()">
+          <option value="momentum">50–70 (Momentum Zone)</option>
+          <option value="all">Any RSI</option>
+          <option value="oversold">Under 40 (Oversold)</option>
+        </select>
+      </div>
+
+      <!-- Stats -->
+      <div style="display:flex;gap:6px;margin-bottom:1rem">
+        <div class="stat"><div class="stat-val" id="momCount" style="color:#1D9E75">—</div><div class="stat-lbl">Momentum Stocks</div></div>
+        <div class="stat"><div class="stat-val" id="momAvgScore">—</div><div class="stat-lbl">Avg Score</div></div>
+        <div class="stat"><div class="stat-val" id="momAvg1w" style="color:#1D9E75">—</div><div class="stat-lbl">Avg 1W Perf</div></div>
+        <div class="stat"><div class="stat-val" id="momElite" style="color:#EF9F27">—</div><div class="stat-lbl">Elite (6-7)</div></div>
+      </div>
+
+      <div class="mom-grid" id="momGrid"><div class="empty">Loading...</div></div>
     </div>
 
     <!-- RS SCANNER -->
@@ -620,6 +683,7 @@ function showTab(id,el){
   if(id==="insider"){ window._insiderRaw=window._insiderRaw||[]; loadInsider(); }
   if(id==="hilo") renderHiLo();
   if(id==="rs"){ renderRS(); renderFearGreed(); }
+  if(id==="momentum") renderMomentum();
   if(id==="sectors"){ renderHeatmap(); setTimeout(renderRRG,80); setTimeout(renderSectorDetail,100); }
 }
 async function loadData(){
@@ -635,7 +699,7 @@ async function loadData(){
     window._marketData=json.market||{};
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();
+    updateStats();filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();
     window._insiderRaw=json.insider||[];
     if(window._insiderRaw.length) loadInsider();
   }catch(e){
@@ -1339,6 +1403,142 @@ function calcFearGreed(){
   }
 
   return { score, components, vix: md.vix, pc_ratio: md.pc_ratio };
+}
+
+// ─── MOMENTUM SCREENER ───────────────────────────────────────────
+function calcMomentumScore(s, spyPerf1w){
+  let score = 0;
+  const signals = [];
+
+  // 1. RSI Daily 50-70 (momentum zone — not oversold, not overbought)
+  if(s.rsi_daily!=null && s.rsi_daily>=50 && s.rsi_daily<=70){
+    score++; signals.push({label:"RSI "+s.rsi_daily, type:"bull"});
+  } else if(s.rsi_daily!=null && s.rsi_daily>70){
+    signals.push({label:"RSI "+s.rsi_daily+" OB", type:"warn"});
+  } else if(s.rsi_daily!=null){
+    signals.push({label:"RSI "+s.rsi_daily, type:"bear"});
+  }
+
+  // 2. RSI Weekly healthy (40-70)
+  if(s.rsi_weekly!=null && s.rsi_weekly>=40 && s.rsi_weekly<=70){
+    score++; signals.push({label:"W-RSI "+s.rsi_weekly, type:"bull"});
+  }
+
+  // 3. Above EMA 20
+  if(s.above_20){
+    score++; signals.push({label:"Above EMA20", type:"bull"});
+  } else {
+    signals.push({label:"Below EMA20", type:"bear"});
+  }
+
+  // 4. Above EMA 50
+  if(s.above_50){
+    score++; signals.push({label:"Above EMA50", type:"bull"});
+  } else {
+    signals.push({label:"Below EMA50", type:"bear"});
+  }
+
+  // 5. Outperforming SPY this week
+  if(s.chg_1w!=null && spyPerf1w!=null && s.chg_1w > spyPerf1w){
+    score++; signals.push({label:"Beat SPY 1W", type:"bull"});
+  } else if(s.chg_1w!=null){
+    signals.push({label:"Lag SPY 1W", type:"warn"});
+  }
+
+  // 6. Positive today
+  if(s.chg>0){
+    score++; signals.push({label:"+"+s.chg.toFixed(1)+"% today", type:"bull"});
+  } else {
+    signals.push({label:s.chg.toFixed(1)+"% today", type:"bear"});
+  }
+
+  // 7. Within 20% of 52W High (not too deep in downtrend)
+  if(s.dist_from_hi!=null && s.dist_from_hi<=20){
+    score++; signals.push({label:s.dist_from_hi.toFixed(1)+"% from Hi", type:"bull"});
+  } else if(s.dist_from_hi!=null){
+    signals.push({label:s.dist_from_hi.toFixed(1)+"% from Hi", type:"warn"});
+  }
+
+  return {score, signals};
+}
+
+function renderMomentum(){
+  const idx    = document.getElementById("momIdx").value;
+  const minSc  = parseInt(document.getElementById("momMin").value);
+  const sort   = document.getElementById("momSort").value;
+  const rsiMode= document.getElementById("momRsi").value;
+
+  // SPY 1W benchmark
+  const spySec    = allSectors.find(s=>s.ticker==="SPY");
+  const spyPerf1w = spySec ? spySec.chg_1w : null;
+
+  let stocks = allStocks.filter(s=>{
+    if(idx!=="all" && s.group!==idx) return false;
+    if(rsiMode==="momentum" && (s.rsi_daily==null||s.rsi_daily<50||s.rsi_daily>70)) return false;
+    if(rsiMode==="oversold" && (s.rsi_daily==null||s.rsi_daily>=40)) return false;
+    return true;
+  });
+
+  // Calculate scores
+  stocks = stocks.map(s=>{
+    const {score, signals} = calcMomentumScore(s, spyPerf1w);
+    return {...s, momScore:score, momSignals:signals};
+  }).filter(s=>s.momScore>=minSc);
+
+  // Sort
+  stocks.sort((a,b)=>{
+    if(sort==="chg_1w") return (b.chg_1w||0)-(a.chg_1w||0);
+    if(sort==="chg")    return (b.chg||0)-(a.chg||0);
+    if(sort==="rsi")    return (b.rsi_daily||0)-(a.rsi_daily||0);
+    return b.momScore-a.momScore;
+  });
+
+  // Stats
+  document.getElementById("momCount").textContent   = stocks.length;
+  document.getElementById("momElite").textContent   = stocks.filter(s=>s.momScore>=6).length;
+  const avgSc  = stocks.length ? (stocks.reduce((a,s)=>a+s.momScore,0)/stocks.length).toFixed(1) : "—";
+  const avg1w  = stocks.filter(s=>s.chg_1w!=null);
+  const avg1wV = avg1w.length ? "+"+(avg1w.reduce((a,s)=>a+s.chg_1w,0)/avg1w.length).toFixed(1)+"%" : "—";
+  document.getElementById("momAvgScore").textContent = avgSc;
+  document.getElementById("momAvg1w").textContent    = avg1wV;
+
+  const grid = document.getElementById("momGrid");
+  if(!stocks.length){
+    grid.innerHTML=`<div class="empty">${allStocks.length?"No stocks match — try lowering Min Score":"Run screener.py"}</div>`;
+    return;
+  }
+
+  grid.innerHTML = stocks.map(s=>{
+    const scoreColor = s.momScore>=6?"#EF9F27":s.momScore>=4?"#1D9E75":"#5DCAA5";
+    const dots = Array(7).fill(0).map((_,i)=>
+      `<div class="mom-score-dot ${i<s.momScore?"on":""}" ${i<s.momScore?`style="background:${scoreColor}"`:""}></div>`
+    ).join("");
+    const vsStr = spyPerf1w!=null && s.chg_1w!=null
+      ? `<span style="font-size:9px;color:${s.chg_1w>spyPerf1w?"#1D9E75":"#e05050"}">vs SPY: ${s.chg_1w>spyPerf1w?"+":""}${(s.chg_1w-spyPerf1w).toFixed(1)}%</span>`
+      : "";
+    const signals = s.momSignals.slice(0,5).map(sig=>
+      `<span class="mom-signal ${sig.type}">${sig.label}</span>`
+    ).join("");
+
+    return`<div class="mom-card" style="border-left-color:${scoreColor}">
+      <div class="scard-header">
+        <span class="ticker">${s.ticker}</span>
+        <span style="font-size:13px;font-weight:700;color:${scoreColor}">${s.momScore}/7</span>
+      </div>
+      <div class="sname">${s.name}</div>
+      <div class="price-row">
+        <span class="price">$${(s.price||0).toLocaleString("en-US",{maximumFractionDigits:2})}</span>
+        <span class="${s.chg>=0?"pos":"neg"}">${s.chg>=0?"+":""}${(s.chg||0).toFixed(2)}%</span>
+      </div>
+      <div class="mom-score-bar">${dots}</div>
+      <div style="display:flex;gap:12px;font-size:11px;margin:5px 0">
+        <span style="color:#555">1W: <span style="color:${(s.chg_1w||0)>=0?"#1D9E75":"#e05050"}">${s.chg_1w!=null?(s.chg_1w>=0?"+":"")+s.chg_1w.toFixed(1)+"%":"—"}</span></span>
+        ${vsStr}
+        <span style="color:#555">RSI: <span style="color:#aaa">${s.rsi_daily!=null?s.rsi_daily:"—"}</span></span>
+      </div>
+      <div style="margin-top:4px">${signals}</div>
+    </div>`;
+  }).join("");
 }
 
 // ─── F&G HISTORY (localStorage) ─────────────────────────────────
