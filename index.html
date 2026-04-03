@@ -162,6 +162,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .rs-bar-wrap{width:80px;height:5px;background:#1a1a1a;display:inline-block;vertical-align:middle;margin-left:4px}
 .rs-bar-fill{height:100%}
 .rs-rank{font-size:10px;color:#444;min-width:28px}
+/* F&G CHART */
+.fg-chart-wrap{position:relative;width:100%;background:#0d0d0d;border:1px solid #1e1e1e;margin-bottom:1rem}
 /* BREADTH */
 .ma-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .ma-bar-label{font-size:11px;color:#888;min-width:60px}
@@ -330,6 +332,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <div class="stat"><div class="stat-val" id="hiloAtLow" style="color:#e05050">—</div><div class="stat-lbl">At 52W Low</div></div>
       </div>
 
+      <!-- F&G History Chart -->
+      <div class="fg-chart-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Fear & Greed — 12 Month History</div>
+          <div style="display:flex;gap:10px;font-size:9px;color:#555">
+            <span><span style="color:#1D9E75">—</span> Fear & Greed</span>
+            <span><span style="color:#60a5fa">—</span> S&P 500</span>
+          </div>
+        </div>
+        <canvas id="fgChartCanvas" style="width:100%;display:block;image-rendering:crisp-edges"></canvas>
+      </div>
+
       <!-- Filters -->
       <div class="filter-row" style="margin-bottom:1rem">
         <label>Index:</label>
@@ -381,6 +395,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
           <div style="display:flex;justify-content:space-between;font-size:8px;color:#333"><span>Extreme Fear</span><span>Fear</span><span>Neutral</span><span>Greed</span><span>Extreme Greed</span></div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px" id="fgComponents"></div>
         </div>
+      </div>
+
+      <!-- F&G History Chart -->
+      <div class="fg-chart-wrap">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Fear & Greed — 12 Month History</div>
+          <div style="display:flex;gap:10px;font-size:9px;color:#555">
+            <span><span style="color:#1D9E75">—</span> Fear & Greed</span>
+            <span><span style="color:#60a5fa">—</span> S&P 500</span>
+          </div>
+        </div>
+        <canvas id="fgChartCanvas" style="width:100%;display:block;image-rendering:crisp-edges"></canvas>
       </div>
 
       <!-- Filters -->
@@ -1013,8 +1039,11 @@ function renderSectors(){
   setTimeout(()=>{renderRRG();renderSectorDetail();},80);
 }
 
-let rrgResizeTimer;
-window.addEventListener("resize",()=>{clearTimeout(rrgResizeTimer);rrgResizeTimer=setTimeout(()=>{if(allSectors.length)renderRRG();},150);});
+let rrgResizeTimer, fgResizeTimer;
+window.addEventListener("resize",()=>{
+  clearTimeout(rrgResizeTimer);rrgResizeTimer=setTimeout(()=>{if(allSectors.length)renderRRG();},150);
+  clearTimeout(fgResizeTimer);fgResizeTimer=setTimeout(()=>{const spy=allSectors.find(s=>s.ticker==="SPY");if(spy)renderFearGreed();},200);
+});
 
 // ─── BREADTH ─────────────────────────────────────────────────────
 function renderBreadth(){
@@ -1312,19 +1341,182 @@ function calcFearGreed(){
   return { score, components, vix: md.vix, pc_ratio: md.pc_ratio };
 }
 
+// ─── F&G HISTORY (localStorage) ─────────────────────────────────
+function fgHistoryKey(){ return "hbms_fg_history_v2"; }
+
+function saveFGHistory(score){
+  try{
+    const today = new Date().toISOString().slice(0,10);
+    let hist = JSON.parse(localStorage.getItem(fgHistoryKey())||"{}");
+    hist[today] = score;
+    // Keep only last 400 days
+    const keys = Object.keys(hist).sort();
+    if(keys.length > 400) keys.slice(0, keys.length-400).forEach(k=>delete hist[k]);
+    localStorage.setItem(fgHistoryKey(), JSON.stringify(hist));
+    return hist;
+  } catch(e){ return {}; }
+}
+
+function getFGHistory(){
+  try{ return JSON.parse(localStorage.getItem(fgHistoryKey())||"{}"); }
+  catch(e){ return {}; }
+}
+
+function fgColor(s){
+  return s>=80?"#1D9E75":s>=60?"#5DCAA5":s>=40?"#EF9F27":s>=20?"#e05050":"#aa1a1a";
+}
+
+function drawFGChart(fgHist, spyDates, spyCloses){
+  const canvas = document.getElementById("fgChartCanvas");
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio||1;
+  const wrap = canvas.parentElement;
+  const cssW = wrap.clientWidth||800;
+  const cssH = 220;
+  canvas.width  = Math.round(cssW*dpr);
+  canvas.height = Math.round(cssH*dpr);
+  canvas.style.width  = cssW+"px";
+  canvas.style.height = cssH+"px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const W=cssW, H=cssH;
+  const PAD={top:18,right:52,bottom:28,left:42};
+  const plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Merge FG history + SPY into aligned date range (last 365 days)
+  const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear()-1);
+  const cutStr  = cutoff.toISOString().slice(0,10);
+
+  const fgEntries = Object.entries(fgHist)
+    .filter(([d])=>d>=cutStr)
+    .sort((a,b)=>a[0].localeCompare(b[0]));
+
+  if(fgEntries.length < 2){
+    ctx.fillStyle="#444"; ctx.font="12px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Building history... check back tomorrow",W/2,H/2);
+    return;
+  }
+
+  const allDates = fgEntries.map(([d])=>d);
+  const startDate = allDates[0], endDate = allDates[allDates.length-1];
+
+  // ── Background zones ───────────────────────────────────────────
+  const zones=[
+    {min:80,max:100,col:"rgba(29,158,117,0.08)"},
+    {min:60,max:80, col:"rgba(93,202,165,0.06)"},
+    {min:40,max:60, col:"rgba(239,159,39,0.06)"},
+    {min:20,max:40, col:"rgba(224,80,80,0.06)"},
+    {min:0, max:20, col:"rgba(170,26,26,0.10)"},
+  ];
+  const toY0 = v => PAD.top + plotH - (v/100)*plotH;
+  zones.forEach(z=>{
+    ctx.fillStyle=z.col;
+    ctx.fillRect(PAD.left, toY0(z.max), plotW, toY0(z.min)-toY0(z.max));
+  });
+
+  // Zone lines
+  [20,40,60,80].forEach(v=>{
+    const y=toY0(v);
+    ctx.strokeStyle="rgba(255,255,255,0.04)";
+    ctx.lineWidth=1; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+plotW,y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle="rgba(255,255,255,0.15)";ctx.font="7px sans-serif";ctx.textAlign="right";
+    ctx.fillText(v, PAD.left-4, y+3);
+  });
+
+  // ── Date → X mapping ──────────────────────────────────────────
+  const d0 = new Date(startDate).getTime();
+  const d1 = new Date(endDate).getTime();
+  const span = d1-d0 || 1;
+  const toX = dateStr => PAD.left + ((new Date(dateStr).getTime()-d0)/span)*plotW;
+
+  // ── SPY overlay (right axis) ───────────────────────────────────
+  if(spyDates && spyCloses && spyDates.length>1){
+    const spyFiltered = spyDates
+      .map((d,i)=>({d,v:spyCloses[i]}))
+      .filter(({d})=>d>=startDate && d<=endDate);
+
+    if(spyFiltered.length>1){
+      const spyVals = spyFiltered.map(s=>s.v);
+      const spyMin  = Math.min(...spyVals)*0.99;
+      const spyMax  = Math.max(...spyVals)*1.01;
+      const toYspy  = v => PAD.top + plotH - ((v-spyMin)/(spyMax-spyMin))*plotH;
+
+      ctx.beginPath();
+      spyFiltered.forEach(({d,v},i)=>{
+        const x=toX(d), y=toYspy(v);
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      });
+      ctx.strokeStyle="rgba(96,165,250,0.5)";
+      ctx.lineWidth=1.5; ctx.stroke();
+
+      // Right axis labels (SPY price)
+      ctx.fillStyle="rgba(96,165,250,0.5)";ctx.font="7px sans-serif";ctx.textAlign="left";
+      [spyMin,spyMax,(spyMin+spyMax)/2].forEach(v=>{
+        ctx.fillText("$"+Math.round(v), PAD.left+plotW+4, toYspy(v)+3);
+      });
+    }
+  }
+
+  // ── F&G Line ───────────────────────────────────────────────────
+  ctx.beginPath();
+  fgEntries.forEach(([d,score],i)=>{
+    const x=toX(d), y=toY0(score);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle="#1D9E75"; ctx.lineWidth=2; ctx.stroke();
+
+  // Dots for each point (if not too many)
+  if(fgEntries.length<=60){
+    fgEntries.forEach(([d,score])=>{
+      ctx.beginPath();ctx.arc(toX(d),toY0(score),2.5,0,Math.PI*2);
+      ctx.fillStyle=fgColor(score); ctx.fill();
+    });
+  }
+
+  // ── X axis labels (months) ─────────────────────────────────────
+  ctx.fillStyle="#333";ctx.font="8px sans-serif";ctx.textAlign="center";
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let lastMonth=-1;
+  allDates.forEach(d=>{
+    const dt=new Date(d), m=dt.getMonth();
+    if(m!==lastMonth){
+      lastMonth=m;
+      ctx.fillText(months[m]+" '"+String(dt.getFullYear()).slice(2), toX(d), H-PAD.bottom+10);
+    }
+  });
+
+  // ── Current value dot ─────────────────────────────────────────
+  const lastEntry = fgEntries[fgEntries.length-1];
+  if(lastEntry){
+    const [ld,ls]=lastEntry;
+    ctx.beginPath();ctx.arc(toX(ld),toY0(ls),5,0,Math.PI*2);
+    ctx.fillStyle=fgColor(ls);ctx.fill();
+    ctx.strokeStyle="#0a0a0a";ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=fgColor(ls);ctx.font="bold 9px sans-serif";ctx.textAlign="left";
+    ctx.fillText(ls, toX(ld)+8, toY0(ls)+4);
+  }
+}
+
 function renderFearGreed(){
   const fg = calcFearGreed();
   if(!fg) return;
 
   const score = fg.score;
   const label = score>=80?"Extreme Greed":score>=60?"Greed":score>=40?"Neutral":score>=20?"Fear":"Extreme Fear";
-  const col   = score>=80?"#1D9E75":score>=60?"#5DCAA5":score>=40?"#EF9F27":score>=20?"#e05050":"#aa1a1a";
+  const col   = fgColor(score);
+
+  // Save to history
+  const hist = saveFGHistory(score);
 
   // Header gauge
   const hg = document.getElementById("fgGauge");
   if(hg){ hg.textContent=`F&G: ${score}`; hg.style.color=col; hg.style.borderColor=col; hg.style.background=`${col}18`; }
 
-  // RS tab
+  // Score + label
   const sc = document.getElementById("fgScore");
   const lb = document.getElementById("fgLabel");
   const nd = document.getElementById("fgNeedle");
@@ -1332,16 +1524,22 @@ function renderFearGreed(){
   if(lb){ lb.textContent=label; lb.style.color=col; }
   if(nd){ nd.style.left=score+"%"; }
 
+  // Components
   const comp = document.getElementById("fgComponents");
-  if(comp){ comp.innerHTML = fg.components.map(c=>{
-    // For inverted signals (VIX, P/C): low raw = good = green
-    const cc = c.val>=70?"#1D9E75":c.val>=50?"#EF9F27":"#e05050";
+  if(comp){ comp.innerHTML = fg.components.map(comp=>{
+    const cc = comp.val>=70?"#1D9E75":comp.val>=50?"#EF9F27":"#e05050";
     return`<div style="background:#161616;padding:6px 8px">
-      <div style="font-size:9px;color:#444;margin-bottom:2px">${c.label}</div>
-      <div style="font-size:14px;font-weight:600;color:${cc}">${c.val}</div>
-      ${c.raw!=null?`<div style="font-size:9px;color:#333;margin-top:1px">${c.raw}</div>`:""}
+      <div style="font-size:9px;color:#444;margin-bottom:2px">${comp.label}</div>
+      <div style="font-size:14px;font-weight:600;color:${cc}">${comp.val}</div>
+      ${comp.raw!=null?`<div style="font-size:9px;color:#333;margin-top:1px">${comp.raw}</div>`:""}
     </div>`;
   }).join("");}
+
+  // Draw chart — get SPY data from sectors
+  const spy = allSectors.find(s=>s.ticker==="SPY");
+  const spyDates  = spy&&spy.dates  ? spy.dates  : null;
+  const spyCloses = spy&&spy.closes ? spy.closes.slice(-252) : null;
+  setTimeout(()=>drawFGChart(hist, spyDates, spyCloses), 50);
 }
 
 // ─── RS SCANNER ──────────────────────────────────────────────────
