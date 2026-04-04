@@ -147,6 +147,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
 .rs-bar-wrap{width:80px;height:5px;background:#1a1a1a;display:inline-block;vertical-align:middle;margin-left:4px}
 .rs-bar-fill{height:100%}
 .rs-rank{font-size:10px;color:#444;min-width:28px}
+/* MARKET REGIME */
+.regime-card{background:#111;border:1px solid #1e1e1e;padding:16px 18px}
+.regime-signal-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #141414}
+.regime-signal-row:last-child{border-bottom:none}
+.regime-signal-name{font-size:11px;color:#666;min-width:160px}
+.regime-signal-val{font-size:11px;color:#aaa;min-width:80px;text-align:right}
+.regime-signal-badge{font-size:10px;font-weight:700;padding:2px 8px;border:1px solid;min-width:70px;text-align:center}
+.regime-bull{color:#1D9E75;border-color:#1a3a1a;background:#0a1a0a}
+.regime-bear{color:#e05050;border-color:#3a1a1a;background:#1a0a0a}
+.regime-neut{color:#EF9F27;border-color:#3a2a1a;background:#1a1200}
+.regime-score-wrap{height:12px;background:#1a1a1a;position:relative;overflow:hidden;margin:8px 0}
+.regime-score-fill{height:100%;transition:width 0.5s}
 /* VIX TERM STRUCTURE */
 .vix-metric{background:#111;border:1px solid #1e1e1e;padding:14px 16px;text-align:center}
 .vix-metric-val{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px}
@@ -197,6 +209,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   </div>
   <div class="sidebar">
     <div class="nav-section">Screener</div>
+    <div class="nav-item" onclick="showTab('regime',this)">Market Regime</div>
     <div class="nav-item active" onclick="showTab('gp',this)">Golden Pocket</div>
     <div class="nav-item" onclick="showTab('os',this)">Oversold</div>
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
@@ -225,6 +238,103 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
   <div class="main">
     <div id="noTradeBanner" class="no-trade" style="display:none">
       <div class="dot"></div><span id="noTradeText"></span>
+    </div>
+
+    <!-- MARKET REGIME -->
+    <div class="panel" id="tab-regime">
+      <div class="section-title">US Market Regime — Signal-Based Bias</div>
+
+      <!-- Main Regime Output -->
+      <div id="regimeMain" style="background:#111;border:1px solid #1e1e1e;padding:20px 24px;margin-bottom:1rem;display:flex;align-items:center;gap:24px">
+        <div style="text-align:center;min-width:120px">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Current Regime</div>
+          <div id="regimeLabel" style="font-size:28px;font-weight:700;line-height:1.1">—</div>
+          <div id="regimeSub" style="font-size:11px;color:#555;margin-top:4px">—</div>
+        </div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#333;margin-bottom:4px">
+            <span>STRONG BEAR</span><span>BEAR</span><span>NEUTRAL</span><span>BULL</span><span>STRONG BULL</span>
+          </div>
+          <div class="regime-score-wrap">
+            <div style="position:absolute;left:0;top:0;width:20%;height:100%;background:rgba(170,26,26,0.4)"></div>
+            <div style="position:absolute;left:20%;top:0;width:20%;height:100%;background:rgba(224,80,80,0.2)"></div>
+            <div style="position:absolute;left:40%;top:0;width:20%;height:100%;background:rgba(239,159,39,0.2)"></div>
+            <div style="position:absolute;left:60%;top:0;width:20%;height:100%;background:rgba(93,202,165,0.2)"></div>
+            <div style="position:absolute;left:80%;top:0;width:20%;height:100%;background:rgba(13,74,26,0.4)"></div>
+            <div id="regimeNeedle" style="position:absolute;top:0;width:3px;height:100%;background:#fff;transform:translateX(-50%);transition:left 0.5s;left:50%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:#333;margin-top:2px">
+            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+          </div>
+          <div style="margin-top:10px;font-size:11px;color:#555" id="regimeAction">—</div>
+        </div>
+        <div style="text-align:center;min-width:80px">
+          <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Score</div>
+          <div id="regimeScore" style="font-size:32px;font-weight:700">—</div>
+          <div style="font-size:9px;color:#444">out of 100</div>
+        </div>
+      </div>
+
+      <!-- Signal Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+
+        <!-- Trend Signals -->
+        <div class="regime-card">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">📈 Trend (Weight: 40%)</div>
+          <div id="regimeTrend"></div>
+        </div>
+
+        <!-- Volatility Signals -->
+        <div class="regime-card">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">⚡ Volatility (Weight: 30%)</div>
+          <div id="regimeVol"></div>
+        </div>
+
+        <!-- Breadth Signals -->
+        <div class="regime-card">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">🌊 Breadth (Weight: 20%)</div>
+          <div id="regimeBreadth"></div>
+        </div>
+
+        <!-- Momentum Signals -->
+        <div class="regime-card">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">🚀 Momentum (Weight: 10%)</div>
+          <div id="regimeMomentum"></div>
+        </div>
+      </div>
+
+      <!-- Regime History Chart -->
+      <div style="background:#0d0d0d;border:1px solid #1e1e1e;margin-bottom:1rem">
+        <div style="padding:10px 14px 0;font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Regime Score — History (builds daily)</div>
+        <canvas id="regimeChartCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <!-- Playbook -->
+      <div class="regime-card">
+        <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">📋 Regime Playbook</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+          <div style="background:#0d4a1a22;border-left:2px solid #1D9E75;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#1D9E75;margin-bottom:3px">Strong Bull (75-100)</div>
+            <div style="font-size:10px;color:#555">Trend following, buy dips, hold longs. Size up. Momentum strategies work best.</div>
+          </div>
+          <div style="background:#1a7a2a22;border-left:2px solid #5DCAA5;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#5DCAA5;margin-bottom:3px">Bull (55-75)</div>
+            <div style="font-size:10px;color:#555">Long bias. Normal position sizing. Selective entries on pullbacks to EMAs.</div>
+          </div>
+          <div style="background:#3a2a1a22;border-left:2px solid #EF9F27;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#EF9F27;margin-bottom:3px">Neutral / Choppy (40-55)</div>
+            <div style="font-size:10px;color:#555">Reduce size. Mean reversion over momentum. Avoid breakout trades. Wait for clarity.</div>
+          </div>
+          <div style="background:#3a1a1a22;border-left:2px solid #e05050;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#e05050;margin-bottom:3px">Bear (25-40)</div>
+            <div style="font-size:10px;color:#555">Short bias or flat. Only high-conviction longs. Hedge open positions. Raise cash.</div>
+          </div>
+          <div style="background:#aa1a1a22;border-left:2px solid #aa1a1a;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:#aa1a1a;margin-bottom:3px">Strong Bear (0-25)</div>
+            <div style="font-size:10px;color:#555">Flat or short only. No long entries. Capital preservation. Watch for capitulation reversal.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- GOLDEN POCKET -->
@@ -526,7 +636,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
       <!-- F&G History Chart -->
       <div class="fg-chart-wrap">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0">
-          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Fear & Greed — 12 Month History</div>
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Fear & Greed — History</div>
           <div style="display:flex;gap:10px;font-size:9px;color:#555">
             <span><span style="color:#1D9E75">—</span> Fear & Greed</span>
             <span><span style="color:#60a5fa">—</span> S&P 500</span>
@@ -681,6 +791,7 @@ function showTab(id,el){
   if(id==="hilo") renderHiLo();
   if(id==="rs"){ renderRS(); renderFearGreed(); }
   if(id==="momentum") renderMomentum();
+  if(id==="regime") setTimeout(renderRegime, 50);
   if(id==="vix"){
     // Re-read market data from global
     window._marketData = window._marketData || {};
@@ -707,7 +818,7 @@ async function loadData(){
     updateVIXGauge();
     document.getElementById("lastUpd").textContent="Updated: "+(json.generated||"—");
     document.getElementById("apiBadge").textContent=allStocks.length+" Stocks";
-    filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();
+    filterGP();filterOS();filterTrend();renderSectors();renderEcon();renderBreadth();renderHiLo();renderFearGreed();renderMomentum();renderRegime();
   }catch(e){
     document.getElementById("apiBadge").textContent="Error";
     document.getElementById("gpGrid").innerHTML=`<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -1608,6 +1719,314 @@ function renderMomentum(){
       <div style="margin-top:4px">${signals}</div>
     </div>`;
   }).join("");
+}
+
+// ─── MARKET REGIME ───────────────────────────────────────────────
+function calcRegime(){
+  const b   = breadthData;
+  const md  = window._marketData || {};
+  const spy = allSectors.find(s=>s.ticker==="SPY");
+  const spx = allTrending.find(s=>s.ticker==="^GSPC" || s.name==="S&P 500");
+  const ref = spy || spx;
+
+  const signals = [];
+
+  // ── TREND SIGNALS (weight 40%) ────────────────────────────────
+  const trendSigs = [];
+
+  // SPY vs key EMAs (from sector data)
+  // We use chg_1m/chg_3m as proxy for MA relationship
+  if(ref){
+    // 1. Price vs 200D MA proxy: if chg_3m > 0 and chg_6m > 0 → above 200D
+    const above200 = b.pct_above_200 != null ? b.pct_above_200 > 50 : null;
+    trendSigs.push({
+      name: "S&P above 200D MA",
+      bull: above200 === true, bear: above200 === false,
+      val: b.pct_above_200 != null ? b.pct_above_200.toFixed(1)+"% stocks" : "—",
+      score: above200 === true ? 100 : above200 === false ? 0 : 50
+    });
+
+    // 2. 50D MA: use pct_above_50
+    const above50 = b.pct_above_50 != null ? b.pct_above_50 > 50 : null;
+    trendSigs.push({
+      name: "Majority above 50D MA",
+      bull: above50 === true, bear: above50 === false,
+      val: b.pct_above_50 != null ? b.pct_above_50.toFixed(1)+"% stocks" : "—",
+      score: b.pct_above_50 != null ? Math.min(100, b.pct_above_50 * 1.4) : 50
+    });
+
+    // 3. SPY trend: 1M vs 3M performance
+    const chg1m = ref.chg_1m || ref.chg_1d * 22;
+    const chg3m = ref.chg_3m || chg1m * 3;
+    const trendUp = chg1m > 0 && chg3m > 0;
+    const trendDn = chg1m < 0 && chg3m < 0;
+    trendSigs.push({
+      name: "SPY 1M + 3M trend",
+      bull: trendUp, bear: trendDn,
+      val: `1M: ${chg1m>0?"+":""}${(chg1m||0).toFixed(1)}%`,
+      score: trendUp ? 85 : trendDn ? 15 : 50
+    });
+
+    // 4. Sector leadership: how many sectors in leading quadrant
+    const leading = allSectors.filter(s=>s.q_12m==="leading"||s.quadrant==="leading").length;
+    const total   = allSectors.filter(s=>s.sector!=="Benchmark").length || 9;
+    trendSigs.push({
+      name: "Sectors in leading quadrant",
+      bull: leading >= Math.ceil(total*0.5),
+      bear: leading <= Math.floor(total*0.25),
+      val: `${leading}/${total} sectors`,
+      score: (leading/total)*100
+    });
+  }
+
+  // ── VOLATILITY SIGNALS (weight 30%) ───────────────────────────
+  const volSigs = [];
+  const vix = md.vix;
+  const vix3m = md.vix3m;
+  const spread = md.vix_spread;
+
+  if(vix != null){
+    // 1. VIX absolute level
+    const vixBull = vix < 18, vixBear = vix > 25;
+    volSigs.push({
+      name: "VIX Level",
+      bull: vixBull, bear: vixBear,
+      val: `VIX ${vix.toFixed(1)}`,
+      score: Math.max(0, Math.min(100, (35 - vix) / 25 * 100))
+    });
+
+    // 2. VIX vs SMA20 (elevated = bear)
+    if(md.vix_sma20){
+      const vixVsSma = vix / md.vix_sma20;
+      const smaGood = vixVsSma < 1.1;
+      volSigs.push({
+        name: "VIX vs 20D Average",
+        bull: vixVsSma < 0.95, bear: vixVsSma > 1.2,
+        val: `${(vixVsSma*100).toFixed(0)}% of SMA`,
+        score: Math.max(0, Math.min(100, (1.5 - vixVsSma) / 0.6 * 100))
+      });
+    }
+  }
+
+  if(spread != null){
+    // 3. VIX Term structure (contango = calm)
+    const contango = spread > 0;
+    const deepCtg  = spread > 3;
+    const bkwd     = spread < -2;
+    volSigs.push({
+      name: "VIX Term Structure",
+      bull: contango, bear: bkwd,
+      val: spread >= 0 ? `Contango +${spread.toFixed(2)}` : `Backwardation ${spread.toFixed(2)}`,
+      score: Math.max(0, Math.min(100, 50 + spread * 8))
+    });
+  }
+
+  // ── BREADTH SIGNALS (weight 20%) ──────────────────────────────
+  const breadthSigs = [];
+  if(b.universe_size){
+    // 1. A/D Ratio
+    const adv = b.advancing||0, dec = b.declining||0, tot = adv+dec;
+    const adRatio = tot > 0 ? adv/tot : 0.5;
+    breadthSigs.push({
+      name: "Advance/Decline Ratio",
+      bull: adRatio > 0.55, bear: adRatio < 0.40,
+      val: `${adv}↑ ${dec}↓`,
+      score: adRatio * 100
+    });
+
+    // 2. New Highs vs New Lows
+    const nh = b.new_highs||0, nl = b.new_lows||0;
+    const nhlRatio = (nh+nl) > 0 ? nh/(nh+nl) : 0.5;
+    breadthSigs.push({
+      name: "New Highs vs New Lows",
+      bull: nhlRatio > 0.6 && nh > 5,
+      bear: nhlRatio < 0.3 || nl > nh * 3,
+      val: `${nh} NH / ${nl} NL`,
+      score: nhlRatio * 100
+    });
+
+    // 3. % above 50D
+    if(b.pct_above_50 != null){
+      breadthSigs.push({
+        name: "% stocks above 50D",
+        bull: b.pct_above_50 > 60, bear: b.pct_above_50 < 35,
+        val: b.pct_above_50.toFixed(1)+"%",
+        score: b.pct_above_50
+      });
+    }
+  }
+
+  // ── MOMENTUM SIGNALS (weight 10%) ─────────────────────────────
+  const momSigs = [];
+  if(ref){
+    // 1. SPY 1D momentum
+    const spyChg1d = ref.chg_1d || 0;
+    momSigs.push({
+      name: "SPY 1D momentum",
+      bull: spyChg1d > 0.3, bear: spyChg1d < -0.3,
+      val: `${spyChg1d>=0?"+":""}${spyChg1d.toFixed(2)}%`,
+      score: Math.max(0, Math.min(100, 50 + spyChg1d * 15))
+    });
+
+    // 2. Momentum stocks: how many have score 5+
+    const momCount = allStocks.filter(s=>s.group==="SP500"&&s.above_50&&s.above_200).length;
+    const total    = allStocks.filter(s=>s.group==="SP500").length || 1;
+    momSigs.push({
+      name: "Stocks above 50D+200D",
+      bull: momCount/total > 0.5, bear: momCount/total < 0.3,
+      val: `${momCount}/${total}`,
+      score: (momCount/total)*100
+    });
+  }
+
+  // ── WEIGHTED COMPOSITE SCORE ──────────────────────────────────
+  const calcGroupScore = (sigs) => {
+    if(!sigs.length) return 50;
+    return sigs.reduce((a,s)=>a+s.score, 0) / sigs.length;
+  };
+
+  const tScore  = calcGroupScore(trendSigs);
+  const vScore  = calcGroupScore(volSigs);
+  const bScore  = calcGroupScore(breadthSigs);
+  const mScore  = calcGroupScore(momSigs);
+
+  const total = Math.round(
+    tScore * 0.40 +
+    vScore * 0.30 +
+    bScore * 0.20 +
+    mScore * 0.10
+  );
+
+  return { total, tScore, vScore, bScore, mScore,
+           trendSigs, volSigs, breadthSigs, momSigs };
+}
+
+function regimeBadge(sig){
+  const cls = sig.bull ? "regime-bull" : sig.bear ? "regime-bear" : "regime-neut";
+  const txt = sig.bull ? "BULLISH" : sig.bear ? "BEARISH" : "NEUTRAL";
+  return `<span class="regime-signal-badge ${cls}">${txt}</span>`;
+}
+
+function renderSignalGroup(containerId, sigs){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  if(!sigs.length){ el.innerHTML='<div style="font-size:11px;color:#333">No data — run screener.py</div>'; return; }
+  el.innerHTML = sigs.map(s=>`
+    <div class="regime-signal-row">
+      <span class="regime-signal-name">${s.name}</span>
+      <span class="regime-signal-val">${s.val}</span>
+      ${regimeBadge(s)}
+    </div>`).join("");
+}
+
+function saveRegimeHistory(score){
+  try{
+    const today = new Date().toISOString().slice(0,10);
+    let h = JSON.parse(localStorage.getItem("hbms_regime_v1")||"{}");
+    h[today] = score;
+    const keys = Object.keys(h).sort();
+    if(keys.length > 400) keys.slice(0, keys.length-400).forEach(k=>delete h[k]);
+    localStorage.setItem("hbms_regime_v1", JSON.stringify(h));
+    return h;
+  } catch(e){ return {}; }
+}
+
+function drawRegimeChart(hist){
+  const canvas = document.getElementById("regimeChartCanvas");
+  if(!canvas) return;
+  const dpr = window.devicePixelRatio||1;
+  const cssW = canvas.parentElement.clientWidth||800;
+  const cssH = 120;
+  canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
+  canvas.style.width=cssW+"px"; canvas.style.height=cssH+"px";
+  const ctx=canvas.getContext("2d"); ctx.scale(dpr,dpr);
+  const W=cssW, H=cssH, PAD={top:12,right:10,bottom:24,left:32};
+  const plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+  ctx.clearRect(0,0,W,H);
+
+  const entries = Object.entries(hist).sort((a,b)=>a[0].localeCompare(b[0]));
+  if(entries.length < 2){
+    ctx.fillStyle="#333"; ctx.font="11px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Builds daily — check back tomorrow", W/2, H/2);
+    return;
+  }
+
+  // Zones
+  const zones=[
+    {min:75,max:100,col:"rgba(13,74,26,0.25)"},{min:55,max:75,col:"rgba(29,158,117,0.12)"},
+    {min:40,max:55,col:"rgba(239,159,39,0.10)"},{min:25,max:40,col:"rgba(224,80,80,0.12)"},
+    {min:0,max:25,col:"rgba(170,26,26,0.25)"}
+  ];
+  const toY = v => PAD.top + plotH - (v/100)*plotH;
+  zones.forEach(z=>{
+    ctx.fillStyle=z.col;
+    ctx.fillRect(PAD.left, toY(z.max), plotW, toY(z.min)-toY(z.max));
+  });
+
+  // 50 line
+  ctx.strokeStyle="#222"; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(PAD.left,toY(50)); ctx.lineTo(PAD.left+plotW,toY(50)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Line
+  const n = entries.length;
+  const toX = i => PAD.left + (i/(n-1))*plotW;
+  ctx.beginPath();
+  entries.forEach(([,v],i)=>{ i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)); });
+  const last = entries[n-1][1];
+  const lineCol = last>=75?"#1D9E75":last>=55?"#5DCAA5":last>=40?"#EF9F27":last>=25?"#e05050":"#aa1a1a";
+  ctx.strokeStyle=lineCol; ctx.lineWidth=2; ctx.stroke();
+
+  // Y labels
+  [0,25,50,75,100].forEach(v=>{
+    ctx.fillStyle="#333";ctx.font="7px sans-serif";ctx.textAlign="right";
+    ctx.fillText(v, PAD.left-3, toY(v)+3);
+  });
+
+  // X labels
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let lastM=-1;
+  entries.forEach(([d],i)=>{
+    const dt=new Date(d), m=dt.getMonth();
+    if(m!==lastM){ lastM=m;
+      ctx.fillStyle="#333";ctx.font="7px sans-serif";ctx.textAlign="center";
+      ctx.fillText(months[m], toX(i), H-PAD.bottom+10);
+    }
+  });
+}
+
+function renderRegime(){
+  const r = calcRegime();
+  if(!r) return;
+
+  const s = r.total;
+  const hist = saveRegimeHistory(s);
+
+  // Label + color
+  const label  = s>=75?"Strong Bull":s>=55?"Bull":s>=40?"Neutral / Choppy":s>=25?"Bear":"Strong Bear";
+  const col    = s>=75?"#1D9E75":s>=55?"#5DCAA5":s>=40?"#EF9F27":s>=25?"#e05050":"#aa1a1a";
+  const action = s>=75?"✓ Full long exposure. Trend following works."
+               : s>=55?"✓ Long bias. Normal sizing. Buy dips."
+               : s>=40?"⚠ Reduce size. Avoid breakouts. Wait for clarity."
+               : s>=25?"✗ Short bias or flat. Hedge. Raise cash."
+               : "✗ Flat or short only. Capital preservation mode.";
+
+  const el = id => document.getElementById(id);
+  el("regimeLabel").textContent  = label;
+  el("regimeLabel").style.color  = col;
+  el("regimeSub").textContent    = `Score: ${s}/100`;
+  el("regimeScore").textContent  = s;
+  el("regimeScore").style.color  = col;
+  el("regimeNeedle").style.left  = s + "%";
+  el("regimeAction").textContent = action;
+  el("regimeAction").style.color = s>=55?"#1D9E75":s>=40?"#EF9F27":"#e05050";
+
+  renderSignalGroup("regimeTrend",    r.trendSigs);
+  renderSignalGroup("regimeVol",      r.volSigs);
+  renderSignalGroup("regimeBreadth",  r.breadthSigs);
+  renderSignalGroup("regimeMomentum", r.momSigs);
+
+  requestAnimationFrame(()=>drawRegimeChart(hist));
 }
 
 // ─── F&G HISTORY (localStorage) ─────────────────────────────────
