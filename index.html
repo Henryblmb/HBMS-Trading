@@ -318,11 +318,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
             <div style="font-size:10px;color:#555">Trend following, buy dips, hold longs. Size up. Momentum strategies work best.</div>
           </div>
           <div style="background:#1a7a2a22;border-left:2px solid #5DCAA5;padding:8px 10px">
-            <div style="font-size:11px;font-weight:600;color:#5DCAA5;margin-bottom:3px">Bull (55-75)</div>
+            <div style="font-size:11px;font-weight:600;color:#5DCAA5;margin-bottom:3px">Bull (60-75)</div>
             <div style="font-size:10px;color:#555">Long bias. Normal position sizing. Selective entries on pullbacks to EMAs.</div>
           </div>
           <div style="background:#3a2a1a22;border-left:2px solid #EF9F27;padding:8px 10px">
-            <div style="font-size:11px;font-weight:600;color:#EF9F27;margin-bottom:3px">Neutral / Choppy (40-55)</div>
+            <div style="font-size:11px;font-weight:600;color:#EF9F27;margin-bottom:3px">Neutral / Choppy (40-60)</div>
             <div style="font-size:10px;color:#555">Reduce size. Mean reversion over momentum. Avoid breakout trades. Wait for clarity.</div>
           </div>
           <div style="background:#3a1a1a22;border-left:2px solid #e05050;padding:8px 10px">
@@ -1974,7 +1974,7 @@ function drawRegimeChart(hist){
   ctx.beginPath();
   entries.forEach(([,v],i)=>{ i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)); });
   const last = entries[n-1][1];
-  const lineCol = last>=75?"#1D9E75":last>=55?"#5DCAA5":last>=40?"#EF9F27":last>=25?"#e05050":"#aa1a1a";
+  const lineCol = last>=75?"#1D9E75":last>=60?"#5DCAA5":last>=40?"#EF9F27":last>=25?"#e05050":"#aa1a1a";
   ctx.strokeStyle=lineCol; ctx.lineWidth=2; ctx.stroke();
 
   // Y labels
@@ -2003,10 +2003,10 @@ function renderRegime(){
   const hist = saveRegimeHistory(s);
 
   // Label + color
-  const label  = s>=75?"Strong Bull":s>=55?"Bull":s>=40?"Neutral / Choppy":s>=25?"Bear":"Strong Bear";
-  const col    = s>=75?"#1D9E75":s>=55?"#5DCAA5":s>=40?"#EF9F27":s>=25?"#e05050":"#aa1a1a";
+  const label  = s>=75?"Strong Bull":s>=60?"Bull":s>=40?"Neutral / Choppy":s>=25?"Bear":"Strong Bear";
+  const col    = s>=75?"#1D9E75":s>=60?"#5DCAA5":s>=40?"#EF9F27":s>=25?"#e05050":"#aa1a1a";
   const action = s>=75?"✓ Full long exposure. Trend following works."
-               : s>=55?"✓ Long bias. Normal sizing. Buy dips."
+               : s>=60?"✓ Long bias. Normal sizing. Buy dips."
                : s>=40?"⚠ Reduce size. Avoid breakouts. Wait for clarity."
                : s>=25?"✗ Short bias or flat. Hedge. Raise cash."
                : "✗ Flat or short only. Capital preservation mode.";
@@ -2019,7 +2019,7 @@ function renderRegime(){
   el("regimeScore").style.color  = col;
   el("regimeNeedle").style.left  = s + "%";
   el("regimeAction").textContent = action;
-  el("regimeAction").style.color = s>=55?"#1D9E75":s>=40?"#EF9F27":"#e05050";
+  el("regimeAction").style.color = s>=60?"#1D9E75":s>=40?"#EF9F27":"#e05050";
 
   renderSignalGroup("regimeTrend",    r.trendSigs);
   renderSignalGroup("regimeVol",      r.volSigs);
