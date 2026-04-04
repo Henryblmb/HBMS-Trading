@@ -515,6 +515,28 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;heigh
         <canvas id="vixChartCanvas" style="width:100%;display:block;image-rendering:crisp-edges"></canvas>
       </div>
 
+      <!-- Put/Call Ratio Charts -->
+      <div style="background:#0d0d0d;border:1px solid #1e1e1e;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Total Put/Call Ratio — 6 Month History</div>
+          <div style="display:flex;gap:12px;font-size:9px;color:#555">
+            <span><span style="color:#EF9F27">— </span>P/C Total</span>
+            <span style="color:#333">High &gt;1.2 = Fear (contrarian buy) · Low &lt;0.7 = Greed (contrarian sell)</span>
+          </div>
+        </div>
+        <canvas id="pcTotalCanvas" style="width:100%;display:block;image-rendering:crisp-edges"></canvas>
+      </div>
+      <div style="background:#0d0d0d;border:1px solid #1e1e1e;margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0">
+          <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em">Equity Put/Call Ratio — 6 Month History</div>
+          <div style="display:flex;gap:12px;font-size:9px;color:#555">
+            <span><span style="color:#60a5fa">— </span>P/C Equity</span>
+            <span style="color:#333">High &gt;0.9 = Fear · Low &lt;0.55 = Greed</span>
+          </div>
+        </div>
+        <canvas id="pcEquityCanvas" style="width:100%;display:block;image-rendering:crisp-edges"></canvas>
+      </div>
+
       <!-- Signal interpretation -->
       <div style="background:#111;border:1px solid #1e1e1e;padding:14px 16px">
         <div style="font-size:10px;color:#444;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">How to use this</div>
@@ -1421,6 +1443,99 @@ function calcFearGreed(){
 }
 
 // ─── VIX TERM STRUCTURE ──────────────────────────────────────────
+function drawPCChart(canvasId, history, color, highLine, lowLine, highLabel, lowLabel){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const dpr  = window.devicePixelRatio||1;
+  const cssW = canvas.parentElement.clientWidth||800;
+  const cssH = 160;
+  canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
+  canvas.style.width=cssW+"px"; canvas.style.height=cssH+"px";
+  const ctx=canvas.getContext("2d"); ctx.scale(dpr,dpr);
+  const W=cssW, H=cssH, PAD={top:14,right:50,bottom:28,left:42};
+  const plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+  ctx.clearRect(0,0,W,H);
+
+  if(!history||!history.length){
+    ctx.fillStyle="#444"; ctx.font="11px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Run screener.py to load P/C history", W/2, H/2);
+    return;
+  }
+
+  const vals = history.map(h=>h.val);
+  const minV = Math.min(...vals)*0.92;
+  const maxV = Math.max(...vals)*1.06;
+  const toX  = i => PAD.left + (i/(history.length-1))*plotW;
+  const toY  = v => PAD.top + plotH - ((v-minV)/(maxV-minV))*plotH;
+
+  // Danger zones
+  const yHigh = toY(highLine), yLow = toY(lowLine);
+  ctx.fillStyle="rgba(224,80,80,0.08)";
+  ctx.fillRect(PAD.left, PAD.top, plotW, Math.max(0, yHigh-PAD.top));   // above highLine = fear
+  ctx.fillStyle="rgba(29,158,117,0.08)";
+  ctx.fillRect(PAD.left, yLow, plotW, H-PAD.bottom-yLow);               // below lowLine = greed
+
+  // Reference lines
+  [[highLine,"#e05050",highLabel],[lowLine,"#1D9E75",lowLabel]].forEach(([v,col,lbl])=>{
+    const y = toY(v);
+    ctx.strokeStyle=col+"66"; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+plotW,y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=col; ctx.font="8px sans-serif"; ctx.textAlign="left";
+    ctx.fillText(lbl+" "+v, PAD.left+plotW+4, y+3);
+  });
+
+  // Grid + Y labels
+  const step = (maxV-minV)/4;
+  for(let i=0;i<=4;i++){
+    const v = minV + step*i;
+    const y = toY(v);
+    ctx.strokeStyle="rgba(255,255,255,0.03)"; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+plotW,y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle="#333"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+    ctx.fillText(v.toFixed(2), PAD.left-4, y+3);
+  }
+
+  // 20-day moving average
+  const ma20 = history.map((_,i)=>{
+    if(i<19) return null;
+    return vals.slice(i-19,i+1).reduce((a,b)=>a+b,0)/20;
+  });
+  ctx.beginPath();
+  let started=false;
+  ma20.forEach((v,i)=>{ if(v==null) return; if(!started){ctx.moveTo(toX(i),toY(v));started=true;}else ctx.lineTo(toX(i),toY(v)); });
+  ctx.strokeStyle="rgba(255,255,255,0.15)"; ctx.lineWidth=1; ctx.stroke();
+
+  // Main line — color by zone
+  for(let i=1;i<history.length;i++){
+    const v0=history[i-1].val, v1=history[i].val;
+    const mid=(v0+v1)/2;
+    const segCol = mid>highLine?"#e05050":mid<lowLine?"#1D9E75":color;
+    ctx.beginPath(); ctx.moveTo(toX(i-1),toY(v0)); ctx.lineTo(toX(i),toY(v1));
+    ctx.strokeStyle=segCol; ctx.lineWidth=2; ctx.stroke();
+  }
+
+  // Current value dot + label
+  const last=history[history.length-1];
+  const lastCol = last.val>highLine?"#e05050":last.val<lowLine?"#1D9E75":color;
+  ctx.beginPath(); ctx.arc(toX(history.length-1),toY(last.val),4,0,Math.PI*2);
+  ctx.fillStyle=lastCol; ctx.fill();
+  ctx.fillStyle=lastCol; ctx.font="bold 9px sans-serif"; ctx.textAlign="left";
+  ctx.fillText(last.val.toFixed(2), PAD.left+plotW+4, toY(last.val)+3);
+
+  // X axis — month labels
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let lastM=-1;
+  history.forEach((h,i)=>{
+    const dt=new Date(h.date), m=dt.getMonth();
+    if(m!==lastM){ lastM=m;
+      ctx.fillStyle="#333"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+      ctx.fillText(months[m]+"'"+String(dt.getFullYear()).slice(2), toX(i), H-PAD.bottom+10);
+    }
+  });
+}
+
 function updateVIXGauge(){
   // Update header F&G badge only — no canvas needed
   renderFearGreed();
@@ -1454,7 +1569,11 @@ function renderVIX(){
   set("vixRegime", regime, regCol);
 
   // Draw chart — use requestAnimationFrame so canvas has correct size
-  requestAnimationFrame(()=>drawVIXChart(md.vix_history||[]));
+  requestAnimationFrame(()=>{
+    drawVIXChart(md.vix_history||[]);
+    drawPCChart("pcTotalCanvas",  md.pc_total_history||[],  "#EF9F27", 1.2, 0.7, "Fear", "Greed");
+    drawPCChart("pcEquityCanvas", md.pc_equity_history||[], "#60a5fa", 0.9, 0.55, "Fear", "Greed");
+  });
 }
 
 function drawVIXChart(history){
