@@ -684,15 +684,15 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="signal-bar">
         <div>
           <div class="signal-bar-label">Current Reading</div>
-          <div class="signal-bar-val" style="color:#1D9E75">+351</div>
+          <div class="signal-bar-val" id="hygNhnlReading" style="color:#1D9E75">—</div>
         </div>
         <div class="signal-bar-divider"></div>
         <div>
           <div class="signal-bar-label">HYG Price</div>
-          <div class="signal-bar-val" style="color:#eee">80.58</div>
+          <div class="signal-bar-val" id="hygPriceReading" style="color:#eee">—</div>
         </div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">High Yield bond breadth is strong. Credit market is healthy — a positive leading indicator for equities. Signal fires when NH−NL crosses above 350 on a sustained basis.</div>
+        <div class="signal-bar-desc" id="hygSignalDesc">High Yield bond breadth loads from the screener data.</div>
       </div>
 
       <!-- SPY + HYG comparison chart -->
@@ -1095,7 +1095,7 @@ function showTab(id, el) {
   if(id === "sectors") { renderHeatmap(); setTimeout(renderRRG, 80); setTimeout(renderSectorDetail, 100); }
 
   // Charts / Graphs tab actions
-  if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawPlaceholderChart("hygNHNLCanvas",160,"NH−NL Spread","#60a5fa",true); }, 60);
+  if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }, 60);
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-sectornewhi") setTimeout(() => { drawPlaceholderChart("sectornhiSPXCanvas",180,"SPX","#050505"); drawSectorNHPlaceholder("xliNHCanvas","XLI"); drawSectorNHPlaceholder("xlkNHCanvas","XLK"); drawSectorNHPlaceholder("xlreNHCanvas","XLRE"); }, 60);
   if(id === "cg-ndbthrust") setTimeout(() => drawNDBThrust(), 60);
@@ -1126,7 +1126,7 @@ async function loadData() {
     updateCGVIX2Readings();
     updateBT20Signal();
     const activePanel = document.querySelector(".panel.active");
-    if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); }
+    if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
@@ -1441,6 +1441,78 @@ function drawSPXRSIReversal() {
   const zones = rsiReversalZones(rsi);
   drawHistoryLine("spxrsiPriceCanvas", weekly, 220, "SPY Weekly", "#d8d8d8", zones);
   drawRSIChart("spxrsiRSICanvas", weekly, rsi, 140, zones);
+}
+
+function updateHYGReadings() {
+  const md = window._marketData || {};
+  const cur = md.hyg_nhnl_current || {};
+  const reading = cur.scaled;
+  const price = md.hyg_price;
+  const rEl = document.getElementById("hygNhnlReading");
+  const pEl = document.getElementById("hygPriceReading");
+  const dEl = document.getElementById("hygSignalDesc");
+  if(rEl) {
+    rEl.textContent = reading == null ? "—" : `${reading >= 0 ? "+" : ""}${reading.toFixed(0)}`;
+    rEl.style.color = reading == null ? "#555" : reading >= 350 ? "#1D9E75" : reading <= -100 ? "#e05050" : "#EF9F27";
+  }
+  if(pEl) pEl.textContent = price == null ? "—" : Number(price).toFixed(2);
+  if(dEl) {
+    const nh = cur.new_highs ?? "—", nl = cur.new_lows ?? "—", uni = cur.universe ?? "—";
+    if(reading == null) dEl.textContent = "High Yield breadth is unavailable until screener.py writes hyg_nhnl_history.";
+    else if(reading >= 350) dEl.textContent = `High Yield breadth is strong. ${nh} new highs vs ${nl} new lows across ${uni} credit ETFs.`;
+    else if(reading <= -100) dEl.textContent = `Credit breadth is weak. ${nh} new highs vs ${nl} new lows across ${uni} credit ETFs.`;
+    else dEl.textContent = `Credit breadth is neutral. ${nh} new highs vs ${nl} new lows across ${uni} credit ETFs.`;
+  }
+}
+
+function drawHYGNhnlChart() {
+  const hist = ((window._marketData || {}).hyg_nhnl_history || []).filter(d => d && Number.isFinite(+d.scaled)).slice(-252);
+  if(hist.length < 5) {
+    emptyCanvas("hygNHNLCanvas", 160, "High Yield NH-NL unavailable - run screener.py");
+    return;
+  }
+  const c = mkCanvas("hygNHNLCanvas", 160); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 54, bottom: 26, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const vals = hist.map(d => +d.scaled);
+  const vMin = Math.min(-100, ...vals) * 1.08;
+  const vMax = Math.max(350, ...vals) * 1.08;
+  const toX = i => PAD.left + (i / Math.max(1, hist.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / ((vMax - vMin) || 1)) * PH;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)";
+  for(let i = 0; i <= 4; i++) {
+    const y = PAD.top + (PH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  const zY = toY(0);
+  ctx.strokeStyle = "rgba(255,255,255,.12)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.left, zY); ctx.lineTo(PAD.left + PW, zY); ctx.stroke();
+  [[350, "#1D9E75", "350"], [-100, "#e05050", "-100"]].forEach(([v, col, lbl]) => {
+    const y = toY(v);
+    ctx.strokeStyle = col + "66"; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = col; ctx.font = "8px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText(lbl, PAD.left + PW + 4, y + 3);
+  });
+  const bw = Math.max(1.5, PW / hist.length - .5);
+  vals.forEach((v, i) => {
+    const x = toX(i), y = toY(v);
+    ctx.fillStyle = v >= 0 ? "rgba(47,139,103,.75)" : "rgba(176,75,70,.75)";
+    if(v >= 0) ctx.fillRect(x - bw / 2, y, bw, zY - y);
+    else ctx.fillRect(x - bw / 2, zY, bw, y - zY);
+  });
+  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [vMin, 0, vMax].forEach(v => ctx.fillText(Math.round(v), PAD.left - 5, toY(v) + 3));
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  [0, .25, .5, .75, 1].map(p => Math.round((hist.length - 1) * p)).forEach(i => {
+    const d = new Date(hist[i].date + "T12:00:00");
+    ctx.fillText(d.toLocaleString("en-US", { month: "short", year: "2-digit" }), toX(i), H - PAD.bottom + 13);
+  });
 }
 
 function drawPlaceholderChart(canvasId, h, label, lineColor, isBars=false, isRSI=false) {
