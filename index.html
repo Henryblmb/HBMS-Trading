@@ -1052,6 +1052,7 @@ const DATA_URL = "https://cdn.jsdelivr.net/gh/Henryblmb/HBMS-Trading@main/data.j
 let allStocks=[], allTrending=[], allSectors=[], breadthData={};
 let currentTF = "1d";
 let rsSortCol = "vs_spy", rsSortDir = -1;
+let dataRefreshTimer = null;
 
 // ═══════════════════════════════════════════════
 // AUTH
@@ -1061,6 +1062,8 @@ function checkPass() {
     document.getElementById("lockScreen").style.display = "none";
     document.getElementById("dashboard").style.display = "grid";
     checkNoTrade(); loadData();
+    if(dataRefreshTimer) clearInterval(dataRefreshTimer);
+    dataRefreshTimer = setInterval(loadData, 5 * 60 * 1000);
   } else {
     const e = document.getElementById("lockErr");
     e.style.display = "block";
@@ -1074,6 +1077,8 @@ document.addEventListener("DOMContentLoaded", () => {
 function logout() {
   document.getElementById("dashboard").style.display = "none";
   document.getElementById("lockScreen").style.display = "flex";
+  if(dataRefreshTimer) clearInterval(dataRefreshTimer);
+  dataRefreshTimer = null;
   allStocks = []; allTrending = []; allSectors = [];
 }
 
