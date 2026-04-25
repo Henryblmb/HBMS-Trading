@@ -1100,8 +1100,8 @@ function showTab(id, el) {
   if(id === "sectors") { renderHeatmap(); setTimeout(renderRRG, 80); setTimeout(renderSectorDetail, 100); }
 
   // Charts / Graphs tab actions
-  if(id === "cg-hyg") setTimeout(() => { drawSPXMini("hygSpxCanvas","hygSpxChg"); drawPlaceholderChart("hygPriceCanvas",200,"HYG","#050505"); drawPlaceholderChart("hygNHNLCanvas",160,"NH−NL Spread","#60a5fa",true); }, 60);
-  if(id === "cg-spxrsi") setTimeout(() => { drawPlaceholderChart("spxrsiPriceCanvas",220,"SPY Weekly","#050505"); drawPlaceholderChart("spxrsiRSICanvas",140,"RSI(14)","#080808",false,true); }, 60);
+  if(id === "cg-hyg") setTimeout(() => { drawSPXMini("hygSpxCanvas","hygSpxChg"); drawHistoryLine("hygPriceCanvas", marketHistory("hyg_history"), 200, "HYG", "#d8d8d8"); drawPlaceholderChart("hygNHNLCanvas",160,"NH−NL Spread","#60a5fa",true); }, 60);
+  if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-sectornewhi") setTimeout(() => { drawPlaceholderChart("sectornhiSPXCanvas",180,"SPX","#050505"); drawSectorNHPlaceholder("xliNHCanvas","XLI"); drawSectorNHPlaceholder("xlkNHCanvas","XLK"); drawSectorNHPlaceholder("xlreNHCanvas","XLRE"); }, 60);
   if(id === "cg-ndbthrust") setTimeout(() => drawNDBThrust(), 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
@@ -1130,6 +1130,9 @@ async function loadData() {
     // Update CG-VIX readings if open
     updateCGVIX2Readings();
     updateBT20Signal();
+    const activePanel = document.querySelector(".panel.active");
+    if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPXMini("hygSpxCanvas","hygSpxChg"); drawHistoryLine("hygPriceCanvas", marketHistory("hyg_history"), 200, "HYG", "#d8d8d8"); }
+    if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -1149,21 +1152,43 @@ function mkCanvas(id, h) {
   return { ctx, W, H: h };
 }
 
+function marketHistory(key) {
+  const md = window._marketData || {};
+  return Array.isArray(md[key]) ? md[key].filter(d => Number.isFinite(+d.close)) : [];
+}
+
+function emptyCanvas(canvasId, h, msg) {
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#555"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(msg, W / 2, H / 2);
+}
+
 function drawSPXMini(canvasId, chgId) {
-  const spy = allSectors.find(s => s.ticker === "SPY");
-  if(!spy || !spy.closes) return;
-  const closes = spy.closes.slice(-252);
-  const dates  = (spy.dates || []).slice(-252);
+  let hist = marketHistory("spy_history").slice(-252);
+  let closes = hist.map(d => +d.close);
+  if(!closes.length) {
+    const spy = allSectors.find(s => s.ticker === "SPY");
+    closes = (spy && spy.closes) ? spy.closes.slice(-252) : [];
+  }
+  if(closes.length < 2) {
+    emptyCanvas(canvasId, 72, "SPY history unavailable - run screener.py");
+    return;
+  }
   const c = mkCanvas(canvasId, 72); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 20, right: 8, bottom: 6, left: 8 };
   ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
   const vMin = Math.min(...closes) * 0.996, vMax = Math.max(...closes) * 1.004;
   const toX = i => PAD.left + (i / (closes.length-1)) * (W - PAD.left - PAD.right);
   const toY = v => PAD.top + (H - PAD.top - PAD.bottom) - ((v - vMin) / (vMax - vMin)) * (H - PAD.top - PAD.bottom);
   const last = closes[closes.length-1], first = closes[0];
-  const pct = ((last - first) / first * 100).toFixed(1);
-  const col = pct >= 0 ? "#1D9E75" : "#e05050";
+  const pctNum = (last - first) / first * 100;
+  const pct = pctNum.toFixed(1);
+  const col = pctNum >= 0 ? "#1D9E75" : "#e05050";
   // Area fill
   ctx.beginPath();
   closes.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
@@ -1175,8 +1200,158 @@ function drawSPXMini(canvasId, chgId) {
   ctx.strokeStyle = col + "88"; ctx.lineWidth = 1.5; ctx.stroke();
   if(chgId) {
     const el = document.getElementById(chgId);
-    if(el) { el.textContent = (pct >= 0 ? "+" : "") + pct + "% (1Y)"; el.style.color = col; el.style.fontSize = "9px"; }
+    if(el) { el.textContent = (pctNum >= 0 ? "+" : "") + pct + "% (1Y)"; el.style.color = col; el.style.fontSize = "9px"; }
   }
+}
+
+function drawHistoryLine(canvasId, hist, h, label, lineColor, zones=[]) {
+  if(!hist || hist.length < 2) {
+    emptyCanvas(canvasId, h, `${label} history unavailable - run screener.py`);
+    return;
+  }
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 45, bottom: 26, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const data = hist.map(d => +d.close).filter(Number.isFinite);
+  if(data.length < 2) {
+    emptyCanvas(canvasId, h, `${label} history unavailable - run screener.py`);
+    return;
+  }
+  const vMin = Math.min(...data) * .996;
+  const vMax = Math.max(...data) * 1.004;
+  const span = vMax - vMin || 1;
+  const toX = i => PAD.left + (i / (data.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / span) * PH;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  zones.forEach(z => {
+    const x1 = toX(Math.max(0, z.start));
+    const x2 = toX(Math.min(data.length - 1, z.end));
+    ctx.fillStyle = z.color || "rgba(212,80,80,.10)";
+    ctx.fillRect(x1, PAD.top, Math.max(1, x2 - x1), PH);
+  });
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++) {
+    const y = PAD.top + (PH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  data.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  ctx.strokeStyle = lineColor + "dd"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(toX(data.length - 1), toY(data[data.length - 1]), 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = lineColor; ctx.fill();
+  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [vMin, (vMin + vMax) / 2, vMax].forEach(v => ctx.fillText(v.toFixed(1), PAD.left - 4, toY(v) + 3));
+  const dateRows = hist.slice(-data.length);
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  const marks = [0, .2, .4, .6, .8, 1].map(p => Math.round((data.length - 1) * p));
+  marks.forEach(i => {
+    const d = dateRows[i] && dateRows[i].date ? new Date(dateRows[i].date + "T12:00:00") : null;
+    const lbl = d ? d.toLocaleString("en-US", { month: "short", year: "2-digit" }) : "";
+    ctx.fillText(lbl, toX(i), H - PAD.bottom + 11);
+  });
+}
+
+function weeklyFromDaily(hist) {
+  const weeks = new Map();
+  hist.forEach(p => {
+    if(!p.date || !Number.isFinite(+p.close)) return;
+    const d = new Date(p.date + "T12:00:00");
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    weeks.set(monday.toISOString().slice(0, 10), { date: p.date, close: +p.close });
+  });
+  return [...weeks.values()];
+}
+
+function calcRSIValues(closes, period=14) {
+  const out = Array(closes.length).fill(null);
+  if(closes.length < period + 2) return out;
+  let gain = 0, loss = 0;
+  for(let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if(d >= 0) gain += d; else loss -= d;
+  }
+  gain /= period; loss /= period;
+  out[period] = loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+  for(let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    gain = (gain * (period - 1) + Math.max(d, 0)) / period;
+    loss = (loss * (period - 1) + Math.max(-d, 0)) / period;
+    out[i] = loss === 0 ? 100 : 100 - 100 / (1 + gain / loss);
+  }
+  return out;
+}
+
+function rsiReversalZones(rsi) {
+  const zones = [];
+  let start = null;
+  rsi.forEach((v, i) => {
+    if(v == null) return;
+    if(start == null && v < 40) start = i;
+    if(start != null && v >= 60) {
+      zones.push({ start, end: i, color: "rgba(212,80,80,.11)" });
+      start = null;
+    }
+  });
+  if(start != null) zones.push({ start, end: rsi.length - 1, color: "rgba(212,80,80,.08)" });
+  return zones;
+}
+
+function drawRSIChart(canvasId, hist, rsi, h, zones) {
+  const points = hist.map((d, i) => ({ date: d.date, close: rsi[i] })).filter(d => d.close != null);
+  if(points.length < 2) {
+    emptyCanvas(canvasId, h, "Weekly RSI unavailable - run screener.py");
+    return;
+  }
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 45, bottom: 24, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const toX = i => PAD.left + (i / (hist.length - 1)) * PW;
+  const toY = v => PAD.top + PH - (v / 100) * PH;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  zones.forEach(z => {
+    ctx.fillStyle = z.color || "rgba(212,80,80,.10)";
+    ctx.fillRect(toX(z.start), PAD.top, Math.max(1, toX(z.end) - toX(z.start)), PH);
+  });
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)";
+  [20, 40, 60, 80].forEach(v => {
+    ctx.beginPath(); ctx.moveTo(PAD.left, toY(v)); ctx.lineTo(PAD.left + PW, toY(v)); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  [[40, "#e05050"], [60, "#1D9E75"]].forEach(([v, col]) => {
+    ctx.strokeStyle = col + "88"; ctx.setLineDash([5, 3]);
+    ctx.beginPath(); ctx.moveTo(PAD.left, toY(v)); ctx.lineTo(PAD.left + PW, toY(v)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = col; ctx.font = "8px sans-serif"; ctx.textAlign = "left"; ctx.fillText(v, PAD.left + PW + 4, toY(v) + 3);
+  });
+  ctx.beginPath();
+  rsi.forEach((v, i) => {
+    if(v == null) return;
+    const x = toX(i), y = toY(v);
+    if(i === rsi.findIndex(x => x != null)) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = "#d8d8d8"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [0, 50, 100].forEach(v => ctx.fillText(v, PAD.left - 4, toY(v) + 3));
+}
+
+function drawSPXRSIReversal() {
+  const weekly = weeklyFromDaily(marketHistory("spy_history")).slice(-60);
+  if(weekly.length < 18) {
+    emptyCanvas("spxrsiPriceCanvas", 220, "SPY weekly history unavailable - run screener.py");
+    emptyCanvas("spxrsiRSICanvas", 140, "Weekly RSI unavailable - run screener.py");
+    return;
+  }
+  const closes = weekly.map(d => d.close);
+  const rsi = calcRSIValues(closes, 14);
+  const zones = rsiReversalZones(rsi);
+  drawHistoryLine("spxrsiPriceCanvas", weekly, 220, "SPY Weekly", "#d8d8d8", zones);
+  drawRSIChart("spxrsiRSICanvas", weekly, rsi, 140, zones);
 }
 
 function drawPlaceholderChart(canvasId, h, label, lineColor, isBars=false, isRSI=false) {
