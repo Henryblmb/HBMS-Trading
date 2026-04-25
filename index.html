@@ -695,12 +695,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="signal-bar-desc" id="hygSignalDesc">High Yield bond breadth loads from the screener data.</div>
       </div>
 
-      <!-- SPY + HYG comparison chart -->
+      <!-- S&P + HYG comparison chart -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 (SPY) + HYG — dual axis overlay, same 1Y window</span>
+          <span class="cg-chart-title">S&amp;P 500 + HYG — dual axis overlay, same 1Y window</span>
           <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#4fb28a"></span>SPY main price</span>
+            <span><span class="cg-leg-line" style="background:#4fb28a"></span>S&amp;P 500 main price</span>
             <span><span class="cg-leg-line" style="background:rgba(216,216,216,.45)"></span>HYG total return</span>
             <span id="hygSpxChg" style="color:#1D9E75">—</span>
           </div>
@@ -732,30 +732,30 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-spxrsi">
       <div class="cg-header">
         <div class="cg-title">SPX RSI Reversal — Momentum Signal</div>
-        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500. When weekly RSI drops below 40 (oversold) and then recovers above 60 (momentum confirmation), a powerful bull signal fires. Historically ~80% win rate with avg +18% forward 12-month return.</div>
-        <div class="cg-pill active-bull"><span class="cg-dot"></span>RSI REVERSAL CONFIRMED — Apr 2026</div>
+        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using EODHD 5-year history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
+        <div class="cg-pill active-bull" id="spxrsiPill"><span class="cg-dot"></span>LOADING WEEKLY SIGNAL</div>
       </div>
 
       <div class="signal-bar">
         <div>
           <div class="signal-bar-label">Weekly RSI</div>
-          <div class="signal-bar-val" style="color:#1D9E75">62.4</div>
+          <div class="signal-bar-val" id="spxrsiWeeklyVal" style="color:#1D9E75">—</div>
         </div>
         <div class="signal-bar-divider"></div>
         <div>
           <div class="signal-bar-label">Signal Status</div>
-          <div class="signal-bar-val" style="font-size:14px;color:#1D9E75;padding-top:4px">ACTIVE</div>
+          <div class="signal-bar-val" id="spxrsiStatusVal" style="font-size:14px;color:#1D9E75;padding-top:4px">—</div>
         </div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">RSI completed a 40→60 reversal in April 2026. Historical signals (2016, 2019, 2020, 2023, 2025) all preceded significant multi-month rallies. Red boxes mark confirmed reversal windows on chart.</div>
+        <div class="signal-bar-desc" id="spxrsiDesc">Waiting for screener data.</div>
       </div>
 
       <!-- SPX Price -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 (SPY) — Daily · Red boxes = RSI 40→60 reversal windows</span>
+          <span class="cg-chart-title">S&amp;P 500 — 5Y Daily · Red boxes = weekly RSI 40→60 momentum windows</span>
           <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#e0e0e0"></span>SPY</span>
+            <span><span class="cg-leg-line" style="background:#e0e0e0"></span>S&amp;P 500</span>
             <span style="color:rgba(212,80,80,.5)">■ Signal Window</span>
           </div>
         </div>
@@ -765,7 +765,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- RSI panel -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">RSI(14) — Daily · 40 / 60 Thresholds</span>
+          <span class="cg-chart-title">Weekly RSI(14) — 5Y · 40 / 60 Thresholds</span>
           <div class="cg-chart-legend">
             <span style="color:#e05050">— 40 (Oversold trigger)</span>
             <span style="color:#1D9E75">— 60 (Confirmation)</span>
@@ -1212,7 +1212,7 @@ function alignHistoryByDate(primary, secondary) {
 function drawSPYHYGCompare(canvasId, chgId) {
   const rows = alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history")).slice(-252);
   if(rows.length < 20) {
-    emptyCanvas(canvasId, 280, "SPY/HYG history unavailable - run screener.py");
+    emptyCanvas(canvasId, 280, "S&P/HYG history unavailable - run screener.py");
     return;
   }
   const c = mkCanvas(canvasId, 280); if(!c) return;
@@ -1248,7 +1248,7 @@ function drawSPYHYGCompare(canvasId, chgId) {
   const spyPct = (spy[spy.length - 1] / spy[0] - 1) * 100;
   const hygPct = (hyg[hyg.length - 1] / hyg[0] - 1) * 100;
 
-  // Draw HYG first and softer on its own left axis, so SPY sits visually above it.
+  // Draw HYG first and softer on its own left axis, so S&P 500 sits visually above it.
   ctx.beginPath();
   hyg.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toHygY(v)) : ctx.lineTo(toX(i), toHygY(v)));
   ctx.strokeStyle = hygCol; ctx.lineWidth = 2.2; ctx.stroke();
@@ -1269,13 +1269,13 @@ function drawSPYHYGCompare(canvasId, chgId) {
   ctx.fillStyle = spyCol; ctx.fill();
 
   ctx.fillStyle = "#666"; ctx.font = "9px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("HYG total return uses left axis · SPY real price uses right axis", PAD.left, PAD.top + 10);
+  ctx.fillText("HYG total return uses left axis · S&P 500 real price uses right axis", PAD.left, PAD.top + 10);
   ctx.fillStyle = "rgba(216,216,216,.58)"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
   [hygLo, (hygLo + hygHi) / 2, hygHi].forEach(v => ctx.fillText(v.toFixed(1), PAD.left - 5, toHygY(v) + 3));
   ctx.fillStyle = spyCol; ctx.textAlign = "left";
   [spyLo, (spyLo + spyHi) / 2, spyHi].forEach(v => ctx.fillText(v.toFixed(0), PAD.left + PW + 7, toSpyY(v) + 3));
   ctx.textAlign = "left";
-  ctx.fillStyle = spyCol; ctx.fillText(`SPY ${spy[spy.length - 1].toFixed(1)} · ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}%`, PAD.left + PW + 7, toSpyY(spy[spy.length - 1]) + 14);
+  ctx.fillStyle = spyCol; ctx.fillText(`S&P ${spy[spy.length - 1].toFixed(1)} · ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}%`, PAD.left + PW + 7, toSpyY(spy[spy.length - 1]) + 14);
   ctx.fillStyle = "rgba(216,216,216,.62)"; ctx.textAlign = "right";
   ctx.fillText(`HYG ${hyg[hyg.length - 1].toFixed(2)} · ${hygPct >= 0 ? "+" : ""}${hygPct.toFixed(1)}%`, PAD.left - 7, toHygY(hyg[hyg.length - 1]) - 7);
 
@@ -1287,7 +1287,7 @@ function drawSPYHYGCompare(canvasId, chgId) {
   if(chgId) {
     const el = document.getElementById(chgId);
     if(el) {
-      el.textContent = `SPY ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}% · HYG TR ${hygPct >= 0 ? "+" : ""}${hygPct.toFixed(1)}%`;
+      el.textContent = `S&P ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}% · HYG TR ${hygPct >= 0 ? "+" : ""}${hygPct.toFixed(1)}%`;
       el.style.color = spyPct >= 0 ? "#1D9E75" : "#e05050";
     }
   }
@@ -1455,18 +1455,88 @@ function drawRSIChart(canvasId, hist, rsi, h, zones) {
 }
 
 function drawSPXRSIReversal() {
-  // Use full daily series for smooth, high-resolution lines (252 pts = 1 year)
-  const daily = marketHistory("spy_history");
-  if(!daily || daily.length < 20) {
-    emptyCanvas("spxrsiPriceCanvas", 240, "SPY history unavailable - run screener.py");
-    emptyCanvas("spxrsiRSICanvas", 170, "RSI unavailable - run screener.py");
+  const md = window._marketData || {};
+  const daily = marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history");
+  const weeklyRows = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date) : [];
+  const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals : [];
+  const status = md.sp500_rsi_status || {};
+  if(!daily || daily.length < 200 || weeklyRows.length < 20) {
+    emptyCanvas("spxrsiPriceCanvas", 240, "S&P 500 5Y history unavailable - run screener.py");
+    emptyCanvas("spxrsiRSICanvas", 170, "Weekly RSI unavailable - run screener.py");
+    updateSPXRSIReadings(null, [], {});
     return;
   }
-  const closes = daily.map(d => +d.close);
-  const rsi = calcRSIValues(closes, 14);
-  const zones = rsiReversalZones(rsi);
-  drawHistoryLine("spxrsiPriceCanvas", daily, 240, "SPY Daily", "#d8d8d8", zones);
-  drawRSIChart("spxrsiRSICanvas", daily, rsi, 170, zones);
+  const dailyZones = signalZonesForDaily(daily, signals, status);
+  const weeklyZones = signalZonesForWeekly(weeklyRows, signals, status);
+  const rsi = weeklyRows.map(d => d.rsi == null ? null : +d.rsi);
+  drawHistoryLine("spxrsiPriceCanvas", daily, 240, "S&P 500 Daily", "#d8d8d8", dailyZones);
+  drawRSIChart("spxrsiRSICanvas", weeklyRows, rsi, 170, weeklyZones);
+  updateSPXRSIReadings(status, signals, weeklyRows);
+}
+
+function firstIndexOnOrAfter(rows, date) {
+  const target = new Date(date + "T00:00:00").getTime();
+  const idx = rows.findIndex(r => new Date(r.date + "T00:00:00").getTime() >= target);
+  return idx < 0 ? rows.length - 1 : idx;
+}
+
+function signalZonesForDaily(daily, signals, status) {
+  const zones = signals.map(s => ({
+    start: firstIndexOnOrAfter(daily, s.start_date),
+    end: firstIndexOnOrAfter(daily, s.confirm_date),
+    color: "rgba(212,80,80,.11)"
+  }));
+  if(status && status.active_setup_start && status.active_setup_start.date) {
+    zones.push({
+      start: firstIndexOnOrAfter(daily, status.active_setup_start.date),
+      end: daily.length - 1,
+      color: "rgba(212,80,80,.08)"
+    });
+  }
+  return zones;
+}
+
+function signalZonesForWeekly(weeklyRows, signals, status) {
+  const zones = signals.map(s => ({
+    start: Math.max(0, s.start_index ?? firstIndexOnOrAfter(weeklyRows, s.start_date)),
+    end: Math.max(0, s.confirm_index ?? firstIndexOnOrAfter(weeklyRows, s.confirm_date)),
+    color: "rgba(212,80,80,.12)"
+  }));
+  if(status && status.active_setup_start && status.active_setup_start.date) {
+    zones.push({
+      start: firstIndexOnOrAfter(weeklyRows, status.active_setup_start.date),
+      end: weeklyRows.length - 1,
+      color: "rgba(212,80,80,.08)"
+    });
+  }
+  return zones;
+}
+
+function updateSPXRSIReadings(status, signals, weeklyRows) {
+  const rEl = document.getElementById("spxrsiWeeklyVal");
+  const sEl = document.getElementById("spxrsiStatusVal");
+  const dEl = document.getElementById("spxrsiDesc");
+  const pEl = document.getElementById("spxrsiPill");
+  const rsi = status && status.weekly_rsi != null ? +status.weekly_rsi : null;
+  const state = (status && status.status) || "unavailable";
+  const col = rsi == null ? "#555" : rsi >= 60 ? "#1D9E75" : rsi < 40 ? "#e05050" : "#EF9F27";
+  if(rEl) { rEl.textContent = rsi == null ? "—" : rsi.toFixed(1); rEl.style.color = col; }
+  if(sEl) {
+    const label = state === "setup" ? "SETUP" : state === "confirmed" ? "CONFIRMED" : state === "bullish" ? "BULLISH" : state === "oversold" ? "OVERSOLD" : state === "neutral" ? "NEUTRAL" : "—";
+    sEl.textContent = label;
+    sEl.style.color = col;
+  }
+  if(pEl) {
+    pEl.className = "cg-pill " + (state === "setup" || state === "oversold" ? "active-bear" : state === "neutral" ? "" : "active-bull");
+    pEl.innerHTML = `<span class="cg-dot"></span>${state.toUpperCase()} · WEEKLY RSI ${rsi == null ? "—" : rsi.toFixed(1)}`;
+  }
+  if(dEl) {
+    const last = status && status.last_signal;
+    if(!status || state === "unavailable") dEl.textContent = "No EODHD S&P 500 RSI data available yet. Run screener.py.";
+    else if(state === "setup") dEl.textContent = `Weekly RSI is below/after 40 setup from ${status.active_setup_start?.date || "—"}. Confirmation waits for RSI > 60.`;
+    else if(last) dEl.textContent = `Last 40→60 weekly momentum signal confirmed on ${last.confirm_date}. Loaded: ${weeklyRows.length} weekly bars, ${signals.length} completed signals.`;
+    else dEl.textContent = `Weekly RSI state is ${state}. Loaded: ${weeklyRows.length} weekly bars, no completed 40→60 signal in the 5Y window.`;
+  }
 }
 
 function updateHYGReadings() {
