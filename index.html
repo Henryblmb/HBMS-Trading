@@ -753,7 +753,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- SPX Price -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 (SPY) — Weekly · Red boxes = RSI 40→60 reversal windows</span>
+          <span class="cg-chart-title">S&amp;P 500 (SPY) — Daily · Red boxes = RSI 40→60 reversal windows</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#e0e0e0"></span>SPY</span>
             <span style="color:rgba(212,80,80,.5)">■ Signal Window</span>
@@ -765,7 +765,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- RSI panel -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">Weekly RSI(14) — 40 / 60 Thresholds</span>
+          <span class="cg-chart-title">RSI(14) — Daily · 40 / 60 Thresholds</span>
           <div class="cg-chart-legend">
             <span style="color:#e05050">— 40 (Oversold trigger)</span>
             <span style="color:#1D9E75">— 60 (Confirmation)</span>
@@ -1392,55 +1392,81 @@ function rsiReversalZones(rsi) {
 function drawRSIChart(canvasId, hist, rsi, h, zones) {
   const points = hist.map((d, i) => ({ date: d.date, close: rsi[i] })).filter(d => d.close != null);
   if(points.length < 2) {
-    emptyCanvas(canvasId, h, "Weekly RSI unavailable - run screener.py");
+    emptyCanvas(canvasId, h, "RSI unavailable - run screener.py");
     return;
   }
   const c = mkCanvas(canvasId, h); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 14, right: 45, bottom: 24, left: 42 };
+  const PAD = { top: 16, right: 48, bottom: 28, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  const toX = i => PAD.left + (i / (hist.length - 1)) * PW;
-  const toY = v => PAD.top + PH - (v / 100) * PH;
+  const n = hist.length;
+  // Clamp y-axis to 20–80 so the 40/60 threshold lines are visually well separated
+  const RSI_MIN = 20, RSI_MAX = 80;
+  const toX = i => PAD.left + (i / Math.max(n - 1, 1)) * PW;
+  const toY = v => PAD.top + PH - ((Math.min(Math.max(v, RSI_MIN), RSI_MAX) - RSI_MIN) / (RSI_MAX - RSI_MIN)) * PH;
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  // Signal zones (red boxes)
   zones.forEach(z => {
     ctx.fillStyle = z.color || "rgba(212,80,80,.10)";
     ctx.fillRect(toX(z.start), PAD.top, Math.max(1, toX(z.end) - toX(z.start)), PH);
   });
-  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)";
-  [20, 40, 60, 80].forEach(v => {
+  // Subtle horizontal grid at 30, 50, 70
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(255,255,255,.04)"; ctx.lineWidth = 1;
+  [30, 50, 70].forEach(v => {
     ctx.beginPath(); ctx.moveTo(PAD.left, toY(v)); ctx.lineTo(PAD.left + PW, toY(v)); ctx.stroke();
   });
   ctx.setLineDash([]);
-  [[40, "#e05050"], [60, "#1D9E75"]].forEach(([v, col]) => {
-    ctx.strokeStyle = col + "88"; ctx.setLineDash([5, 3]);
+  // 40 and 60 threshold lines — more prominent
+  [[40, "#c55555", "40 (Oversold trigger)"], [60, "#1D9E75", "60 (Confirmation)"]].forEach(([v, col, label]) => {
+    ctx.strokeStyle = col + "aa"; ctx.lineWidth = 1.2; ctx.setLineDash([6, 4]);
     ctx.beginPath(); ctx.moveTo(PAD.left, toY(v)); ctx.lineTo(PAD.left + PW, toY(v)); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = col; ctx.font = "8px sans-serif"; ctx.textAlign = "left"; ctx.fillText(v, PAD.left + PW + 4, toY(v) + 3);
+    ctx.fillStyle = col; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText(String(v), PAD.left + PW + 5, toY(v) + 3);
   });
+  // RSI line — smooth, daily resolution
   ctx.beginPath();
+  let first = true;
   rsi.forEach((v, i) => {
     if(v == null) return;
     const x = toX(i), y = toY(v);
-    if(i === rsi.findIndex(x => x != null)) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    if(first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
   });
-  ctx.strokeStyle = "#d8d8d8"; ctx.lineWidth = 2; ctx.stroke();
-  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
-  [0, 50, 100].forEach(v => ctx.fillText(v, PAD.left - 4, toY(v) + 3));
+  ctx.strokeStyle = "#d0d0d0"; ctx.lineWidth = 1.8; ctx.lineJoin = "round"; ctx.stroke();
+  // Dot at current RSI
+  const lastValid = rsi.reduceRight((acc, v, i) => acc ?? (v != null ? { v, i } : null), null);
+  if(lastValid) {
+    const col = lastValid.v >= 60 ? "#1D9E75" : lastValid.v <= 40 ? "#c55555" : "#d0d0d0";
+    ctx.beginPath(); ctx.arc(toX(lastValid.i), toY(lastValid.v), 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = col; ctx.fill();
+  }
+  // Y-axis labels
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [20, 30, 40, 50, 60, 70, 80].forEach(v => ctx.fillText(v, PAD.left - 5, toY(v) + 3));
+  // X-axis date labels
+  ctx.fillStyle = "#3a3a3a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].map(p => Math.round((n - 1) * p)).forEach(i => {
+    const row = hist[i];
+    if(!row || !row.date) return;
+    const d = new Date(row.date + "T12:00:00");
+    ctx.fillText(d.toLocaleString("en-US", { month: "short", year: "2-digit" }), toX(i), H - PAD.bottom + 13);
+  });
 }
 
 function drawSPXRSIReversal() {
-  const weekly = weeklyFromDaily(marketHistory("spy_history")).slice(-60);
-  if(weekly.length < 18) {
-    emptyCanvas("spxrsiPriceCanvas", 220, "SPY weekly history unavailable - run screener.py");
-    emptyCanvas("spxrsiRSICanvas", 140, "Weekly RSI unavailable - run screener.py");
+  // Use full daily series for smooth, high-resolution lines (252 pts = 1 year)
+  const daily = marketHistory("spy_history");
+  if(!daily || daily.length < 20) {
+    emptyCanvas("spxrsiPriceCanvas", 240, "SPY history unavailable - run screener.py");
+    emptyCanvas("spxrsiRSICanvas", 170, "RSI unavailable - run screener.py");
     return;
   }
-  const closes = weekly.map(d => d.close);
+  const closes = daily.map(d => +d.close);
   const rsi = calcRSIValues(closes, 14);
   const zones = rsiReversalZones(rsi);
-  drawHistoryLine("spxrsiPriceCanvas", weekly, 220, "SPY Weekly", "#d8d8d8", zones);
-  drawRSIChart("spxrsiRSICanvas", weekly, rsi, 140, zones);
+  drawHistoryLine("spxrsiPriceCanvas", daily, 240, "SPY Daily", "#d8d8d8", zones);
+  drawRSIChart("spxrsiRSICanvas", daily, rsi, 170, zones);
 }
 
 function updateHYGReadings() {
