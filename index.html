@@ -368,6 +368,13 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 .mom-card{border-left-color:var(--sig-green-dim)!important}
 .fib-pocket{background:rgba(197,138,58,.12)!important;border-color:var(--sig-amber)!important}.fib-marker{background:var(--sig-amber)!important}
 
+/* 52W heatmap: softer fill strength */
+.hilo-cell{box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)!important}
+.hilo-cell:hover{opacity:.92!important;border-color:rgba(255,255,255,.10)!important}
+.hilo-dist{color:#e6e6e6!important;font-weight:600!important}
+.hilo-ticker{color:#f0f0f0!important}
+.hilo-leg-swatch{border:1px solid rgba(255,255,255,.08)!important}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:#0a0a0a}
 ::-webkit-scrollbar-thumb{background:#1e1e1e}
@@ -573,12 +580,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel" id="tab-hilo">
       <div class="section-title">52W High/Low Heatmap</div>
       <div class="hilo-legend">
-        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#0a3a12"></div>0–5%</div>
-        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#0e4a18"></div>5–10%</div>
-        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#145a22"></div>10–20%</div>
-        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#4a1a1a"></div>20–30%</div>
-        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#7a1a1a"></div>30–40%</div>
-        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#aa1a1a"></div>40%+</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#123229"></div>0–5%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#102b24"></div>5–10%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#0f241f"></div>10–20%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#241818"></div>20–30%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#2c1a1a"></div>30–40%</div>
+        <div class="hilo-leg-item"><div class="hilo-leg-swatch" style="background:#351d1d"></div>40%+</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:.9rem">
         <div class="stat"><div class="stat-val" id="hiloNearHigh" style="color:#1D9E75">—</div><div class="stat-lbl">Within 5%</div></div>
@@ -1667,7 +1674,7 @@ function renderBreadth(){
   document.getElementById("nh").textContent=b.new_highs??0;document.getElementById("nl").textContent=b.new_lows??0;
   document.getElementById("nhlPct").textContent=`NH: ${b.nh_pct??0}% · NL: ${b.nl_pct??0}% · Universe: ${b.universe_size}`;
 }
-function hiloColor(d){if(d==null)return"#181818";if(d<=5)return"#0a3a12";if(d<=10)return"#0e4a18";if(d<=20)return"#145a22";if(d<=30)return"#4a1a1a";if(d<=40)return"#7a1a1a";return"#aa1a1a";}
+function hiloColor(d){if(d==null)return"#151515";if(d<=5)return"#123229";if(d<=10)return"#102b24";if(d<=20)return"#0f241f";if(d<=30)return"#241818";if(d<=40)return"#2c1a1a";return"#351d1d";}
 function renderHiLo(){
   const idx=document.getElementById("hiloIdx").value,sort=document.getElementById("hiloSort").value,minDist=parseInt(document.getElementById("hiloMin").value);
   let stocks=allStocks.filter(s=>{if(idx!=="all"&&s.group!==idx)return false;if(s.dist_from_hi==null)return false;if(s.dist_from_hi<minDist)return false;return true;});
