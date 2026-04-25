@@ -698,7 +698,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- SPY + HYG comparison chart -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 (SPY) + HYG — normalized overlay, same 1Y window</span>
+          <span class="cg-chart-title">S&amp;P 500 (SPY) + HYG — dual axis overlay, same 1Y window</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#4fb28a"></span>SPY main price</span>
             <span><span class="cg-leg-line" style="background:rgba(216,216,216,.45)"></span>HYG adjusted close</span>
@@ -1212,23 +1212,25 @@ function alignHistoryByDate(primary, secondary) {
 function drawSPYHYGCompare(canvasId, chgId) {
   const rows = alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history")).slice(-252);
   if(rows.length < 20) {
-    emptyCanvas(canvasId, 260, "SPY/HYG history unavailable - run screener.py");
+    emptyCanvas(canvasId, 280, "SPY/HYG history unavailable - run screener.py");
     return;
   }
-  const c = mkCanvas(canvasId, 260); if(!c) return;
+  const c = mkCanvas(canvasId, 280); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 18, right: 62, bottom: 28, left: 50 };
+  const PAD = { top: 18, right: 68, bottom: 28, left: 54 };
   const PW = W - PAD.left - PAD.right;
   const PH = H - PAD.top - PAD.bottom;
   const spy = rows.map(d => d.spy);
   const hyg = rows.map(d => d.hyg);
-  const spyNorm = spy.map(v => v / spy[0] * 100);
-  const hygNorm = hyg.map(v => v / hyg[0] * 100);
-  const allNorm = spyNorm.concat(hygNorm);
-  const nMin = Math.min(...allNorm) - 1.2;
-  const nMax = Math.max(...allNorm) + 1.2;
+  const spyMin = Math.min(...spy), spyMax = Math.max(...spy);
+  const hygMin = Math.min(...hyg), hygMax = Math.max(...hyg);
+  const spyPad = Math.max((spyMax - spyMin) * .08, spyMax * .002);
+  const hygPad = Math.max((hygMax - hygMin) * .20, .15);
+  const spyLo = spyMin - spyPad, spyHi = spyMax + spyPad;
+  const hygLo = hygMin - hygPad, hygHi = hygMax + hygPad;
   const toX = i => PAD.left + (i / (rows.length - 1)) * PW;
-  const toY = v => PAD.top + PH - ((v - nMin) / ((nMax - nMin) || 1)) * PH;
+  const toSpyY = v => PAD.top + PH - ((v - spyLo) / ((spyHi - spyLo) || 1)) * PH;
+  const toHygY = v => PAD.top + PH - ((v - hygLo) / ((hygHi - hygLo) || 1)) * PH;
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
 
@@ -1240,43 +1242,42 @@ function drawSPYHYGCompare(canvasId, chgId) {
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
   }
   ctx.setLineDash([]);
-  const baseY = toY(100);
-  ctx.strokeStyle = "rgba(255,255,255,.12)";
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(PAD.left, baseY); ctx.lineTo(PAD.left + PW, baseY); ctx.stroke();
 
   const spyCol = "#4fb28a";
   const hygCol = "rgba(216,216,216,.42)";
   const spyPct = (spy[spy.length - 1] / spy[0] - 1) * 100;
   const hygPct = (hyg[hyg.length - 1] / hyg[0] - 1) * 100;
 
-  // Draw HYG first and softer, so SPY sits visually above it.
+  // Draw HYG first and softer on its own left axis, so SPY sits visually above it.
   ctx.beginPath();
-  hygNorm.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  hyg.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toHygY(v)) : ctx.lineTo(toX(i), toHygY(v)));
   ctx.strokeStyle = hygCol; ctx.lineWidth = 2.2; ctx.stroke();
-  ctx.beginPath(); ctx.arc(toX(rows.length - 1), toY(hygNorm[hygNorm.length - 1]), 3.2, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(toX(rows.length - 1), toHygY(hyg[hyg.length - 1]), 3.2, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(216,216,216,.55)"; ctx.fill();
 
   const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + PH);
   grad.addColorStop(0, "rgba(79,178,138,.12)");
   grad.addColorStop(1, "rgba(79,178,138,0)");
   ctx.beginPath();
-  spyNorm.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  spy.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toSpyY(v)) : ctx.lineTo(toX(i), toSpyY(v)));
   ctx.lineTo(toX(rows.length - 1), PAD.top + PH); ctx.lineTo(toX(0), PAD.top + PH); ctx.closePath();
   ctx.fillStyle = grad; ctx.fill();
   ctx.beginPath();
-  spyNorm.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  spy.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toSpyY(v)) : ctx.lineTo(toX(i), toSpyY(v)));
   ctx.strokeStyle = spyCol; ctx.lineWidth = 2.7; ctx.stroke();
-  ctx.beginPath(); ctx.arc(toX(rows.length - 1), toY(spyNorm[spyNorm.length - 1]), 3.8, 0, Math.PI * 2);
+  ctx.beginPath(); ctx.arc(toX(rows.length - 1), toSpyY(spy[spy.length - 1]), 3.8, 0, Math.PI * 2);
   ctx.fillStyle = spyCol; ctx.fill();
 
   ctx.fillStyle = "#666"; ctx.font = "9px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("Normalized to 100 at start · HYG is adjusted close", PAD.left, PAD.top + 10);
-  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
-  [nMin, 100, nMax].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 5, toY(v) + 3));
+  ctx.fillText("HYG adjusted close uses left axis · SPY real price uses right axis", PAD.left, PAD.top + 10);
+  ctx.fillStyle = "rgba(216,216,216,.58)"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [hygLo, (hygLo + hygHi) / 2, hygHi].forEach(v => ctx.fillText(v.toFixed(1), PAD.left - 5, toHygY(v) + 3));
+  ctx.fillStyle = spyCol; ctx.textAlign = "left";
+  [spyLo, (spyLo + spyHi) / 2, spyHi].forEach(v => ctx.fillText(v.toFixed(0), PAD.left + PW + 7, toSpyY(v) + 3));
   ctx.textAlign = "left";
-  ctx.fillStyle = spyCol; ctx.fillText(`SPY ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}%`, PAD.left + PW + 6, toY(spyNorm[spyNorm.length - 1]) + 3);
-  ctx.fillStyle = "rgba(216,216,216,.62)"; ctx.fillText(`HYG ${hygPct >= 0 ? "+" : ""}${hygPct.toFixed(1)}%`, PAD.left + PW + 6, toY(hygNorm[hygNorm.length - 1]) + 3);
+  ctx.fillStyle = spyCol; ctx.fillText(`SPY ${spy[spy.length - 1].toFixed(1)} · ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}%`, PAD.left + PW + 7, toSpyY(spy[spy.length - 1]) + 14);
+  ctx.fillStyle = "rgba(216,216,216,.62)"; ctx.textAlign = "right";
+  ctx.fillText(`HYG ${hyg[hyg.length - 1].toFixed(2)} · ${hygPct >= 0 ? "+" : ""}${hygPct.toFixed(1)}%`, PAD.left - 7, toHygY(hyg[hyg.length - 1]) - 7);
 
   ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
   [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
