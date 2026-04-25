@@ -401,6 +401,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   <div class="header">
     <div class="header-logo">HBMS <span>Trading</span></div>
     <div class="hright">
+      <span class="last-upd" id="stockCount">Stocks - —</span>
       <span class="last-upd" id="lastUpd">Loading...</span>
       <button class="btn" onclick="logout()">Logout</button>
     </div>
@@ -1048,7 +1049,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 // CONFIG & STATE
 // ═══════════════════════════════════════════════
 const PASS = "HBMS2026";
-const DATA_URL = "https://cdn.jsdelivr.net/gh/Henryblmb/HBMS-Trading@main/data.json";
+const DATA_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/data.json";
 let allStocks=[], allTrending=[], allSectors=[], breadthData={};
 let currentTF = "1d";
 let rsSortCol = "vs_spy", rsSortDir = -1;
@@ -1122,6 +1123,7 @@ async function loadData() {
     allSectors  = json.sectors  || [];
     breadthData = json.breadth  || {};
     window._marketData = json.market || {};
+    document.getElementById("stockCount").textContent = "Stocks - " + (json.total || allStocks.length || "—");
     document.getElementById("lastUpd").textContent = "Updated: " + (json.generated || "—");
     filterGP(); filterOS(); filterTrend(); renderSectors();
     renderHiLo(); renderMomentum(); renderRegime();
