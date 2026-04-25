@@ -261,6 +261,46 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .chart-placeholder-icon{font-size:22px;opacity:.2}
 .chart-placeholder-text{font-size:10px;color:#333;letter-spacing:.05em}
 
+
+
+/* ── DESIGN PASS: calm monochrome dashboard with restrained signal colors ── */
+:root{
+  --bg:#f5f5f3;
+  --surface:#ffffff;
+  --surface-soft:#f0f0ee;
+  --surface-muted:#e7e7e4;
+  --line:#d8d8d4;
+  --line-strong:#c7c7c2;
+  --text:#171717;
+  --muted:#6f6f69;
+  --faint:#a2a29b;
+  --accent:#23866d;
+  --accent-soft:#e3f1ec;
+  --warn:#a66a1f;
+  --warn-soft:#f4ebdc;
+  --bad:#b84b4b;
+  --bad-soft:#f3e4e4;
+  --info:#3d6f9d;
+  --info-soft:#e2eaf2;
+}
+body{background:var(--bg)!important;color:var(--text)!important;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!important;font-weight:400!important;letter-spacing:0!important}
+.lock{background:var(--bg)!important}.lock-card{background:var(--surface)!important;border-color:var(--line)!important;box-shadow:0 18px 50px rgba(0,0,0,.08)}
+.logo,.header-logo,.ticker,.heat-name,.sec-name,.econ-name{color:var(--text)!important;font-weight:550!important}.logo span,.header-logo span{color:var(--accent)!important}
+.lock-sub,.last-upd,.section-title,.stat-lbl,.sname,.rsi-lbl,.fib-label-row,.nav-section,.cg-sub,.interp-text{color:var(--muted)!important}
+.lock-input,.filter-row select{background:var(--surface)!important;color:var(--text)!important;border-color:var(--line)!important}.lock-input:focus,.filter-row select:focus{border-color:var(--accent)!important}
+.lock-btn,.tf-btn.active{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}.btn{border-color:var(--line)!important;color:var(--muted)!important;background:var(--surface)!important}.btn:hover{background:var(--surface-soft)!important;color:var(--text)!important;border-color:var(--line-strong)!important}
+.app{background:var(--bg)!important}.header{background:rgba(255,255,255,.92)!important;border-bottom-color:var(--line)!important;backdrop-filter:saturate(140%) blur(10px)}
+.sidebar{background:#eeeeeb!important;border-right-color:var(--line)!important}.main{background:var(--bg)!important}.nav-divider{background:var(--line)!important}.nav-section{font-weight:550!important;color:#8a8a84!important}.nav-item,.nav-social{color:#6f6f69!important;font-weight:420!important}.nav-item:hover,.nav-social:hover{background:#e6e6e2!important;color:var(--text)!important}.nav-item.active{background:var(--surface)!important;color:var(--text)!important;border-left-color:var(--accent)!important}
+.card,.scard,.score-card,.sec-card,.vix-metric,.mom-card,.regime-card,.cg-chart-box,.interp-cell,.filter-row,.signal-bar,.spx-strip,.fg-chart-wrap{background:var(--surface)!important;border-color:var(--line)!important;box-shadow:none!important}.scard:hover,.econ-card:hover{border-color:var(--line-strong)!important}
+.stat{background:var(--surface)!important;border:1px solid var(--line)!important}.stat-val,.price,.vix-metric-val,.signal-bar-val{font-weight:550!important;color:var(--text)!important}.ticker,.heat-name,.score-card .ticker{font-weight:560!important}.section-title,.cg-chart-title,.signal-bar-label{font-weight:560!important;color:#777771!important}
+.filter-row{background:var(--surface)!important}.filter-row label{color:var(--muted)!important}.fval{color:var(--text)!important}.stag,.tf-chip,.econ-time,.econ-cat{background:var(--surface-soft)!important;border-color:var(--line)!important;color:var(--muted)!important}
+.fib-bar,.rsi-bar,.mom-score-dot,.ma-bar-track,.rs-bar-wrap,input[type=range]{background:var(--surface-muted)!important}.fib-fill,.rsi-fill,.mom-score-dot.on,input[type=range]::-webkit-slider-thumb{background:var(--accent)!important}.fib-pocket{background:rgba(166,106,31,.14)!important;border-color:var(--warn)!important}.fib-marker{background:var(--warn)!important;border-color:var(--surface)!important}
+.pos,.score-card.bull-strong .ticker,.score-card.bull-med .ticker,.rrg-chip.leading,.mom-signal.bull,.interp-title.bull,.regime-bull{color:var(--accent)!important}.neg,.rrg-chip.lagging,.mom-signal.bear,.interp-title.bear,.regime-bear{color:var(--bad)!important}.gp-label,.rrg-chip.weakening,.mom-signal.warn,.interp-title.neut,.regime-neut{color:var(--warn)!important}.interp-title.info,.rrg-chip.improving{color:var(--info)!important}
+.sig-52w,.mom-signal.bull,.regime-bull,.rrg-chip.leading{background:var(--accent-soft)!important;border-color:#bddbd1!important}.sig-ytd,.rrg-chip.improving,.interp-cell.info{background:var(--info-soft)!important;border-color:#c5d5e4!important}.mom-signal.warn,.regime-neut,.rrg-chip.weakening{background:var(--warn-soft)!important;border-color:#e3d0ae!important}.mom-signal.bear,.regime-bear,.rrg-chip.lagging{background:var(--bad-soft)!important;border-color:#e2c5c5!important}
+.score-card.bull-strong,.score-card.bull-med,.mom-card,.interp-cell.bull{border-left-color:var(--accent)!important}.score-card.bear-strong,.score-card.bear-med,.interp-cell.bear{border-left-color:var(--bad)!important}.interp-cell.neut{border-left-color:var(--warn)!important}.no-trade{background:var(--warn-soft)!important;border-color:#e3d0ae!important;color:var(--warn)!important}
+.rs-table th{color:var(--muted)!important;border-bottom-color:var(--line)!important;font-weight:550!important}.rs-table td{color:#555!important;border-bottom-color:#ececea!important}.rs-table tr:hover td{background:var(--surface-soft)!important}.empty{color:var(--muted)!important}.ma-bar-line50{background:var(--line-strong)!important}
+::-webkit-scrollbar-track{background:var(--bg)!important}::-webkit-scrollbar-thumb{background:#c9c9c4!important}::-webkit-scrollbar-thumb:hover{background:#aaa!important}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:#0a0a0a}
 ::-webkit-scrollbar-thumb{background:#1e1e1e}
@@ -301,8 +341,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
-    <div class="nav-item" onclick="showTab('breadth',this)">Market Breadth</div>
-    <div class="nav-item" onclick="showTab('rs',this)">Fear &amp; Greed</div>
     <div class="nav-item" onclick="showTab('momentum',this)">Momentum</div>
     <div class="nav-item" onclick="showTab('vix',this)">VIX Term Structure</div>
 
@@ -315,10 +353,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
     <div class="nav-item" onclick="showTab('cg-vix2',this)">VIX Term Structure</div>
     <div class="nav-item" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
     <div class="nav-item" onclick="showTab('cg-oil',this)">Oil Backwardation</div>
-
-    <div class="nav-divider"></div>
-    <div class="nav-section">Calendar</div>
-    <div class="nav-item" onclick="showTab('econ',this)">Economic Calendar</div>
 
     <div class="nav-divider"></div>
     <div class="nav-section">Socials</div>
@@ -557,122 +591,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
         <div class="stat"><div class="stat-val" id="momElite" style="color:#EF9F27">—</div><div class="stat-lbl">Elite 6-7</div></div>
       </div>
       <div class="mom-grid" id="momGrid"><div class="empty">Loading...</div></div>
-    </div>
-
-    <!-- F&G / RS -->
-    <div class="panel" id="tab-rs">
-      <div class="section-title">Fear &amp; Greed Index</div>
-      <div id="fgCard" style="background:#111;border:1px solid #1a1a1a;padding:13px 15px;margin-bottom:.9rem;display:flex;align-items:center;gap:18px">
-        <div style="text-align:center;min-width:76px">
-          <div style="font-size:8.5px;color:#333;text-transform:uppercase;letter-spacing:.09em;margin-bottom:3px">Fear &amp; Greed</div>
-          <div id="fgScore" style="font-size:34px;font-weight:600;line-height:1">—</div>
-          <div id="fgLabel" style="font-size:10.5px;font-weight:600;margin-top:2px">—</div>
-        </div>
-        <div style="flex:1">
-          <div style="height:9px;background:#181818;position:relative;margin-bottom:5px;overflow:hidden">
-            <div style="position:absolute;left:0;top:0;height:100%;width:20%;background:#881414"></div>
-            <div style="position:absolute;left:20%;top:0;height:100%;width:20%;background:#6a2a14"></div>
-            <div style="position:absolute;left:40%;top:0;height:100%;width:20%;background:#3a3a14"></div>
-            <div style="position:absolute;left:60%;top:0;height:100%;width:20%;background:#143a22"></div>
-            <div style="position:absolute;left:80%;top:0;height:100%;width:20%;background:#0a3a14"></div>
-            <div id="fgNeedle" style="position:absolute;top:-1px;width:2px;height:11px;background:#fff;transform:translateX(-50%);transition:left .5s;left:50%"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:8px;color:#252525"><span>Extreme Fear</span><span>Fear</span><span>Neutral</span><span>Greed</span><span>Extreme Greed</span></div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px" id="fgComponents"></div>
-        </div>
-      </div>
-      <div class="fg-chart-wrap">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 13px 0">
-          <div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.09em">Fear &amp; Greed — History</div>
-          <div style="display:flex;gap:9px;font-size:8.5px;color:#333">
-            <span><span style="color:#1D9E75">—</span> F&amp;G</span>
-            <span><span style="color:#60a5fa">—</span> S&amp;P 500</span>
-          </div>
-        </div>
-        <canvas id="fgChartCanvas" style="width:100%;display:block"></canvas>
-      </div>
-      <div class="filter-row" style="margin-bottom:.9rem">
-        <label>Index:</label>
-        <select id="rsIdx" onchange="renderRS()"><option value="SP500">S&amp;P 500</option><option value="DAX">DAX</option><option value="all">All</option></select>
-        <label>TF:</label>
-        <select id="rsTF" onchange="renderRS()"><option value="chg_1m">1M</option><option value="chg_1w">1W</option><option value="chg_3m">3M</option><option value="chg">1D</option></select>
-        <label>Show:</label>
-        <select id="rsShow" onchange="renderRS()"><option value="all">All</option><option value="top">Top 50</option><option value="bottom">Bottom 50</option><option value="positive">Outperforming</option><option value="negative">Underperforming</option></select>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="rs-table">
-          <thead><tr>
-            <th onclick="rsSortBy('rank')">#</th>
-            <th onclick="rsSortBy('ticker')">Ticker</th>
-            <th onclick="rsSortBy('name')">Name</th>
-            <th onclick="rsSortBy('price')">Price</th>
-            <th onclick="rsSortBy('perf')" id="rsPerfHeader">Perf (1M)</th>
-            <th onclick="rsSortBy('vs_spy')">vs SPY</th>
-            <th>Bar</th>
-            <th onclick="rsSortBy('rsi')">RSI W</th>
-            <th onclick="rsSortBy('score')">EMA</th>
-          </tr></thead>
-          <tbody id="rsBody"><tr><td colspan="9" style="text-align:center;color:#333;padding:2rem">Run screener.py</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- MARKET BREADTH -->
-    <div class="panel" id="tab-breadth">
-      <div class="section-title">Market Breadth — S&amp;P 500</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:1.1rem">
-        <div class="stat"><div class="stat-val" id="b200">—</div><div class="stat-lbl">Above 200D</div></div>
-        <div class="stat"><div class="stat-val" id="b100">—</div><div class="stat-lbl">Above 100D</div></div>
-        <div class="stat"><div class="stat-val" id="b50">—</div><div class="stat-lbl">Above 50D</div></div>
-        <div class="stat"><div class="stat-val" id="b20">—</div><div class="stat-lbl">Above 20D</div></div>
-        <div class="stat"><div class="stat-val" id="b10">—</div><div class="stat-lbl">Above 10D</div></div>
-      </div>
-      <div style="background:#111;border:1px solid #1a1a1a;padding:12px 14px;margin-bottom:.9rem">
-        <div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:11px">% Above Moving Average</div>
-        <div id="maBarsContainer"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div style="background:#111;border:1px solid #1a1a1a;padding:12px 14px">
-          <div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:9px">Advance / Decline</div>
-          <div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">
-            <span style="font-size:21px;font-weight:600;color:#1D9E75" id="adv">—</span><span style="color:#333;font-size:10px">advancing</span>
-            <span style="font-size:21px;font-weight:600;color:#e05050;margin-left:auto" id="dec">—</span><span style="color:#333;font-size:10px">declining</span>
-          </div>
-          <div style="height:6px;background:#181818;overflow:hidden"><div id="adBar" style="height:100%;background:#1D9E75;transition:width .3s"></div></div>
-          <div style="font-size:9.5px;color:#333;margin-top:3px" id="adRatioTxt">—</div>
-        </div>
-        <div style="background:#111;border:1px solid #1a1a1a;padding:12px 14px">
-          <div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:9px">New 52W Highs / Lows</div>
-          <div style="display:flex;gap:14px;margin-bottom:7px">
-            <div><div style="font-size:21px;font-weight:600;color:#1D9E75" id="nh">—</div><div style="font-size:9.5px;color:#333">New Highs</div></div>
-            <div><div style="font-size:21px;font-weight:600;color:#e05050" id="nl">—</div><div style="font-size:9.5px;color:#333">New Lows</div></div>
-          </div>
-          <div style="font-size:9.5px;color:#333" id="nhlPct">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ECONOMIC CALENDAR -->
-    <div class="panel" id="tab-econ">
-      <div class="section-title">Economic Calendar — No trading around High Impact events!</div>
-      <div style="background:#1a1200;border:1px solid #3a2a00;padding:11px 15px;margin-bottom:.9rem;display:flex;align-items:center;gap:14px">
-        <div style="text-align:center;min-width:55px">
-          <div style="font-size:9px;color:#EF9F27;text-transform:uppercase">Next</div>
-          <div style="font-size:19px;font-weight:600;color:#fff" id="nextEventDays">—</div>
-          <div style="font-size:8.5px;color:#666">days</div>
-        </div>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#fff" id="nextEventName">Loading...</div>
-          <div style="font-size:10px;color:#555;margin-top:2px" id="nextEventDate"></div>
-        </div>
-      </div>
-      <div class="filter-row" style="margin-bottom:.9rem">
-        <label>Impact:</label>
-        <select id="econFilter" onchange="renderEcon()"><option value="all">All</option><option value="high">High only</option><option value="medium">Med &amp; High</option></select>
-        <label>Category:</label>
-        <select id="econCat" onchange="renderEcon()"><option value="all">All</option><option value="fed">Fed / CB</option><option value="jobs">Jobs</option><option value="inflation">Inflation</option><option value="growth">Growth</option><option value="other">Other</option></select>
-      </div>
-      <div id="econList"></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════
@@ -1068,7 +986,7 @@ function checkPass() {
   if(document.getElementById("pwInput").value === PASS) {
     document.getElementById("lockScreen").style.display = "none";
     document.getElementById("dashboard").style.display = "grid";
-    checkNoTrade(); loadData(); renderEcon();
+    checkNoTrade(); loadData();
   } else {
     const e = document.getElementById("lockErr");
     e.style.display = "block";
@@ -1095,9 +1013,7 @@ function showTab(id, el) {
   document.getElementById("tab-" + id).classList.add("active");
 
   // Tab-specific actions
-  if(id === "breadth") renderBreadth();
   if(id === "hilo") renderHiLo();
-  if(id === "rs") { renderRS(); renderFearGreed(); }
   if(id === "momentum") renderMomentum();
   if(id === "regime") setTimeout(renderRegime, 50);
   if(id === "vix") { window._marketData = window._marketData || {}; setTimeout(renderVIX, 100); }
@@ -1129,7 +1045,7 @@ async function loadData() {
     window._marketData = json.market || {};
     document.getElementById("lastUpd").textContent = "Updated: " + (json.generated || "—");
     filterGP(); filterOS(); filterTrend(); renderSectors();
-    renderEcon(); renderBreadth(); renderHiLo(); renderFearGreed(); renderMomentum(); renderRegime();
+    renderHiLo(); renderMomentum(); renderRegime();
     // Update CG-VIX readings if open
     updateCGVIX2Readings();
     updateBT20Signal();
@@ -1832,12 +1748,6 @@ const el=id=>document.getElementById(id),set=(id,val,col)=>{const e=el(id);if(e)
 set("vixV9d",vix9d!=null?vix9d.toFixed(1):"—",v9dCol);set("vixVix",vix!=null?vix.toFixed(1):"—",vixCol);set("vixV3m",vix3m!=null?vix3m.toFixed(1):"—",v3mCol);set("vixSpread",spread!=null?(spread>=0?"+":"")+spread.toFixed(2):"—",spCol);set("vixRegime",regime,regCol);
 requestAnimationFrame(()=>{drawVIXChart(md.vix_history||[]);drawPCChart("pcTotalCanvas",md.pc_total_history||[],"#EF9F27",1.2,0.7,"Fear","Greed");drawPCChart("pcEquityCanvas",md.pc_equity_history||[],"#60a5fa",0.9,0.55,"Fear","Greed");updateCGVIX2Readings();});}
 
-// ── ECONOMIC CALENDAR ──
-const ECON=[{date:"2026-04-25",name:"GDP Growth Rate Q1 (Advance)",time:"08:30 ET",impact:"high",cat:"growth",prev:"+2.4%",note:"First estimate – highly volatile",avoid:true},{date:"2026-04-25",name:"PCE Price Index (Core)",time:"08:30 ET",impact:"high",cat:"inflation",prev:"+0.4%",note:"Fed preferred gauge",avoid:true},{date:"2026-04-30",name:"FOMC Meeting Begins",time:"All day",impact:"high",cat:"fed",prev:"",note:"Rate decision May 7",avoid:false},{date:"2026-05-02",name:"Non-Farm Payrolls (NFP)",time:"08:30 ET",impact:"high",cat:"jobs",prev:"",note:"",avoid:true},{date:"2026-05-07",name:"FOMC Rate Decision",time:"14:00 ET",impact:"high",cat:"fed",prev:"4.25-4.50%",note:"Powell press conference 14:30",avoid:true},{date:"2026-05-13",name:"CPI Inflation",time:"08:30 ET",impact:"high",cat:"inflation",prev:"",note:"",avoid:true},{date:"2026-05-15",name:"Retail Sales",time:"08:30 ET",impact:"high",cat:"growth",prev:"",note:"",avoid:false},{date:"2026-06-06",name:"Non-Farm Payrolls",time:"08:30 ET",impact:"high",cat:"jobs",prev:"",note:"",avoid:true},{date:"2026-06-10",name:"CPI Inflation",time:"08:30 ET",impact:"high",cat:"inflation",prev:"",note:"",avoid:true},{date:"2026-06-18",name:"FOMC Rate Decision",time:"14:00 ET",impact:"high",cat:"fed",prev:"",note:"Powell press conference 14:30",avoid:true},{date:"2026-07-02",name:"Non-Farm Payrolls",time:"08:30 ET",impact:"high",cat:"jobs",prev:"",note:"",avoid:true},{date:"2026-07-10",name:"CPI Inflation",time:"08:30 ET",impact:"high",cat:"inflation",prev:"",note:"",avoid:true},{date:"2026-07-28",name:"FOMC Rate Decision",time:"14:00 ET",impact:"high",cat:"fed",prev:"",note:"",avoid:true}];
-function renderEcon(){const fi=document.getElementById("econFilter").value,fc=document.getElementById("econCat").value;const today=new Date();today.setHours(0,0,0,0);let filtered=ECON.filter(e=>{if(fi==="high"&&e.impact!=="high")return false;if(fi==="medium"&&e.impact==="low")return false;if(fc!=="all"&&e.cat!==fc)return false;return true;});const upcoming=ECON.filter(e=>e.impact==="high"&&new Date(e.date)>=today);if(upcoming.length){const next=upcoming[0];const days=Math.ceil((new Date(next.date)-today)/(1000*60*60*24));document.getElementById("nextEventDays").textContent=days===0?"Today":days;document.getElementById("nextEventName").textContent=next.name;document.getElementById("nextEventDate").textContent=fmtD(next.date)+" · "+next.time;}
-const months={};filtered.forEach(e=>{const d=new Date(e.date);const mk=d.getFullYear()+"-"+(d.getMonth()+1);const ml=d.toLocaleDateString("en-US",{month:"long",year:"numeric"});if(!months[mk])months[mk]={label:ml,events:[]};months[mk].events.push(e);});
-const wd=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];let html="";Object.values(months).forEach(m=>{html+=`<div class="econ-month">${m.label}</div>`;m.events.forEach(e=>{const d=new Date(e.date+"T12:00:00"),isToday=d.toDateString()===today.toDateString(),isPast=d<today;const impCls=e.impact==="high"?"impact-high":e.impact==="medium"?"impact-medium":"";const impTxt=e.impact==="high"?"● High":e.impact==="medium"?"● Medium":"● Low";const catL={fed:"Fed",jobs:"Jobs",inflation:"Inflation",growth:"GDP",other:"Other"};html+=`<div class="econ-card${isToday?" today":""}${isPast?" past":""}"><div class="econ-date"><div class="econ-day">${d.getDate()}</div><div class="econ-weekday">${wd[d.getDay()]}</div></div><div class="econ-info"><div class="econ-name">${e.name}</div>${e.note?`<div class="econ-detail">${e.note}</div>`:""}<div class="econ-meta"><span class="econ-time">${e.time}</span><span class="${impCls}">${impTxt}</span><span class="econ-cat">${catL[e.cat]||e.cat}</span>${e.avoid?'<span class="no-trade-tag">No Trade!</span>':""}</div></div><div class="econ-prev">${e.prev?`<span>Prev</span><strong>${e.prev}</strong>`:""}</div></div>`;});});
-document.getElementById("econList").innerHTML=html||'<div class="empty">No events match filter</div>';}
 function fmtD(str){const d=new Date(str+"T12:00:00");return d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
 function checkNoTrade(){const h=new Date().getHours(),day=new Date().getDay();const msgs=[];if(day===1&&h<10)msgs.push("Monday Pre-Market – low volume!");if(day===5&&h>=18)msgs.push("Friday after 6pm – weekend gap risk!");if(h>=22||h<7)msgs.push("Outside main sessions – low liquidity!");const b=document.getElementById("noTradeBanner");if(msgs.length){b.style.display="flex";document.getElementById("noTradeText").textContent=msgs[0];}}
 </script>
