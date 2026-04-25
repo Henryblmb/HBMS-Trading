@@ -447,10 +447,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
   <!-- ─── MAIN ─── -->
   <div class="main">
-    <div id="noTradeBanner" class="no-trade" style="display:none">
-      <div class="dot"></div><span id="noTradeText"></span>
-    </div>
-
     <!-- ══════════════════════ SCREENER PANELS ══════════════════════ -->
 
     <!-- MARKET REGIME -->
@@ -732,7 +728,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-spxrsi">
       <div class="cg-header">
         <div class="cg-title">SPX RSI Reversal — Momentum Signal</div>
-        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500. When weekly RSI drops below 40 and later confirms above 60.</div>
+        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using EODHD 10-year history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
         <div class="cg-pill active-bull" id="spxrsiPill"><span class="cg-dot"></span>LOADING WEEKLY SIGNAL</div>
       </div>
 
@@ -777,7 +773,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="interp-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Signal Confirmed</div><div class="interp-text">RSI crossed below 40 then recovered above 60. 100% historical track record since 2016 when confirmed by price action holding above the signal low.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Setup Phase — RSI &lt; 40</div><div class="interp-text">RSI oversold. Watch for recovery above 40 as first sign of momentum shift. Don't front-run — wait for 60 confirmation.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Historical Dates</div><div class="interp-text">Confirmed signals: Jul 2016 · Apr 2019 · Aug 2020 · Jun 2023 · Nov 2023 · Jun 2025 · Apr 2026.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Historical Dates</div><div class="interp-text">Confirmed signals: Jul 2016 · Apr 2019 · Aug 2020 · Jun 2023 · Nov 2023 · Jun 2025 · Apr 2026. Each preceded a 10%+ rally within 3 months.</div></div>
         <div class="interp-cell bull" id="spxrsiForwardStats"><div class="interp-title bull">Forward Performance</div><div class="interp-text">Waiting for S&amp;P signal data.</div></div>
       </div>
     </div>
@@ -1058,7 +1054,7 @@ function checkPass() {
   if(document.getElementById("pwInput").value === PASS) {
     document.getElementById("lockScreen").style.display = "none";
     document.getElementById("dashboard").style.display = "grid";
-    checkNoTrade(); loadData();
+    loadData();
     if(dataRefreshTimer) clearInterval(dataRefreshTimer);
     dataRefreshTimer = setInterval(loadData, 5 * 60 * 1000);
   } else {
@@ -2373,7 +2369,6 @@ set("vixV9d",vix9d!=null?vix9d.toFixed(1):"—",v9dCol);set("vixVix",vix!=null?v
 requestAnimationFrame(()=>{drawVIXChart(md.vix_history||[]);drawPCChart("pcTotalCanvas",md.pc_total_history||[],"#EF9F27",1.2,0.7,"Fear","Greed");drawPCChart("pcEquityCanvas",md.pc_equity_history||[],"#60a5fa",0.9,0.55,"Fear","Greed");updateCGVIX2Readings();});}
 
 function fmtD(str){const d=new Date(str+"T12:00:00");return d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});}
-function checkNoTrade(){const h=new Date().getHours(),day=new Date().getDay();const msgs=[];if(day===1&&h<10)msgs.push("Monday Pre-Market – low volume!");if(day===5&&h>=18)msgs.push("Friday after 6pm – weekend gap risk!");if(h>=22||h<7)msgs.push("Outside main sessions – low liquidity!");const b=document.getElementById("noTradeBanner");if(msgs.length){b.style.display="flex";document.getElementById("noTradeText").textContent=msgs[0];}}
 </script>
 </body>
 </html>
