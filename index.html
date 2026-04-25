@@ -1471,6 +1471,8 @@ function drawSPXRSIReversal() {
   const rsi = weeklyRows.map(d => d.rsi == null ? null : +d.rsi);
   drawHistoryLine("spxrsiPriceCanvas", daily, 240, "S&P 500 Daily", "#d8d8d8", dailyZones);
   drawRSIChart("spxrsiRSICanvas", weeklyRows, rsi, 170, weeklyZones);
+  drawSPXSignalDots("spxrsiPriceCanvas", daily, signals, "price");
+  drawSPXSignalDots("spxrsiRSICanvas", weeklyRows, signals, "rsi");
   updateSPXRSIReadings(status, signals, weeklyRows);
 }
 
@@ -1478,6 +1480,63 @@ function firstIndexOnOrAfter(rows, date) {
   const target = new Date(date + "T00:00:00").getTime();
   const idx = rows.findIndex(r => new Date(r.date + "T00:00:00").getTime() >= target);
   return idx < 0 ? rows.length - 1 : idx;
+}
+
+function drawSPXSignalDots(canvasId, rows, signals, mode) {
+  if(!rows || rows.length < 2 || !signals || !signals.length) return;
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  const isRSI = mode === "rsi";
+  const PAD = isRSI
+    ? { top: 16, right: 48, bottom: 28, left: 44 }
+    : { top: 14, right: 45, bottom: 26, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const valid = rows.map((row, i) => ({
+    i,
+    date: row.date,
+    value: isRSI ? (row.rsi == null ? null : +row.rsi) : +row.close
+  })).filter(p => p.date && Number.isFinite(p.value));
+  if(valid.length < 2) return;
+
+  const n = rows.length;
+  const toX = i => PAD.left + (i / Math.max(n - 1, 1)) * PW;
+  let toY;
+  if(isRSI) {
+    const RSI_MIN = 20, RSI_MAX = 80;
+    toY = v => PAD.top + PH - ((Math.min(Math.max(v, RSI_MIN), RSI_MAX) - RSI_MIN) / (RSI_MAX - RSI_MIN)) * PH;
+  } else {
+    const values = valid.map(p => p.value);
+    const vMin = Math.min(...values) * .996;
+    const vMax = Math.max(...values) * 1.004;
+    const span = vMax - vMin || 1;
+    toY = v => PAD.top + PH - ((v - vMin) / span) * PH;
+  }
+
+  signals.forEach(sig => {
+    const idx = isRSI
+      ? Math.max(0, sig.confirm_index ?? firstIndexOnOrAfter(rows, sig.confirm_date))
+      : firstIndexOnOrAfter(rows, sig.confirm_date);
+    const row = rows[idx];
+    if(!row) return;
+    const value = isRSI ? (row.rsi == null ? null : +row.rsi) : +row.close;
+    if(!Number.isFinite(value)) return;
+    const x = toX(idx), y = toY(value);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, isRSI ? 6 : 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(29,158,117,.18)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, isRSI ? 3.8 : 4.2, 0, Math.PI * 2);
+    ctx.fillStyle = "#1D9E75";
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(220,255,240,.85)";
+    ctx.stroke();
+    ctx.restore();
+  });
 }
 
 function signalZonesForDaily(daily, signals, status) {
