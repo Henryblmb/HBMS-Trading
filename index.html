@@ -732,7 +732,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-spxrsi">
       <div class="cg-header">
         <div class="cg-title">SPX RSI Reversal — Momentum Signal</div>
-        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using EODHD 5-year history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
+        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using EODHD 10-year history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
         <div class="cg-pill active-bull" id="spxrsiPill"><span class="cg-dot"></span>LOADING WEEKLY SIGNAL</div>
       </div>
 
@@ -753,7 +753,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- SPX Price -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 — 5Y Daily · Red boxes = weekly RSI 40→60 momentum windows</span>
+          <span class="cg-chart-title">S&amp;P 500 — 10Y Daily · Red boxes = weekly RSI 40→60 momentum windows</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#e0e0e0"></span>S&amp;P 500</span>
             <span style="color:rgba(212,80,80,.5)">■ Signal Window</span>
@@ -765,7 +765,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- RSI panel -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">Weekly RSI(14) — 5Y · 40 / 60 Thresholds</span>
+          <span class="cg-chart-title">Weekly RSI(14) — 10Y · 40 / 60 Thresholds</span>
           <div class="cg-chart-legend">
             <span style="color:#e05050">— 40 (Oversold trigger)</span>
             <span style="color:#1D9E75">— 60 (Confirmation)</span>
@@ -1329,8 +1329,6 @@ function drawHistoryLine(canvasId, hist, h, label, lineColor, zones=[]) {
   ctx.beginPath();
   data.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
   ctx.strokeStyle = lineColor + "dd"; ctx.lineWidth = 2; ctx.stroke();
-  ctx.beginPath(); ctx.arc(toX(data.length - 1), toY(data[data.length - 1]), 3.5, 0, Math.PI * 2);
-  ctx.fillStyle = lineColor; ctx.fill();
   ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
   [vMin, (vMin + vMax) / 2, vMax].forEach(v => ctx.fillText(v.toFixed(1), PAD.left - 4, toY(v) + 3));
   const dateRows = hist.slice(-data.length);
@@ -1434,13 +1432,6 @@ function drawRSIChart(canvasId, hist, rsi, h, zones) {
     if(first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
   });
   ctx.strokeStyle = "#d0d0d0"; ctx.lineWidth = 1.8; ctx.lineJoin = "round"; ctx.stroke();
-  // Dot at current RSI
-  const lastValid = rsi.reduceRight((acc, v, i) => acc ?? (v != null ? { v, i } : null), null);
-  if(lastValid) {
-    const col = lastValid.v >= 60 ? "#1D9E75" : lastValid.v <= 40 ? "#c55555" : "#d0d0d0";
-    ctx.beginPath(); ctx.arc(toX(lastValid.i), toY(lastValid.v), 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = col; ctx.fill();
-  }
   // Y-axis labels
   ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
   [20, 30, 40, 50, 60, 70, 80].forEach(v => ctx.fillText(v, PAD.left - 5, toY(v) + 3));
@@ -1461,7 +1452,7 @@ function drawSPXRSIReversal() {
   const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals : [];
   const status = md.sp500_rsi_status || {};
   if(!daily || daily.length < 200 || weeklyRows.length < 20) {
-    emptyCanvas("spxrsiPriceCanvas", 240, "S&P 500 5Y history unavailable - run screener.py");
+    emptyCanvas("spxrsiPriceCanvas", 240, "S&P 500 10Y history unavailable - run screener.py");
     emptyCanvas("spxrsiRSICanvas", 170, "Weekly RSI unavailable - run screener.py");
     updateSPXRSIReadings(null, [], {});
     return;
@@ -1487,7 +1478,8 @@ function drawSPXSignalDots(canvasId, rows, signals, mode) {
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
   const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height;
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
+  const H = canvas.clientHeight || parseFloat(canvas.style.height) || (isRSI ? 170 : 240);
   const isRSI = mode === "rsi";
   const PAD = isRSI
     ? { top: 16, right: 48, bottom: 28, left: 44 }
@@ -1515,9 +1507,7 @@ function drawSPXSignalDots(canvasId, rows, signals, mode) {
   }
 
   signals.forEach(sig => {
-    const idx = isRSI
-      ? Math.max(0, sig.confirm_index ?? firstIndexOnOrAfter(rows, sig.confirm_date))
-      : firstIndexOnOrAfter(rows, sig.confirm_date);
+    const idx = firstIndexOnOrAfter(rows, sig.confirm_date);
     const row = rows[idx];
     if(!row) return;
     const value = isRSI ? (row.rsi == null ? null : +row.rsi) : +row.close;
@@ -1557,8 +1547,8 @@ function signalZonesForDaily(daily, signals, status) {
 
 function signalZonesForWeekly(weeklyRows, signals, status) {
   const zones = signals.map(s => ({
-    start: Math.max(0, s.start_index ?? firstIndexOnOrAfter(weeklyRows, s.start_date)),
-    end: Math.max(0, s.confirm_index ?? firstIndexOnOrAfter(weeklyRows, s.confirm_date)),
+    start: firstIndexOnOrAfter(weeklyRows, s.start_date),
+    end: firstIndexOnOrAfter(weeklyRows, s.confirm_date),
     color: "rgba(212,80,80,.12)"
   }));
   if(status && status.active_setup_start && status.active_setup_start.date) {
@@ -1594,7 +1584,7 @@ function updateSPXRSIReadings(status, signals, weeklyRows) {
     if(!status || state === "unavailable") dEl.textContent = "No EODHD S&P 500 RSI data available yet. Run screener.py.";
     else if(state === "setup") dEl.textContent = `Weekly RSI is below/after 40 setup from ${status.active_setup_start?.date || "—"}. Confirmation waits for RSI > 60.`;
     else if(last) dEl.textContent = `Last 40→60 weekly momentum signal confirmed on ${last.confirm_date}. Loaded: ${weeklyRows.length} weekly bars, ${signals.length} completed signals.`;
-    else dEl.textContent = `Weekly RSI state is ${state}. Loaded: ${weeklyRows.length} weekly bars, no completed 40→60 signal in the 5Y window.`;
+    else dEl.textContent = `Weekly RSI state is ${state}. Loaded: ${weeklyRows.length} weekly bars, no completed 40→60 signal in the 10Y window.`;
   }
 }
 
