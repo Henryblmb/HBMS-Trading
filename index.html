@@ -778,6 +778,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bull"><div class="interp-title bull">Signal Confirmed</div><div class="interp-text">RSI crossed below 40 then recovered above 60. 100% historical track record since 2016 when confirmed by price action holding above the signal low.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Setup Phase — RSI &lt; 40</div><div class="interp-text">RSI oversold. Watch for recovery above 40 as first sign of momentum shift. Don't front-run — wait for 60 confirmation.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Historical Dates</div><div class="interp-text">Confirmed signals: Jul 2016 · Apr 2019 · Aug 2020 · Jun 2023 · Nov 2023 · Jun 2025 · Apr 2026. Each preceded a 10%+ rally within 3 months.</div></div>
+        <div class="interp-cell bull" id="spxrsiForwardStats"><div class="interp-title bull">Forward Performance</div><div class="interp-text">Waiting for S&amp;P signal data.</div></div>
       </div>
     </div>
 
@@ -1467,6 +1468,7 @@ function drawSPXRSIReversal() {
   drawSPXSignalDots("spxrsiPriceCanvas", daily, signals, "price");
   drawSPXSignalDots("spxrsiRSICanvas", weeklyRows, signals, "rsi");
   updateSPXRSIReadings(status, signals, weeklyRows);
+  updateSPXForwardStats(daily, signals);
 }
 
 function firstIndexOnOrAfter(rows, date) {
@@ -1561,6 +1563,64 @@ function signalZonesForWeekly(weeklyRows, signals, status) {
     });
   }
   return zones;
+}
+
+function addMonthsToDate(dateStr, months) {
+  const d = new Date(dateStr + "T12:00:00");
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if(d.getDate() < day) d.setDate(0);
+  return d.toISOString().slice(0, 10);
+}
+
+function updateSPXForwardStats(daily, signals) {
+  const el = document.getElementById("spxrsiForwardStats");
+  if(!el) return;
+  const body = el.querySelector(".interp-text");
+  if(!body) return;
+  const rows = (daily || []).filter(d => d && d.date && Number.isFinite(+d.close));
+  if(rows.length < 50 || !signals || !signals.length) {
+    body.textContent = "Forward stats unavailable until S&P history and completed signals are loaded.";
+    return;
+  }
+  const horizons = [
+    { label: "1M", months: 1 },
+    { label: "3M", months: 3 },
+    { label: "6M", months: 6 },
+    { label: "9M", months: 9 },
+    { label: "12M", months: 12 },
+  ];
+  const stats = horizons.map(h => {
+    const returns = [];
+    signals.forEach(sig => {
+      if(!sig || !sig.confirm_date) return;
+      const startIdx = firstIndexOnOrAfter(rows, sig.confirm_date);
+      const targetDate = addMonthsToDate(sig.confirm_date, h.months);
+      if(targetDate > rows[rows.length - 1].date) return;
+      const endIdx = firstIndexOnOrAfter(rows, targetDate);
+      const start = rows[startIdx], end = rows[endIdx];
+      if(!start || !end || !Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
+      returns.push(((+end.close / +start.close) - 1) * 100);
+    });
+    const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
+    const win = returns.length ? returns.filter(v => v > 0).length / returns.length * 100 : null;
+    return { ...h, avg, win, count: returns.length };
+  });
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:42px 1fr 1fr 28px;gap:5px 8px;align-items:center;font-size:9.5px;line-height:1.25">
+      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em">Time</span>
+      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em;text-align:right">Avg</span>
+      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em;text-align:right">Plus</span>
+      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em;text-align:right">N</span>
+      ${stats.map(s => {
+        const avg = s.avg == null ? "—" : `${s.avg >= 0 ? "+" : ""}${s.avg.toFixed(1)}%`;
+        const win = s.win == null ? "—" : `${s.win.toFixed(0)}%`;
+        const col = s.avg == null ? "#666" : s.avg >= 0 ? "#1D9E75" : "#e05050";
+        return `<span style="color:#aaa;font-weight:600">${s.label}</span><span style="color:${col};font-weight:600;text-align:right">${avg}</span><span style="color:#1D9E75;font-weight:600;text-align:right">${win}</span><span style="color:#555;text-align:right">${s.count || "—"}</span>`;
+      }).join("")}
+    </div>
+    <div style="margin-top:7px;color:#555;font-size:9px;line-height:1.35">Measured from the signal-day close. Open horizons are excluded.</div>
+  `;
 }
 
 function updateSPXRSIReadings(status, signals, weeklyRows) {
