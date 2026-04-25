@@ -1447,8 +1447,10 @@ function drawRSIChart(canvasId, hist, rsi, h, zones) {
 
 function drawSPXRSIReversal() {
   const md = window._marketData || {};
-  const daily = marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history");
-  const weeklyRows = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date) : [];
+  const chartStart = "2016-01-01";
+  const dailyRaw = marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history");
+  const daily = dailyRaw.filter(d => d.date >= chartStart);
+  const weeklyRows = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date >= chartStart) : [];
   const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals : [];
   const status = md.sp500_rsi_status || {};
   if(!daily || daily.length < 200 || weeklyRows.length < 20) {
@@ -1478,9 +1480,9 @@ function drawSPXSignalDots(canvasId, rows, signals, mode) {
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
   const ctx = canvas.getContext("2d");
+  const isRSI = mode === "rsi";
   const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
   const H = canvas.clientHeight || parseFloat(canvas.style.height) || (isRSI ? 170 : 240);
-  const isRSI = mode === "rsi";
   const PAD = isRSI
     ? { top: 16, right: 48, bottom: 28, left: 44 }
     : { top: 14, right: 45, bottom: 26, left: 42 };
