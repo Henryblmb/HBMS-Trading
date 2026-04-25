@@ -891,7 +891,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-vix2">
       <div class="cg-header">
         <div class="cg-title">VIX Term Structure — Contango / Backwardation</div>
-        <div class="cg-sub">The relationship between VIX (30-day) and VIX3M (93-day) reveals the market's near-term fear regime. Contango (VIX3M &gt; VIX) = calm. Backwardation (VIX &gt; VIX3M) = fear/panic, often marks a local bottom. Put/Call ratios provide additional confirmation.</div>
+        <div class="cg-sub">The relationship between VIX (30-day) and VIX3M (93-day) reveals the market's near-term fear regime. Contango (VIX3M &gt; VIX) = calm. Backwardation (VIX &gt; VIX3M) = fear/panic, often marks a local bottom.</div>
         <div class="cg-pill active-bull" id="cgvix2Pill"><span class="cg-dot"></span>CONTANGO — CALM REGIME</div>
       </div>
 
@@ -916,19 +916,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         </div>
         <canvas id="cgvixCanvas" style="width:100%;display:block"></canvas>
       </div>
-      <div class="cg-chart-box">
-        <div class="cg-chart-header"><span class="cg-chart-title">Total Put/Call Ratio</span><div class="cg-chart-legend"><span style="color:#2a2a2a">Fear &gt;1.2 · Greed &lt;0.7</span></div></div>
-        <canvas id="cgPcTotalCanvas" style="width:100%;display:block"></canvas>
-      </div>
-      <div class="cg-chart-box">
-        <div class="cg-chart-header"><span class="cg-chart-title">Equity Put/Call Ratio</span><div class="cg-chart-legend"><span style="color:#2a2a2a">Fear &gt;0.9 · Greed &lt;0.55</span></div></div>
-        <canvas id="cgPcEquityCanvas" style="width:100%;display:block"></canvas>
-      </div>
 
       <div class="interp-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Contango — Normal</div><div class="interp-text">VIX3M trading above spot VIX. Market expects future uncertainty is priced further out. Favorable for trend-following and long exposure.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Backwardation — Fear</div><div class="interp-text">Near-term vol spikes above longer-term expectations. Often marks a local bottom as panic peaks. Contrarian buy signal when extreme (&lt;−5).</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Put/Call Context</div><div class="interp-text">P/C Total &gt;1.2 = excessive fear (contrarian buy). Equity P/C &gt;0.9 = extreme hedging. Use in conjunction with VIX structure for timing entries.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Signal Use</div><div class="interp-text">A rising positive spread usually supports trend-following. Negative spread signals stress; deeply negative readings often appear near panic lows.</div></div>
       </div>
     </div>
 
@@ -2010,9 +2002,8 @@ function mirrorVIXCharts() {
   updateCGVIX2Readings();
   // Re-draw canvases using same functions as the screener VIX tab
   requestAnimationFrame(()=>{
-    drawVIXChart(md.vix_history||[]);
-    drawPCChart("cgPcTotalCanvas",md.pc_total_history||[],"#EF9F27",1.2,0.7,"Fear","Greed");
-    drawPCChart("cgPcEquityCanvas",md.pc_equity_history||[],"#60a5fa",0.9,0.55,"Fear","Greed");
+    const h=md.vix_history||[];
+    if(h.length&&document.getElementById("cgvixCanvas")) drawVIXChartToCanvas("cgvixCanvas",h);
   });
 }
 function updateCGVIX2Readings() {
@@ -2032,8 +2023,6 @@ function updateCGVIX2Readings() {
   requestAnimationFrame(()=>{
     const h=md2.vix_history||[];
     if(h.length&&document.getElementById("cgvixCanvas")) drawVIXChartToCanvas("cgvixCanvas",h);
-    drawPCChart("cgPcTotalCanvas",md2.pc_total_history||[],"#EF9F27",1.2,0.7,"Fear","Greed");
-    drawPCChart("cgPcEquityCanvas",md2.pc_equity_history||[],"#60a5fa",0.9,0.55,"Fear","Greed");
   });
 }
 function drawVIXChartToCanvas(canvasId,history){
