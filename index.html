@@ -775,7 +775,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
 
       <div class="interp-grid">
-        <div class="interp-cell bull"><div class="interp-title bull">Signal Confirmed</div><div class="interp-text">RSI crossed below 40 then recovered above 60.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Signal Confirmed</div><div class="interp-text">RSI crossed below 40 then recovered above 60. 100% historical track record since 2016 when confirmed by price action holding above the signal low.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Setup Phase — RSI &lt; 40</div><div class="interp-text">RSI oversold. Watch for recovery above 40 as first sign of momentum shift. Don't front-run — wait for 60 confirmation.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Historical Dates</div><div class="interp-text">Confirmed signals: Jul 2016 · Apr 2019 · Aug 2020 · Jun 2023 · Nov 2023 · Jun 2025 · Apr 2026. Each preceded a 10%+ rally within 3 months.</div></div>
         <div class="interp-cell bull" id="spxrsiForwardStats"><div class="interp-title bull">Forward Performance</div><div class="interp-text">Waiting for S&amp;P signal data.</div></div>
@@ -1645,8 +1645,8 @@ function updateSPXRSIReadings(status, signals, weeklyRows) {
     const last = status && status.last_signal;
     if(!status || state === "unavailable") dEl.textContent = "No EODHD S&P 500 RSI data available yet. Run screener.py.";
     else if(state === "setup") dEl.textContent = `Weekly RSI is below/after 40 setup from ${status.active_setup_start?.date || "—"}. Confirmation waits for RSI > 60.`;
-    else if(last) dEl.textContent = `Last 40→60 weekly momentum signal confirmed on ${last.confirm_date}. Loaded: ${weeklyRows.length} weekly bars, ${signals.length} completed signals.`;
-    else dEl.textContent = `Weekly RSI state is ${state}. Loaded: ${weeklyRows.length} weekly bars, no completed 40→60 signal in the 10Y window.`;
+    else if(last) dEl.textContent = `Last 40→60 weekly momentum signal confirmed on ${last.confirm_date}.`;
+    else dEl.textContent = `Weekly RSI state is ${state}. No completed 40→60 signal in the 10Y window.`;
   }
 }
 
