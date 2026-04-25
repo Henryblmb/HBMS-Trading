@@ -305,6 +305,69 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 .heat-cell{border-color:rgba(255,255,255,.04)!important}.cg-chart-legend,.spx-strip-label{color:#555!important}
 ::-webkit-scrollbar-track{background:var(--bg)!important}::-webkit-scrollbar-thumb{background:#2a2a2a!important}::-webkit-scrollbar-thumb:hover{background:#444!important}
 
+
+/* ── SIGNAL COLOR RESTORE: muted greens/reds/amber like the reference screen ── */
+:root{
+  --sig-green:#4aa884;
+  --sig-green-dim:#2f765f;
+  --sig-green-bg:#0c211b;
+  --sig-red:#c66363;
+  --sig-red-dim:#8f4646;
+  --sig-red-bg:#251111;
+  --sig-amber:#c58a3a;
+  --sig-amber-bg:#24190b;
+  --sig-blue:#6f9bc4;
+  --sig-blue-bg:#0d1a26;
+}
+.pos,
+.chg.pos,
+.heat-chg.pos,
+.sec-perf-row .pos,
+.price-row .pos,
+[style*="color:#1D9E75"],
+[style*="color: #1D9E75"],
+[style*="color:#5DCAA5"],
+[style*="color: #5DCAA5"]{color:var(--sig-green)!important}
+.neg,
+.chg.neg,
+.heat-chg.neg,
+.sec-perf-row .neg,
+.price-row .neg,
+[style*="color:#e05050"],
+[style*="color: #e05050"],
+[style*="color:#aa1a1a"],
+[style*="color: #aa1a1a"],
+[style*="color:#f09595"],
+[style*="color: #f09595"]{color:var(--sig-red)!important}
+.gp-label,
+[style*="color:#EF9F27"],
+[style*="color: #EF9F27"],
+[style*="color:#facc15"],
+[style*="color: #facc15"]{color:var(--sig-amber)!important}
+[style*="color:#60a5fa"],
+[style*="color: #60a5fa"],
+[style*="color:#a78bfa"],
+[style*="color: #a78bfa"]{color:var(--sig-blue)!important}
+.tf-chip.ok{color:var(--sig-green)!important;border-color:#285f4d!important;background:var(--sig-green-bg)!important}
+.tf-chip.warn{color:var(--sig-amber)!important;border-color:#5a3b16!important;background:var(--sig-amber-bg)!important}
+.mom-signal.bull,.regime-bull,.rrg-chip.leading,.sig-52w{color:var(--sig-green)!important;background:var(--sig-green-bg)!important;border-color:#285f4d!important}
+.mom-signal.bear,.regime-bear,.rrg-chip.lagging{color:var(--sig-red)!important;background:var(--sig-red-bg)!important;border-color:#5a2525!important}
+.mom-signal.warn,.regime-neut,.rrg-chip.weakening{color:var(--sig-amber)!important;background:var(--sig-amber-bg)!important;border-color:#5a3b16!important}
+.rrg-chip.improving,.sig-ytd{color:var(--sig-blue)!important;background:var(--sig-blue-bg)!important;border-color:#2b4962!important}
+.regime-signal-badge.regime-bull{color:var(--sig-green)!important;background:var(--sig-green-bg)!important;border-color:#285f4d!important}
+.regime-signal-badge.regime-bear{color:var(--sig-red)!important;background:var(--sig-red-bg)!important;border-color:#5a2525!important}
+.regime-signal-badge.regime-neut{color:var(--sig-amber)!important;background:var(--sig-amber-bg)!important;border-color:#5a3b16!important}
+.interp-cell.bull{background:linear-gradient(90deg,rgba(74,168,132,.10),var(--surface) 36%)!important;border-left-color:var(--sig-green)!important}
+.interp-cell.bear{background:linear-gradient(90deg,rgba(198,99,99,.10),var(--surface) 36%)!important;border-left-color:var(--sig-red)!important}
+.interp-cell.neut{background:linear-gradient(90deg,rgba(197,138,58,.10),var(--surface) 36%)!important;border-left-color:var(--sig-amber)!important}
+.interp-cell.info{background:linear-gradient(90deg,rgba(111,155,196,.10),var(--surface) 36%)!important;border-left-color:var(--sig-blue)!important}
+.interp-title.bull{color:var(--sig-green)!important}.interp-title.bear{color:var(--sig-red)!important}.interp-title.neut{color:var(--sig-amber)!important}.interp-title.info{color:var(--sig-blue)!important}
+#tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:first-child{background:var(--sig-green-bg)!important;border-color:#285f4d!important}
+#tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:nth-child(2){background:var(--sig-red-bg)!important;border-color:#5a2525!important}
+.score-card.bull-strong,.score-card.bull-med{border-left-color:var(--sig-green)!important}.score-card.bear-strong,.score-card.bear-med{border-left-color:var(--sig-red)!important}
+.mom-card{border-left-color:var(--sig-green-dim)!important}
+.fib-pocket{background:rgba(197,138,58,.12)!important;border-color:var(--sig-amber)!important}.fib-marker{background:var(--sig-amber)!important}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:#0a0a0a}
 ::-webkit-scrollbar-thumb{background:#1e1e1e}
