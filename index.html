@@ -701,7 +701,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <span class="cg-chart-title">S&amp;P 500 (SPY) + HYG — dual axis overlay, same 1Y window</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#4fb28a"></span>SPY main price</span>
-            <span><span class="cg-leg-line" style="background:rgba(216,216,216,.45)"></span>HYG adjusted close</span>
+            <span><span class="cg-leg-line" style="background:rgba(216,216,216,.45)"></span>HYG total return</span>
             <span id="hygSpxChg" style="color:#1D9E75">—</span>
           </div>
         </div>
@@ -1269,7 +1269,7 @@ function drawSPYHYGCompare(canvasId, chgId) {
   ctx.fillStyle = spyCol; ctx.fill();
 
   ctx.fillStyle = "#666"; ctx.font = "9px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("HYG adjusted close uses left axis · SPY real price uses right axis", PAD.left, PAD.top + 10);
+  ctx.fillText("HYG total return uses left axis · SPY real price uses right axis", PAD.left, PAD.top + 10);
   ctx.fillStyle = "rgba(216,216,216,.58)"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
   [hygLo, (hygLo + hygHi) / 2, hygHi].forEach(v => ctx.fillText(v.toFixed(1), PAD.left - 5, toHygY(v) + 3));
   ctx.fillStyle = spyCol; ctx.textAlign = "left";
@@ -1287,7 +1287,7 @@ function drawSPYHYGCompare(canvasId, chgId) {
   if(chgId) {
     const el = document.getElementById(chgId);
     if(el) {
-      el.textContent = `SPY ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}% · HYG adj ${hygPct >= 0 ? "+" : ""}${hygPct.toFixed(1)}%`;
+      el.textContent = `SPY ${spyPct >= 0 ? "+" : ""}${spyPct.toFixed(1)}% · HYG TR ${hygPct >= 0 ? "+" : ""}${hygPct.toFixed(1)}%`;
       el.style.color = spyPct >= 0 ? "#1D9E75" : "#e05050";
     }
   }
