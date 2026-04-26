@@ -1781,14 +1781,6 @@ function drawVIXSDBars(canvasId, rows, h=230) {
     }
   });
 
-  const sy = toY(signalSD);
-  ctx.strokeStyle = "rgba(239,159,39,.58)";
-  ctx.setLineDash([5, 5]); ctx.lineWidth = 1.1;
-  ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(PAD.left + PW, sy); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = "#EF9F27"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("VIX 35 Signal", PAD.left + PW + 4, sy + 3);
-
   const barW = Math.max(1, PW / rows.length - .35);
   rows.forEach((r, i) => {
     const sd = Math.max(vMin, Math.min(vMax, +r.sd_clamped));
