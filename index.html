@@ -997,43 +997,46 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-oil">
       <div class="cg-header">
         <div class="cg-title">Oil Term Structure — Contango / Backwardation</div>
-        <div class="cg-sub">WTI front month (CL1!) vs. 2nd month (CL2!) spread. Negative = backwardation (supply shortage, bullish oil). Positive = contango (oversupply). Critical for CADJPY and CAD pairs — Canada is a major oil exporter, Japan imports 95% of oil.</div>
-        <div class="cg-pill active-bear" id="oilPill"><span class="cg-dot"></span>BACKWARDATION — SUPPLY SHORTAGE</div>
+        <div class="cg-sub">WTI crude oil history with S&amp;P 500 overlay, plus the available 10-year oil spread series from EODHD. Positive spread = WTI premium, negative spread = Brent premium. Critical for CADJPY and CAD pairs — Canada is a major oil exporter, Japan imports 95% of oil.</div>
+        <div class="cg-pill active-neut" id="oilPill"><span class="cg-dot"></span>LOADING OIL SPREAD</div>
       </div>
 
       <div class="signal-bar">
         <div>
-          <div class="signal-bar-label">WTI Spot (CL1!)</div>
-          <div class="signal-bar-val" id="oilSpotVal" style="color:#EF9F27">$96.20</div>
+          <div class="signal-bar-label">WTI Crude</div>
+          <div class="signal-bar-val" id="oilSpotVal" style="color:#EF9F27">—</div>
         </div>
         <div class="signal-bar-divider"></div>
         <div>
-          <div class="signal-bar-label">CL2! Spread</div>
-          <div class="signal-bar-val" id="oilSpreadVal" style="color:#e05050">−$1.42</div>
+          <div class="signal-bar-label">WTI − Brent</div>
+          <div class="signal-bar-val" id="oilSpreadVal" style="color:#e05050">—</div>
         </div>
         <div class="signal-bar-divider"></div>
         <div>
           <div class="signal-bar-label">Regime</div>
-          <div class="signal-bar-val" style="font-size:13px;color:#e05050;padding-top:5px">BACKWARDATION</div>
+          <div class="signal-bar-val" id="oilRegimeVal" style="font-size:13px;color:#e05050;padding-top:5px">—</div>
         </div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">Hormuz Strait closure (Feb 28) created extreme backwardation. EIA forecasts Brent peak $115/b Q2 2026. Each $10 WTI move ≈ 200 pips CADJPY.</div>
+        <div class="signal-bar-desc">10-year daily data loads from EODHD commodities. CL1/CL2 historical term-structure is not available from the current keys, so this page uses WTI price plus WTI-Brent spread.</div>
       </div>
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">WTI Crude — Price History (CL1!)</span>
-          <div class="cg-chart-legend"><span><span class="cg-leg-line" style="background:#EF9F27"></span>WTI Close</span></div>
+          <span class="cg-chart-title">WTI Crude + S&amp;P 500 — 10Y Daily</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>WTI</span>
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+          </div>
         </div>
         <canvas id="oilPriceCanvas" style="width:100%;display:block"></canvas>
       </div>
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">CL1! − CL2! Spread — Term Structure</span>
+          <span class="cg-chart-title">WTI − Brent Spread — 10Y Daily</span>
           <div class="cg-chart-legend">
-            <span style="color:#e05050">Negative = Backwardation</span>
-            <span style="color:#1D9E75">Positive = Contango</span>
+            <span style="color:#e05050">Negative = Brent Premium</span>
+            <span style="color:#1D9E75">Positive = WTI Premium</span>
           </div>
         </div>
         <canvas id="oilSpreadCanvas" style="width:100%;display:block"></canvas>
@@ -1112,7 +1115,7 @@ function showTab(id, el) {
   if(id === "cg-ndbthrust") setTimeout(() => drawNDBThrust(), 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
-  if(id === "cg-oil") setTimeout(() => { drawPlaceholderChart("oilPriceCanvas",200,"WTI","#050505"); drawOilSpreadPlaceholder(); }, 60);
+  if(id === "cg-oil") setTimeout(drawOilCharts, 60);
 }
 
 // ═══════════════════════════════════════════════
@@ -2019,17 +2022,54 @@ function updateBT20Signal() {
   document.getElementById("bt20Val").textContent = pct.toFixed(1)+"%";
 }
 
-function drawOilSpreadPlaceholder() {
-  const c = mkCanvas("oilSpreadCanvas", 150); if(!c) return;
+function drawOilPriceChart(rows) {
+  const c = mkCanvas("oilPriceCanvas", 240); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 14, right: 60, bottom: 26, left: 42 };
+  const PAD = { top: 14, right: 54, bottom: 28, left: 46 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#0d0d0d"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  if(!rows || rows.length < 50) {
+    ctx.fillStyle="rgba(255,255,255,.08)";ctx.font="10px sans-serif";ctx.textAlign="center";
+    ctx.fillText("Oil history unavailable - run screener.py",W/2,H/2);return;
+  }
+  const valid = rows.filter(r=>Number.isFinite(+r.wti));
+  const wtiVals = valid.map(r=>+r.wti);
+  const spVals = valid.map(r=>+r.sp500).filter(Number.isFinite);
+  const minW = Math.min(...wtiVals)*.96, maxW = Math.max(...wtiVals)*1.04;
+  const minS = spVals.length ? Math.min(...spVals)*.996 : 0, maxS = spVals.length ? Math.max(...spVals)*1.004 : 1;
+  const toX=i=>PAD.left+(i/(valid.length-1))*PW;
+  const toYW=v=>PAD.top+PH-((v-minW)/(maxW-minW||1))*PH;
+  const toYS=v=>PAD.top+PH-((v-minS)/(maxS-minS||1))*PH;
+  ctx.setLineDash([2,4]);ctx.strokeStyle="rgba(255,255,255,.04)";
+  [minW,(minW+maxW)/2,maxW].forEach(v=>{const y=toYW(v);ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+PW,y);ctx.stroke();});
+  ctx.setLineDash([]);
+  if(spVals.length){
+    ctx.beginPath();let started=false;
+    valid.forEach((r,i)=>{const v=+r.sp500;if(!Number.isFinite(v))return;const x=toX(i),y=toYS(v);if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);});
+    ctx.strokeStyle="rgba(216,216,216,.72)";ctx.lineWidth=1.6;ctx.stroke();
+  }
+  ctx.beginPath();valid.forEach((r,i)=>i===0?ctx.moveTo(toX(i),toYW(+r.wti)):ctx.lineTo(toX(i),toYW(+r.wti)));
+  ctx.strokeStyle="#EF9F27";ctx.lineWidth=1.9;ctx.lineJoin="round";ctx.stroke();
+  ctx.fillStyle="#EF9F27";ctx.font="bold 8px sans-serif";ctx.textAlign="left";ctx.fillText("WTI",PAD.left+PW+5,toYW(wtiVals[wtiVals.length-1])+3);
+  if(spVals.length){ctx.fillStyle="#d8d8d8";ctx.fillText("S&P",PAD.left+PW+5,toYS(valid[valid.length-1].sp500)+3);}
+  ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
+  [minW,(minW+maxW)/2,maxW].forEach(v=>ctx.fillText("$"+Math.round(v),PAD.left-5,toYW(v)+3));
+  ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].map(p=>Math.round((valid.length-1)*p)).forEach(i=>{const r=valid[i];if(!r)return;const d=new Date(r.date+"T12:00:00");ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+14);});
+}
 
-  const N=180;
-  const data=Array.from({length:N},(_,i)=>{const t=i/N;return -0.8+1.2*Math.sin(t*Math.PI*6)+0.5*Math.cos(t*Math.PI*14);});
-  const vMin=Math.min(...data)*1.15,vMax=Math.max(...data)*1.15;
-  const toX=i=>PAD.left+(i/(N-1))*PW;
+function drawOilSpreadChart(rows) {
+  const c = mkCanvas("oilSpreadCanvas", 190); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 68, bottom: 28, left: 46 };
+  const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  const valid=(rows||[]).filter(r=>Number.isFinite(+r.wti_brent_spread));
+  if(valid.length<50){ctx.fillStyle="rgba(255,255,255,.08)";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("Oil spread unavailable - run screener.py",W/2,H/2);return;}
+  const data=valid.map(r=>+r.wti_brent_spread);
+  const abs=Math.max(1,...data.map(v=>Math.abs(v)));
+  const vMin=-abs*1.08,vMax=abs*1.08;
+  const toX=i=>PAD.left+(i/(valid.length-1))*PW;
   const toY=v=>PAD.top+PH-((v-vMin)/(vMax-vMin))*PH;
   const z=toY(0);
 
@@ -2039,14 +2079,46 @@ function drawOilSpreadPlaceholder() {
   ctx.beginPath();ctx.moveTo(PAD.left,z);ctx.lineTo(PAD.left+PW,z);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle="#444";ctx.font="8px sans-serif";ctx.textAlign="right";ctx.fillText("0",PAD.left-4,z+3);
 
-  const bw=Math.max(1,PW/N-0.3);
+  const bw=Math.max(1,PW/valid.length-0.4);
   data.forEach((v,i)=>{const x=toX(i),y=toY(v);ctx.fillStyle=v>=0?"rgba(29,158,117,0.7)":"rgba(212,80,80,0.7)";
     if(v>=0)ctx.fillRect(x-bw/2,y,bw,z-y);else ctx.fillRect(x-bw/2,z,bw,y-z);});
 
-  [["Contango","#1D9E75",vMax*0.7],["Backwardation","#e05050",vMin*0.7]].forEach(([lbl,col,v])=>{
+  [["WTI Premium","#1D9E75",vMax*0.7],["Brent Premium","#e05050",vMin*0.7]].forEach(([lbl,col,v])=>{
     ctx.fillStyle=col;ctx.font="8px sans-serif";ctx.textAlign="left";ctx.fillText(lbl,PAD.left+PW+3,toY(v)+3);});
-  ctx.fillStyle="rgba(255,255,255,0.04)";ctx.font="10px sans-serif";ctx.textAlign="center";
-  ctx.fillText("— Live futures spread loads with API integration —",W/2,H/2);
+  ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
+  [Math.round(vMin),0,Math.round(vMax)].forEach(v=>ctx.fillText(v,PAD.left-5,toY(v)+3));
+  ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].map(p=>Math.round((valid.length-1)*p)).forEach(i=>{const r=valid[i];if(!r)return;const d=new Date(r.date+"T12:00:00");ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+14);});
+}
+
+function drawOilCharts() {
+  const md = window._marketData || {};
+  const rows = Array.isArray(md.oil_history) ? md.oil_history.filter(r=>r && r.date >= "2016-01-01") : [];
+  drawOilPriceChart(rows);
+  drawOilSpreadChart(rows);
+  updateOilReadings();
+}
+
+function updateOilReadings() {
+  const md = window._marketData || {};
+  const st = md.oil_status || {};
+  const wti = st.current_wti, spread = st.current_spread;
+  const spotEl = document.getElementById("oilSpotVal");
+  const spreadEl = document.getElementById("oilSpreadVal");
+  const regimeEl = document.getElementById("oilRegimeVal");
+  const pill = document.getElementById("oilPill");
+  if(spotEl && wti != null) spotEl.textContent = "$" + (+wti).toFixed(2);
+  if(spreadEl && spread != null) {
+    spreadEl.textContent = (spread >= 0 ? "+" : "") + "$" + (+spread).toFixed(2);
+    spreadEl.style.color = spread >= 0 ? "#1D9E75" : "#e05050";
+  }
+  const label = spread == null ? "—" : spread >= 0 ? "WTI PREMIUM" : "BRENT PREMIUM";
+  const col = spread == null ? "#888" : spread >= 0 ? "#1D9E75" : "#e05050";
+  if(regimeEl){regimeEl.textContent = label; regimeEl.style.color = col;}
+  if(pill && spread != null){
+    pill.className = spread >= 0 ? "cg-pill active-bull" : "cg-pill active-bear";
+    pill.innerHTML = `<span class="cg-dot"></span>${label}`;
+  }
 }
 
 function mirrorVIXCharts() {
