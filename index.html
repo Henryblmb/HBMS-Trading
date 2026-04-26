@@ -1292,7 +1292,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-goldsilver">
       <div class="cg-header">
         <div class="cg-title">Gold/Silver Ratio — Long-Term Deviation Model</div>
-        <div class="cg-sub">Weekly Gold/Silver ratio against rolling or static mean and ±1σ / ±2σ bands. Rolling mode uses a 156-week window and is the default because the ratio has structural drift.</div>
+        <div class="cg-sub">Weekly Gold/Silver ratio against rolling or static mean and ±1σ / ±2σ / ±3σ bands. Rolling mode uses a 156-week window and is the default because the ratio has structural drift.</div>
       </div>
 
       <div class="filter-row" style="margin-bottom:.9rem">
@@ -1318,15 +1318,16 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
             <span><span class="cg-leg-line" style="background:#EF9F27"></span>Mean</span>
             <span style="color:#5DCAA5">±1σ</span>
             <span style="color:#e05050">±2σ</span>
+            <span style="color:#a855f7">±3σ</span>
           </div>
         </div>
         <canvas id="goldSilverCanvas" style="width:100%;display:block"></canvas>
       </div>
 
       <div class="interp-grid">
-        <div class="interp-cell bear"><div class="interp-title bear">High Ratio</div><div class="interp-text">Above +1σ / +2σ means gold is stretched versus silver. Extreme high readings often appear during defensive or liquidity-stress regimes.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Low Ratio</div><div class="interp-text">Below −1σ / −2σ means silver is stretched versus gold. Extreme low readings often appear during cyclical silver outperformance.</div></div>
-        <div class="interp-cell neut"><div class="interp-title neut">Mean Reversion Map</div><div class="interp-text">The mean is the long-run anchor. ±2σ markers show statistically rare relative-value zones rather than trend crossovers.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">High Ratio</div><div class="interp-text">Above +1σ / +2σ means gold is stretched versus silver. +3σ marks an extreme defensive relative-value zone.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Low Ratio</div><div class="interp-text">Below −1σ / −2σ means silver is stretched versus gold. −3σ marks an extreme cyclical silver outperformance zone.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Mean Reversion Map</div><div class="interp-text">The mean is the anchor. ±2σ and ±3σ markers show statistically rare relative-value zones rather than trend crossovers.</div></div>
       </div>
     </div>
 
@@ -3425,14 +3426,16 @@ function drawGoldSilverRatio() {
   const regimeEl = document.getElementById("gsRegimeVal");
   const descEl = document.getElementById("gsDesc");
   const zoneMap = {
+    plus3_extreme: ["+3σ EXTREME", "#a855f7"],
     plus2_extreme: ["+2σ EXTREME", "#e05050"],
     plus1_high: ["+1σ HIGH", "#EF9F27"],
     mean_zone: ["MEAN ZONE", "#d8d8d8"],
     minus1_low: ["−1σ LOW", "#5DCAA5"],
     minus2_extreme: ["−2σ EXTREME", "#1D9E75"],
+    minus3_extreme: ["−3σ EXTREME", "#a855f7"],
     unavailable: ["—", "#777"],
   };
-  const statusForZ = z => !Number.isFinite(z) ? "unavailable" : z >= 2 ? "plus2_extreme" : z >= 1 ? "plus1_high" : z <= -2 ? "minus2_extreme" : z <= -1 ? "minus1_low" : "mean_zone";
+  const statusForZ = z => !Number.isFinite(z) ? "unavailable" : z >= 3 ? "plus3_extreme" : z >= 2 ? "plus2_extreme" : z >= 1 ? "plus1_high" : z <= -3 ? "minus3_extreme" : z <= -2 ? "minus2_extreme" : z <= -1 ? "minus1_low" : "mean_zone";
   const ratioValues = rows.map(r => +r.ratio).filter(Number.isFinite);
   const avg = vals => vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : NaN;
   const std = vals => {
@@ -3441,19 +3444,20 @@ function drawGoldSilverRatio() {
     return Math.sqrt(vals.reduce((a,b)=>a+Math.pow(b-m,2),0) / (vals.length - 1));
   };
   const rollingWindow = +(st.rolling_window || 156);
+  const rollingMinObs = rollingWindow;
   const staticMean = Number.isFinite(+st.static_mean) ? +st.static_mean : Number.isFinite(+st.mean) ? +st.mean : avg(ratioValues);
   const staticSigma = Number.isFinite(+st.static_sigma) ? +st.static_sigma : Number.isFinite(+st.sigma) ? +st.sigma : std(ratioValues);
   const rollingCache = new Map();
   rows.forEach((r,i)=>{
     const suppliedMean = +r.rolling_mean;
     const suppliedSigma = +r.rolling_sigma;
-    if(Number.isFinite(suppliedMean) && Number.isFinite(suppliedSigma)) {
+    if(i >= rollingMinObs - 1 && Number.isFinite(suppliedMean) && Number.isFinite(suppliedSigma)) {
       rollingCache.set(i, { mean: suppliedMean, sigma: suppliedSigma });
       return;
     }
     const start = Math.max(0, i - rollingWindow + 1);
     const sample = rows.slice(start, i + 1).map(x => +x.ratio).filter(Number.isFinite);
-    rollingCache.set(i, { mean: sample.length >= 26 ? avg(sample) : NaN, sigma: sample.length >= 26 ? std(sample) : NaN });
+    rollingCache.set(i, { mean: sample.length >= rollingMinObs ? avg(sample) : NaN, sigma: sample.length >= rollingMinObs ? std(sample) : NaN });
   });
   const getStats = r => {
     const ratio = +r.ratio;
@@ -3461,7 +3465,7 @@ function drawGoldSilverRatio() {
     const mean = isRolling ? roll?.mean : staticMean;
     const sigma = isRolling ? roll?.sigma : staticSigma;
     const z = Number.isFinite(mean) && Number.isFinite(sigma) && sigma ? (ratio - mean) / sigma : NaN;
-    return { ratio, mean, sigma, z, status: statusForZ(z), signal: z >= 2 ? "plus2" : z <= -2 ? "minus2" : null };
+    return { ratio, mean, sigma, z, status: statusForZ(z), signal: z >= 3 ? "plus3" : z >= 2 ? "plus2" : z <= -3 ? "minus3" : z <= -2 ? "minus2" : null };
   };
   rows.forEach((r,i)=>{ r._idx = i; });
   const lastRow = rows[rows.length - 1] || null;
@@ -3470,14 +3474,18 @@ function drawGoldSilverRatio() {
   if(zEl) {
     if(Number.isFinite(lastStats.z)) {
       zEl.textContent = (lastStats.z >= 0 ? "+" : "") + lastStats.z.toFixed(2) + "σ";
-      zEl.style.color = lastStats.z >= 2 ? "#e05050" : lastStats.z >= 1 ? "#EF9F27" : lastStats.z <= -2 ? "#1D9E75" : lastStats.z <= -1 ? "#5DCAA5" : "#d8d8d8";
+      zEl.style.color = Math.abs(lastStats.z) >= 3 ? "#a855f7" : lastStats.z >= 2 ? "#e05050" : lastStats.z >= 1 ? "#EF9F27" : lastStats.z <= -2 ? "#1D9E75" : lastStats.z <= -1 ? "#5DCAA5" : "#d8d8d8";
     } else zEl.textContent = "—";
   }
   const [zoneTxt, zoneCol] = zoneMap[lastStats.status] || zoneMap.unavailable;
   if(regimeEl){ regimeEl.textContent = zoneTxt; regimeEl.style.color = zoneCol; }
   if(descEl && rows.length) {
     const win = isRolling ? `${rollingWindow}W rolling` : "full-history static";
-    descEl.textContent = `${rows[0].date.slice(0,4)} to ${rows[rows.length-1].date.slice(0,7)} · ${rows.length} weekly observations · ${win} · Mean ${Number.isFinite(lastStats.mean) ? lastStats.mean.toFixed(1) : "—"} · σ ${Number.isFinite(lastStats.sigma) ? lastStats.sigma.toFixed(1) : "—"}`;
+    const firstBand = isRolling ? (rows.find((_, i) => {
+      const r = rollingCache.get(i);
+      return r && Number.isFinite(r.mean) && Number.isFinite(r.sigma);
+    })?.date?.slice(0,7)) : rows[0]?.date?.slice(0,7);
+    descEl.textContent = `${firstBand || rows[0].date.slice(0,4)} to ${rows[rows.length-1].date.slice(0,7)} · ${rows.length} weekly observations · ${win} · Mean ${Number.isFinite(lastStats.mean) ? lastStats.mean.toFixed(1) : "—"} · σ ${Number.isFinite(lastStats.sigma) ? lastStats.sigma.toFixed(1) : "—"}`;
   }
 
   const c = mkCanvas("goldSilverCanvas", 360); if(!c) return;
@@ -3492,7 +3500,7 @@ function drawGoldSilverRatio() {
   }
   const statsRows = rows.map((r,i) => ({ ...getStats(r), i, date:r.date })).filter(r => Number.isFinite(r.ratio));
   const bandRows = statsRows.filter(r => Number.isFinite(r.mean) && Number.isFinite(r.sigma));
-  const vals = statsRows.map(r => r.ratio).concat(bandRows.flatMap(r => [r.mean + 2*r.sigma, r.mean - 2*r.sigma]));
+  const vals = statsRows.map(r => r.ratio).concat(bandRows.flatMap(r => [r.mean + 3*r.sigma, r.mean - 3*r.sigma]));
   const minV = Math.min(...vals) * .96, maxV = Math.max(...vals) * 1.04;
   const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
   const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
@@ -3508,22 +3516,24 @@ function drawGoldSilverRatio() {
   ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)"; ctx.lineWidth=1;
   for(let i=0;i<=5;i++){ const y=PAD.top + i/5*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
   ctx.setLineDash([]);
+  drawSeries(r => r.mean + 3*r.sigma, "#a855f7", 1, [2,4], .82);
   drawSeries(r => r.mean + 2*r.sigma, "#e05050", 1, [6,4], .78);
   drawSeries(r => r.mean + r.sigma, "#EF9F27", 1, [4,4], .7);
   drawSeries(r => r.mean, "#d8d8d8", 1.25, [], .72);
   drawSeries(r => r.mean - r.sigma, "#5DCAA5", 1, [4,4], .7);
   drawSeries(r => r.mean - 2*r.sigma, "#1D9E75", 1, [6,4], .78);
+  drawSeries(r => r.mean - 3*r.sigma, "#a855f7", 1, [2,4], .82);
   drawSeries(r => r.ratio, "rgba(216,216,216,.80)", 1.6, [], 1);
   statsRows.forEach(r=>{
     if(!r.signal) return;
     const x=toX(r.i), y=toY(r.ratio);
-    const col = r.signal === "plus2" ? "#e05050" : "#1D9E75";
+    const col = r.signal === "plus3" || r.signal === "minus3" ? "#a855f7" : r.signal === "plus2" ? "#e05050" : "#1D9E75";
     ctx.beginPath(); ctx.arc(x,y,3.4,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
     ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
   });
   if(bandRows.length) {
     const last = bandRows[bandRows.length-1];
-    [["+2σ", last.mean + 2*last.sigma, "#e05050"], ["+1σ", last.mean + last.sigma, "#EF9F27"], ["Mean", last.mean, "#d8d8d8"], ["−1σ", last.mean - last.sigma, "#5DCAA5"], ["−2σ", last.mean - 2*last.sigma, "#1D9E75"]].forEach(([lbl,v,col])=>{
+    [["+3σ", last.mean + 3*last.sigma, "#a855f7"], ["+2σ", last.mean + 2*last.sigma, "#e05050"], ["+1σ", last.mean + last.sigma, "#EF9F27"], ["Mean", last.mean, "#d8d8d8"], ["−1σ", last.mean - last.sigma, "#5DCAA5"], ["−2σ", last.mean - 2*last.sigma, "#1D9E75"], ["−3σ", last.mean - 3*last.sigma, "#a855f7"]].forEach(([lbl,v,col])=>{
       ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, toY(v)+3);
     });
   }
