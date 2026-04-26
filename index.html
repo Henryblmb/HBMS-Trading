@@ -1631,9 +1631,9 @@ function drawSPXRSIReversal() {
   const dailyZones = signalZonesForDaily(daily, signals, status);
   const weeklyZones = signalZonesForWeekly(weeklyRows, signals, status);
   const rsi = weeklyRows.map(d => d.rsi == null ? null : +d.rsi);
-  drawHistoryLine("spxrsiPriceCanvas", daily, 240, "S&P 500 Daily", "#d8d8d8", dailyZones);
+  drawHistoryLineLog("spxrsiPriceCanvas", daily, 240, "S&P 500 Daily", "#d8d8d8", dailyZones);
   drawRSIChart("spxrsiRSICanvas", weeklyRows, rsi, 170, weeklyZones);
-  drawSPXSignalDots("spxrsiPriceCanvas", daily, signals, "price");
+  drawSPXSignalDots("spxrsiPriceCanvas", daily, signals, "price", true);
   drawSPXSignalDots("spxrsiRSICanvas", weeklyRows, signals, "rsi");
   updateSPXRSIReadings(status, signals, weeklyRows);
   updateSPXForwardStats(daily, signals);
@@ -1645,7 +1645,7 @@ function firstIndexOnOrAfter(rows, date) {
   return idx < 0 ? rows.length - 1 : idx;
 }
 
-function drawSPXSignalDots(canvasId, rows, signals, mode) {
+function drawSPXSignalDots(canvasId, rows, signals, mode, logScale=false) {
   if(!rows || rows.length < 2 || !signals || !signals.length) return;
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
@@ -1670,6 +1670,14 @@ function drawSPXSignalDots(canvasId, rows, signals, mode) {
   if(isRSI) {
     const RSI_MIN = 20, RSI_MAX = 80;
     toY = v => PAD.top + PH - ((Math.min(Math.max(v, RSI_MIN), RSI_MAX) - RSI_MIN) / (RSI_MAX - RSI_MIN)) * PH;
+  } else if(logScale) {
+    const values = valid.map(p => p.value).filter(v => v > 0);
+    if(values.length < 2) return;
+    const logs = values.map(v => Math.log(v));
+    const vMin = Math.min(...logs) * .998;
+    const vMax = Math.max(...logs) * 1.002;
+    const span = vMax - vMin || 1;
+    toY = v => PAD.top + PH - ((Math.log(v) - vMin) / span) * PH;
   } else {
     const values = valid.map(p => p.value);
     const vMin = Math.min(...values) * .996;
@@ -2088,7 +2096,7 @@ function drawNDBThrust() {
   [vMin,(vMin+vMax)/2,vMax].forEach(v=>ctx.fillText("$"+Math.round(v),PAD.left-4,toY(v)+3));
 }
 
-function drawBT20SignalDots(canvasId, rows, signals, valueKey, fixedScale=false) {
+function drawBT20SignalDots(canvasId, rows, signals, valueKey, fixedScale=false, logScale=false) {
   if(!rows || rows.length < 2 || !signals || !signals.length) return;
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
@@ -2101,10 +2109,21 @@ function drawBT20SignalDots(canvasId, rows, signals, valueKey, fixedScale=false)
   if(values.length < 2) return;
   const n = rows.length;
   const toX = i => PAD.left + (i / Math.max(n - 1, 1)) * PW;
-  const minV = fixedScale ? 0 : Math.min(...values) * .996;
-  const maxV = fixedScale ? 100 : Math.max(...values) * 1.004;
-  const span = maxV - minV || 1;
-  const toY = v => PAD.top + PH - ((v - minV) / span) * PH;
+  let toY;
+  if(logScale && !fixedScale) {
+    const positive = values.filter(v => v > 0);
+    if(positive.length < 2) return;
+    const logs = positive.map(v => Math.log(v));
+    const minV = Math.min(...logs) * .998;
+    const maxV = Math.max(...logs) * 1.002;
+    const span = maxV - minV || 1;
+    toY = v => PAD.top + PH - ((Math.log(v) - minV) / span) * PH;
+  } else {
+    const minV = fixedScale ? 0 : Math.min(...values) * .996;
+    const maxV = fixedScale ? 100 : Math.max(...values) * 1.004;
+    const span = maxV - minV || 1;
+    toY = v => PAD.top + PH - ((v - minV) / span) * PH;
+  }
   signals.forEach(sig => {
     const idx = firstIndexOnOrAfter(rows, sig.confirm_date);
     const row = rows[idx];
@@ -2161,8 +2180,8 @@ function drawBT20Chart() {
   const breadthRows = Array.isArray(md.bt20_history) ? md.bt20_history.filter(d => d && d.date >= "2016-01-01") : [];
   const signals = Array.isArray(md.bt20_signals) ? md.bt20_signals : [];
   if(priceRows.length > 100) {
-    drawHistoryLine("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", []);
-    drawBT20SignalDots("bt20PriceCanvas", priceRows, signals, "close", false);
+    drawHistoryLineLog("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", []);
+    drawBT20SignalDots("bt20PriceCanvas", priceRows, signals, "close", false, true);
   } else {
     emptyCanvas("bt20PriceCanvas", 240, "S&P 500 10Y history unavailable - run screener.py");
   }
@@ -2218,7 +2237,7 @@ function drawBT50Chart() {
   const signals = Array.isArray(md.bt50_signals) ? md.bt50_signals : [];
   if(priceRows.length > 100) {
     drawHistoryLineLog("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", []);
-    drawBT20SignalDots("bt50PriceCanvas", priceRows, signals, "close", false);
+    drawBT20SignalDots("bt50PriceCanvas", priceRows, signals, "close", false, true);
   } else {
     emptyCanvas("bt50PriceCanvas", 260, "S&P 500 20Y weekly history unavailable - run screener.py");
   }
