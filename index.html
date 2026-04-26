@@ -732,8 +732,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <!-- SPX RSI REVERSAL -->
     <div class="panel cg-page" id="tab-cg-spxrsi">
       <div class="cg-header">
-        <div class="cg-title">SPX RSI — Momentum Signal</div>
-        <div class="cg-sub">Weekly RSI 40 - 60 on the S&amp;P 500. When weekly RSI drops below 40 and later confirms above 60.</div>
+        <div class="cg-title">SPX RSI Reversal — Momentum Signal</div>
+        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using EODHD 10-year history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
         <div class="cg-pill active-bull" id="spxrsiPill"><span class="cg-dot"></span>LOADING WEEKLY SIGNAL</div>
       </div>
 
@@ -778,7 +778,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="interp-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Signal Confirmed</div><div class="interp-text">RSI crossed below 40 then recovered above 60. 100% historical track record since 2016 when confirmed by price action holding above the signal low.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Setup Phase — RSI &lt; 40</div><div class="interp-text">RSI oversold. Watch for recovery above 40 as first sign of momentum shift. Don't front-run — wait for 60 confirmation.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Historical Dates</div><div class="interp-text">Confirmed signals: Jul 2016 · Apr 2019 · Aug 2020 · Jun 2023 · Nov 2023 · Jun 2025 · Apr 2026.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Historical Dates</div><div class="interp-text">Confirmed signals: Jul 2016 · Apr 2019 · Aug 2020 · Jun 2023 · Nov 2023 · Jun 2025 · Apr 2026. Each preceded a 10%+ rally within 3 months.</div></div>
         <div class="interp-cell bull" id="spxrsiForwardStats"><div class="interp-title bull">Forward Performance</div><div class="interp-text">Waiting for S&amp;P signal data.</div></div>
       </div>
     </div>
@@ -959,11 +959,23 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">% S&amp;P 500 Stocks Above 20D MA — Daily History</span>
+          <span class="cg-chart-title">S&amp;P 500 — 10Y Daily · Green Dots = 20D Breadth Thrust</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span style="color:#1D9E75">● Thrust Confirmed</span>
+          </div>
+        </div>
+        <canvas id="bt20PriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">% S&amp;P 500 Stocks Above 20D MA — 10Y Daily History</span>
           <div class="cg-chart-legend">
             <span style="color:#e05050">— 15% (Thrust Start)</span>
             <span style="color:#1D9E75">— 80% (Thrust Confirm)</span>
             <span style="color:#444">— 50% (Midline)</span>
+            <span style="color:#1D9E75">● Thrust Confirmed</span>
           </div>
         </div>
         <canvas id="bt20Canvas" style="width:100%;display:block"></canvas>
@@ -1913,62 +1925,97 @@ function drawNDBThrust() {
   [vMin,(vMin+vMax)/2,vMax].forEach(v=>ctx.fillText("$"+Math.round(v),PAD.left-4,toY(v)+3));
 }
 
-function drawBT20Chart() {
-  // Pull from breadthData if available, else show placeholder
-  const pct = breadthData.pct_above_20;
-  const c = mkCanvas("bt20Canvas", 200); if(!c) return;
+function drawBT20SignalDots(canvasId, rows, signals, valueKey, fixedScale=false) {
+  if(!rows || rows.length < 2 || !signals || !signals.length) return;
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
+  const H = canvas.clientHeight || parseFloat(canvas.style.height) || 220;
+  const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const values = rows.map(r => +r[valueKey]).filter(Number.isFinite);
+  if(values.length < 2) return;
+  const n = rows.length;
+  const toX = i => PAD.left + (i / Math.max(n - 1, 1)) * PW;
+  const minV = fixedScale ? 0 : Math.min(...values) * .996;
+  const maxV = fixedScale ? 100 : Math.max(...values) * 1.004;
+  const span = maxV - minV || 1;
+  const toY = v => PAD.top + PH - ((v - minV) / span) * PH;
+  signals.forEach(sig => {
+    const idx = firstIndexOnOrAfter(rows, sig.confirm_date);
+    const row = rows[idx];
+    const val = row ? +row[valueKey] : NaN;
+    if(!Number.isFinite(val)) return;
+    const x = toX(idx), y = toY(val);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(29,158,117,.18)"; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 4.2, 0, Math.PI * 2);
+    ctx.fillStyle = "#1D9E75"; ctx.fill();
+    ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(220,255,240,.85)"; ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawBT20BreadthChart(rows, signals) {
+  const c = mkCanvas("bt20Canvas", 220); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 14, right: 48, bottom: 26, left: 42 };
+  const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#0d0d0d"; ctx.fillRect(0,0,W,H);
-
-  // Attempt localStorage history
-  let hist=[];
-  try{ const h=JSON.parse(localStorage.getItem("hbms_bt20_v1")||"{}"); hist=Object.entries(h).sort((a,b)=>a[0]>b[0]?1:-1).map(([d,v])=>({d,v})); }catch(e){}
-  if(pct!=null){ try{ const h=JSON.parse(localStorage.getItem("hbms_bt20_v1")||"{}"); h[new Date().toISOString().slice(0,10)]=pct; localStorage.setItem("hbms_bt20_v1",JSON.stringify(h)); hist=Object.entries(h).sort((a,b)=>a[0]>b[0]?1:-1).map(([d,v])=>({d,v})); }catch(e){} }
-
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
   const toY=v=>PAD.top+PH-(v/100)*PH;
-
-  // Zone fills
   ctx.fillStyle="rgba(29,158,117,0.07)";ctx.fillRect(PAD.left,PAD.top,PW,toY(80)-PAD.top);
   ctx.fillStyle="rgba(212,80,80,0.07)";ctx.fillRect(PAD.left,toY(15),PW,PH-(toY(15)-PAD.top));
-  // Lines
-  [[80,"#1D9E75","80%"],[15,"#e05050","15%"],[50,"rgba(255,255,255,0.06)",""]].forEach(([v,col,lbl])=>{
-    const y=toY(v);ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  [[80,"#1D9E75","80"],[15,"#e05050","15"],[50,"rgba(255,255,255,0.06)","50"]].forEach(([v,col,lbl])=>{
+    const y=toY(v);ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([5,4]);
     ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+PW,y);ctx.stroke();ctx.setLineDash([]);
-    if(lbl){ctx.fillStyle=col;ctx.font="8px sans-serif";ctx.textAlign="left";ctx.fillText(lbl,PAD.left+PW+3,y+3);}
+    ctx.fillStyle=col;ctx.font="bold 8px sans-serif";ctx.textAlign="left";ctx.fillText(lbl+"%",PAD.left+PW+4,y+3);
   });
-
-  if(hist.length>1) {
-    const toX=i=>PAD.left+(i/(hist.length-1))*PW;
-    ctx.beginPath();
-    hist.forEach(({v},i)=>i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)));
-    ctx.strokeStyle="#5892d4";ctx.lineWidth=2;ctx.stroke();
-    const lv=hist[hist.length-1].v;
-    ctx.beginPath();ctx.arc(toX(hist.length-1),toY(lv),4,0,Math.PI*2);
-    ctx.fillStyle=lv>80?"#1D9E75":lv<15?"#e05050":"#5892d4";ctx.fill();
-  } else {
-    // Demo data
-    const demo=Array.from({length:120},(_,i)=>{const t=i/120;return Math.max(2,Math.min(98,50+40*Math.sin(t*Math.PI*5)+10*Math.cos(t*Math.PI*12)));});
-    const toX=i=>PAD.left+(i/119)*PW;
-    ctx.beginPath();
-    demo.forEach((v,i)=>i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)));
-    ctx.strokeStyle="#5892d488";ctx.lineWidth=1.5;ctx.stroke();
-    ctx.fillStyle="rgba(255,255,255,0.04)";ctx.font="10px sans-serif";ctx.textAlign="center";
-    ctx.fillText("History builds daily — current: "+(pct!=null?pct.toFixed(1)+"%":"run screener.py"),W/2,H-PAD.bottom-6);
+  if(!rows || rows.length < 20) {
+    ctx.fillStyle="rgba(255,255,255,0.08)";ctx.font="10px sans-serif";ctx.textAlign="center";
+    ctx.fillText("20D breadth history unavailable - run screener.py",W/2,H/2);
+    return;
   }
-  ctx.fillStyle="#2a2a2a";ctx.font="8px sans-serif";ctx.textAlign="right";
-  [0,25,50,75,100].forEach(v=>ctx.fillText(v+"%",PAD.left-4,toY(v)+3));
+  const toX=i=>PAD.left+(i/(rows.length-1))*PW;
+  ctx.beginPath();
+  rows.forEach((r,i)=>i===0?ctx.moveTo(toX(i),toY(+r.value)):ctx.lineTo(toX(i),toY(+r.value)));
+  ctx.strokeStyle="#5892d4";ctx.lineWidth=1.8;ctx.lineJoin="round";ctx.stroke();
+  ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
+  [0,25,50,75,100].forEach(v=>ctx.fillText(v+"%",PAD.left-5,toY(v)+3));
+  ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
+    const r=rows[i]; if(!r) return;
+    const d=new Date(r.date+"T12:00:00");
+    ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+14);
+  });
+  drawBT20SignalDots("bt20Canvas", rows, signals, "value", true);
+}
+
+function drawBT20Chart() {
+  const md = window._marketData || {};
+  const priceRows = (marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history")).filter(d => d.date >= "2016-01-01");
+  const breadthRows = Array.isArray(md.bt20_history) ? md.bt20_history.filter(d => d && d.date >= "2016-01-01") : [];
+  const signals = Array.isArray(md.bt20_signals) ? md.bt20_signals : [];
+  if(priceRows.length > 100) {
+    drawHistoryLine("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", []);
+    drawBT20SignalDots("bt20PriceCanvas", priceRows, signals, "close", false);
+  } else {
+    emptyCanvas("bt20PriceCanvas", 240, "S&P 500 10Y history unavailable - run screener.py");
+  }
+  drawBT20BreadthChart(breadthRows, signals);
 }
 
 function updateBT20Signal() {
-  const pct = breadthData.pct_above_20;
-  if(pct==null) return;
+  const md = window._marketData || {};
+  const status = md.bt20_status || {};
+  const pct = status.current != null ? +status.current : breadthData.pct_above_20;
+  if(pct==null || !Number.isFinite(pct)) return;
   document.getElementById("bt20Val").textContent = pct.toFixed(1)+"%";
   const pill = document.getElementById("bt20Pill");
   if(!pill) return;
-  if(pct>80){pill.className="cg-pill active-bull";pill.innerHTML='<span class="cg-dot"></span>THRUST ZONE — STRONG BREADTH';}
-  else if(pct<15){pill.className="cg-pill active-neut";pill.innerHTML='<span class="cg-dot"></span>SETUP ZONE — WATCHING FOR THRUST';}
+  if(status.status === "confirmed" || pct>=80){pill.className="cg-pill active-bull";pill.innerHTML='<span class="cg-dot"></span>THRUST ZONE — STRONG BREADTH';}
+  else if(status.status === "setup" || pct<15){pill.className="cg-pill active-neut";pill.innerHTML='<span class="cg-dot"></span>SETUP ZONE — WATCHING FOR THRUST';}
   else{pill.className="cg-pill active-neut";pill.textContent=pct.toFixed(1)+"% ABOVE 20D — NEUTRAL";}
 }
 
