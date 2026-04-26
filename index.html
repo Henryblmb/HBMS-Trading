@@ -131,6 +131,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .timeframe-btns{display:flex;gap:3px;margin-bottom:.9rem}
 .tf-btn{font-size:10px;padding:3px 11px;border:1px solid #222;background:#141414;color:#666;cursor:pointer;transition:all .1s}
 .tf-btn.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.hist-range{display:flex;gap:4px;align-items:center;justify-content:flex-end;margin-top:10px}
+.hist-btn{font-size:10px;padding:4px 10px;border:1px solid #202020;background:#101010;color:#8a8a8a;cursor:pointer;transition:all .1s}
+.hist-btn:hover{color:#e0e0e0;background:#151515}
+.hist-btn.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
 .sector-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:6px}
 .sec-card{background:#111;border:1px solid #1a1a1a;padding:9px 11px}
 .sec-name{font-size:11px;font-weight:600;color:#fff;margin-bottom:5px}
@@ -781,8 +785,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-spxrsi">
       <div class="cg-header">
         <div class="cg-title">SPX RSI Momentum — Signal</div>
-        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using EODHD 10-year history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
+        <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using selectable EODHD history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
         <div class="cg-pill active-bull" id="spxrsiPill"><span class="cg-dot"></span>LOADING WEEKLY SIGNAL</div>
+        <div class="hist-range" id="spxrsiRange">
+          <button class="hist-btn" onclick="setHistoryRange('spxrsi','1Y',this)">1Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('spxrsi','5Y',this)">5Y</button>
+          <button class="hist-btn active" onclick="setHistoryRange('spxrsi','10Y',this)">10Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('spxrsi','20Y',this)">20Y</button>
+        </div>
       </div>
 
       <div class="signal-bar">
@@ -802,7 +812,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- SPX Price -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 — 10Y Daily · Red boxes = weekly RSI 40→60 momentum windows</span>
+          <span class="cg-chart-title" id="spxrsiPriceTitle">S&amp;P 500 — 10Y Daily · Red boxes = weekly RSI 40→60 momentum windows</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#e0e0e0"></span>S&amp;P 500</span>
             <span style="color:rgba(212,80,80,.5)">■ Signal Window</span>
@@ -814,7 +824,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <!-- RSI panel -->
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">Weekly RSI(14) — 10Y · 40 / 60 Thresholds</span>
+          <span class="cg-chart-title" id="spxrsiRSITitle">Weekly RSI(14) — 10Y · 40 / 60 Thresholds</span>
           <div class="cg-chart-legend">
             <span style="color:#e05050">— 40 (Oversold trigger)</span>
             <span style="color:#1D9E75">— 60 (Confirmation)</span>
@@ -836,6 +846,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">SPX 9/21 Weekly EMA — Momentum Cross</div>
         <div class="cg-sub">S&amp;P 500 20-year weekly chart with 9-week and 21-week EMAs. Green background shows bullish 9 EMA above 21 EMA; red background shows bearish 9 EMA below 21 EMA.</div>
+        <div class="hist-range" id="spxemaRange">
+          <button class="hist-btn" onclick="setHistoryRange('spxema','1Y',this)">1Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('spxema','5Y',this)">5Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('spxema','10Y',this)">10Y</button>
+          <button class="hist-btn active" onclick="setHistoryRange('spxema','20Y',this)">20Y</button>
+        </div>
       </div>
 
       <div class="signal-bar">
@@ -859,7 +875,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 — 20Y Weekly Log Chart · EMA 9 / EMA 21</span>
+          <span class="cg-chart-title" id="spxemaTitle">S&amp;P 500 — 20Y Weekly Log Chart · EMA 9 / EMA 21</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span><span class="cg-leg-line" style="background:#5DCAA5"></span>EMA 9</span>
@@ -1586,12 +1602,49 @@ function emaSeries(values, span) {
   return out;
 }
 
+let spxrsiHistoryRange = "10Y";
+let spxemaHistoryRange = "20Y";
+
+function rangeYears(range) {
+  return parseInt(String(range).replace("Y", ""), 10) || 10;
+}
+
+function cutoffDateForRows(rows, range) {
+  if(!rows || !rows.length) return null;
+  const last = rows[rows.length - 1];
+  if(!last || !last.date) return null;
+  const d = new Date(last.date + "T12:00:00");
+  d.setFullYear(d.getFullYear() - rangeYears(range));
+  return d.toISOString().slice(0, 10);
+}
+
+function filterRowsByRange(rows, range) {
+  const cutoff = cutoffDateForRows(rows, range);
+  return cutoff ? rows.filter(r => r && r.date >= cutoff) : (rows || []);
+}
+
+function setHistoryRange(chart, range, btn) {
+  if(chart === "spxrsi") {
+    spxrsiHistoryRange = range;
+    document.querySelectorAll("#spxrsiRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawSPXRSIReversal();
+  }
+  if(chart === "spxema") {
+    spxemaHistoryRange = range;
+    document.querySelectorAll("#spxemaRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawSPXWeeklyEMA();
+  }
+}
+
 function drawSPXWeeklyEMA() {
   const md = window._marketData || {};
   let rows = Array.isArray(md.sp500_ema_weekly_history) ? md.sp500_ema_weekly_history : [];
   if(!rows.length) rows = weeklyFromDaily(marketHistory("sp500_history"));
   rows = rows.filter(d => d && d.date >= "2006-01-01" && Number.isFinite(+d.close) && +d.close > 0);
-  if(rows.length < 80) {
+  rows = filterRowsByRange(rows, spxemaHistoryRange);
+  if(rows.length < 30) {
     emptyCanvas("spxemaCanvas", 360, "S&P 500 weekly EMA history unavailable - run screener.py");
     ["spxemaLastCross","spxema9Val","spxema21Val"].forEach(id => {
       const el = document.getElementById(id); if(el) el.textContent = "—";
@@ -1699,8 +1752,10 @@ function drawSPXWeeklyEMA() {
   const desc = document.getElementById("spxemaDesc");
   if(desc) {
     const trend = ema9[ema9.length - 1] > ema21[ema21.length - 1] ? "9W EMA above 21W EMA: bullish weekly momentum regime." : "9W EMA below 21W EMA: bearish weekly momentum regime.";
-    desc.textContent = `${rows.length} weekly bars loaded from ${rows[0].date}. ${crosses.length} EMA crosses in 20Y history. ${trend}`;
+    desc.textContent = `${rows.length} weekly bars loaded from ${rows[0].date}. ${crosses.length} EMA crosses in ${spxemaHistoryRange} history. ${trend}`;
   }
+  const title = document.getElementById("spxemaTitle");
+  if(title) title.textContent = `S&P 500 — ${spxemaHistoryRange} Weekly Log Chart · EMA 9 / EMA 21`;
 }
 
 function calcRSIValues(closes, period=14) {
@@ -1797,14 +1852,17 @@ function drawRSIChart(canvasId, hist, rsi, h, zones) {
 
 function drawSPXRSIReversal() {
   const md = window._marketData || {};
-  const chartStart = "2016-01-01";
-  const dailyRaw = marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history");
-  const daily = dailyRaw.filter(d => d.date >= chartStart);
-  const weeklyRows = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date >= chartStart) : [];
-  const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals : [];
+  const dailyRaw = (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history")).length
+    ? (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history"))
+    : marketHistory("spy_history");
+  const dailyBase = dailyRaw.filter(d => d && d.date >= "2006-01-01");
+  const cutoff = cutoffDateForRows(dailyBase, spxrsiHistoryRange) || "2006-01-01";
+  const daily = dailyBase.filter(d => d.date >= cutoff);
+  const weeklyRows = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date >= cutoff) : [];
+  const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals.filter(s => s && s.confirm_date >= cutoff) : [];
   const status = md.sp500_rsi_status || {};
   if(!daily || daily.length < 200 || weeklyRows.length < 20) {
-    emptyCanvas("spxrsiPriceCanvas", 240, "S&P 500 10Y history unavailable - run screener.py");
+    emptyCanvas("spxrsiPriceCanvas", 240, `S&P 500 ${spxrsiHistoryRange} history unavailable - run screener.py`);
     emptyCanvas("spxrsiRSICanvas", 170, "Weekly RSI unavailable - run screener.py");
     updateSPXRSIReadings(null, [], {});
     return;
@@ -1818,6 +1876,10 @@ function drawSPXRSIReversal() {
   drawSPXSignalDots("spxrsiRSICanvas", weeklyRows, signals, "rsi");
   updateSPXRSIReadings(status, signals, weeklyRows);
   updateSPXForwardStats(daily, signals);
+  const priceTitle = document.getElementById("spxrsiPriceTitle");
+  const rsiTitle = document.getElementById("spxrsiRSITitle");
+  if(priceTitle) priceTitle.textContent = `S&P 500 — ${spxrsiHistoryRange} Daily · Red boxes = weekly RSI 40→60 momentum windows`;
+  if(rsiTitle) rsiTitle.textContent = `Weekly RSI(14) — ${spxrsiHistoryRange} · 40 / 60 Thresholds`;
 }
 
 function firstIndexOnOrAfter(rows, date) {
