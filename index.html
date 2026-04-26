@@ -1463,6 +1463,53 @@ function drawHistoryLine(canvasId, hist, h, label, lineColor, zones=[]) {
   });
 }
 
+function drawHistoryLineLog(canvasId, hist, h, label, lineColor, zones=[]) {
+  if(!hist || hist.length < 2) {
+    emptyCanvas(canvasId, h, `${label} history unavailable - run screener.py`);
+    return;
+  }
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 45, bottom: 26, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const rows = hist.filter(d => Number.isFinite(+d.close) && +d.close > 0);
+  const data = rows.map(d => +d.close);
+  if(data.length < 2) {
+    emptyCanvas(canvasId, h, `${label} history unavailable - run screener.py`);
+    return;
+  }
+  const logData = data.map(v => Math.log(v));
+  const vMin = Math.min(...logData) * .998;
+  const vMax = Math.max(...logData) * 1.002;
+  const span = vMax - vMin || 1;
+  const toX = i => PAD.left + (i / (data.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((Math.log(v) - vMin) / span) * PH;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  zones.forEach(z => {
+    const x1 = toX(Math.max(0, z.start));
+    const x2 = toX(Math.min(data.length - 1, z.end));
+    ctx.fillStyle = z.color || "rgba(212,80,80,.10)";
+    ctx.fillRect(x1, PAD.top, Math.max(1, x2 - x1), PH);
+  });
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++) {
+    const y = PAD.top + (PH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  data.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  ctx.strokeStyle = lineColor + "dd"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [Math.exp(vMin), Math.exp((vMin + vMax) / 2), Math.exp(vMax)].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 4, toY(v) + 3));
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
+    const d = rows[i] && rows[i].date ? new Date(rows[i].date + "T12:00:00") : null;
+    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", toX(i), H - PAD.bottom + 11);
+  });
+}
+
 function weeklyFromDaily(hist) {
   const weeks = new Map();
   hist.forEach(p => {
@@ -2170,7 +2217,7 @@ function drawBT50Chart() {
   const breadthRows = Array.isArray(md.bt50_history) ? md.bt50_history : [];
   const signals = Array.isArray(md.bt50_signals) ? md.bt50_signals : [];
   if(priceRows.length > 100) {
-    drawHistoryLine("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", []);
+    drawHistoryLineLog("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", []);
     drawBT20SignalDots("bt50PriceCanvas", priceRows, signals, "close", false);
   } else {
     emptyCanvas("bt50PriceCanvas", 260, "S&P 500 20Y weekly history unavailable - run screener.py");
