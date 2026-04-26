@@ -864,8 +864,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span><span class="cg-leg-line" style="background:#5DCAA5"></span>EMA 9</span>
             <span><span class="cg-leg-line" style="background:#9bbcff"></span>EMA 21</span>
-            <span style="color:#1D9E75">| Bull Cross</span>
-            <span style="color:#e05050">| Bear Cross</span>
+            <span style="color:#1D9E75">Bull Regime</span>
+            <span style="color:#e05050">Bear Regime</span>
           </div>
         </div>
         <canvas id="spxemaCanvas" style="width:100%;display:block"></canvas>
@@ -1627,6 +1627,32 @@ function drawSPXWeeklyEMA() {
 
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+
+  let regimeStart = 0;
+  let regime = null;
+  for(let i = 0; i < rows.length; i++) {
+    const current = ema9[i] != null && ema21[i] != null ? (ema9[i] >= ema21[i] ? "bull" : "bear") : null;
+    if(regime === null && current !== null) {
+      regime = current;
+      regimeStart = i;
+      continue;
+    }
+    if(current !== null && current !== regime) {
+      const x1 = toX(regimeStart);
+      const x2 = toX(Math.max(i - 1, regimeStart));
+      ctx.fillStyle = regime === "bull" ? "rgba(29,158,117,.055)" : "rgba(224,80,80,.052)";
+      ctx.fillRect(x1, PAD.top, Math.max(1, x2 - x1), PH);
+      regime = current;
+      regimeStart = i;
+    }
+  }
+  if(regime !== null) {
+    const x1 = toX(regimeStart);
+    const x2 = toX(rows.length - 1);
+    ctx.fillStyle = regime === "bull" ? "rgba(29,158,117,.055)" : "rgba(224,80,80,.052)";
+    ctx.fillRect(x1, PAD.top, Math.max(1, x2 - x1), PH);
+  }
+
   ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1;
   for(let i = 0; i <= 4; i++) {
     const y = PAD.top + (PH / 4) * i;
@@ -1652,22 +1678,6 @@ function drawSPXWeeklyEMA() {
   drawLine(closes, "#d8d8d8", 2.1, "e0");
   drawLine(ema21, "#9bbcff", 1.6, "bb");
   drawLine(ema9, "#5DCAA5", 1.7, "cc");
-
-  crosses.forEach(cross => {
-    const x = toX(cross.i);
-    const y = toY(cross.close);
-    const color = cross.type === "bull" ? "#1D9E75" : "#e05050";
-    ctx.beginPath();
-    ctx.moveTo(x, Math.max(PAD.top, y - 18));
-    ctx.lineTo(x, Math.min(PAD.top + PH, y + 18));
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.2;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  });
 
   ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
   [Math.exp(minLog), Math.exp((minLog + maxLog) / 2), Math.exp(maxLog)].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 5, toY(v) + 3));
