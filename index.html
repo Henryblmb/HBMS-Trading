@@ -409,6 +409,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 .cg-page .signal-bar-divider{background:#202020!important}
 .cg-page .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 .cg-page .interp-text{color:#a8a8a8!important}
+#tab-cg-spxema #spxemaDesc,#tab-cg-spxema .spxema-desc-divider{display:none!important}
 .interp-title.bull{color:var(--sig-green)!important}.interp-title.bear{color:var(--sig-red)!important}.interp-title.neut{color:var(--sig-amber)!important}.interp-title.info{color:var(--sig-blue)!important}
 #tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:first-child{background:var(--sig-green-bg)!important;border-color:#285f4d!important}
 #tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:nth-child(2){background:var(--sig-red-bg)!important;border-color:#5a2525!important}
@@ -882,7 +883,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-bar-label">EMA 21</div>
           <div class="signal-bar-val" id="spxema21Val" style="color:#9bbcff">—</div>
         </div>
-        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-divider spxema-desc-divider"></div>
         <div class="signal-bar-desc" id="spxemaDesc">Waiting for screener data.</div>
       </div>
 
@@ -1636,6 +1637,14 @@ function filterRowsByRange(rows, range) {
   return cutoff ? rows.filter(r => r && r.date >= cutoff) : (rows || []);
 }
 
+function formatSignalDate(dateStr) {
+  if(!dateStr) return "—";
+  const d = new Date(dateStr + "T12:00:00");
+  if(Number.isNaN(d.getTime())) return dateStr;
+  const months = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+  return `${d.getDate()}. ${months[d.getMonth()]} ´${String(d.getFullYear()).slice(2)}`;
+}
+
 function setHistoryRange(chart, range, btn) {
   if(chart === "spxrsi") {
     spxrsiHistoryRange = range;
@@ -1766,7 +1775,7 @@ function drawSPXWeeklyEMA() {
   const last = crosses[crosses.length - 1];
   const lastCross = document.getElementById("spxemaLastCross");
   if(lastCross) {
-    lastCross.textContent = last ? `${last.type === "bull" ? "Bullish" : "Bearish"} · ${last.date}` : "—";
+    lastCross.textContent = last ? `${last.type === "bull" ? "Bullish" : "Bearish"} · ${formatSignalDate(last.date)}` : "—";
     lastCross.style.color = last && last.type === "bear" ? "#e05050" : "#1D9E75";
   }
   const ema9El = document.getElementById("spxema9Val");
@@ -1774,10 +1783,7 @@ function drawSPXWeeklyEMA() {
   if(ema9El) ema9El.textContent = ema9[ema9.length - 1] ? ema9[ema9.length - 1].toFixed(1) : "—";
   if(ema21El) ema21El.textContent = ema21[ema21.length - 1] ? ema21[ema21.length - 1].toFixed(1) : "—";
   const desc = document.getElementById("spxemaDesc");
-  if(desc) {
-    const trend = ema9[ema9.length - 1] > ema21[ema21.length - 1] ? "9W EMA above 21W EMA: bullish weekly momentum regime." : "9W EMA below 21W EMA: bearish weekly momentum regime.";
-    desc.textContent = `${rows.length} weekly bars loaded from ${rows[0].date}. ${crosses.length} EMA crosses in ${spxemaHistoryRange} history. ${trend}`;
-  }
+  if(desc) desc.textContent = "";
   const title = document.getElementById("spxemaTitle");
   if(title) title.textContent = `S&P 500 — ${spxemaHistoryRange} Daily Log Chart · Weekly EMA 9 / EMA 21`;
 }
@@ -2087,8 +2093,8 @@ function updateSPXRSIReadings(status, signals, weeklyRows) {
   if(dEl) {
     const last = status && status.last_signal;
     if(!status || state === "unavailable") dEl.textContent = "No EODHD S&P 500 RSI data available yet. Run screener.py.";
-    else if(state === "setup") dEl.textContent = `Weekly RSI is below/after 40 setup from ${status.active_setup_start?.date || "—"}. Confirmation waits for RSI > 60.`;
-    else if(last) dEl.textContent = `Last 40→60 weekly momentum signal confirmed on ${last.confirm_date}.`;
+    else if(state === "setup") dEl.textContent = `Weekly RSI is below/after 40 setup from ${formatSignalDate(status.active_setup_start?.date)}. Confirmation waits for RSI > 60.`;
+    else if(last) dEl.textContent = `Last 40→60 weekly momentum signal confirmed on ${formatSignalDate(last.confirm_date)}.`;
     else dEl.textContent = `Weekly RSI state is ${state}. No completed 40→60 signal in the 10Y window.`;
   }
 }
