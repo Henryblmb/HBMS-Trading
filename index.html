@@ -508,7 +508,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Term Structure</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
-      <div class="nav-item sub" onclick="showTab('cg-oil',this)">Oil Term Structure</div>
+      <div class="nav-item sub" onclick="showTab('cg-goldsilver',this)">Gold/Silver Ratio</div>
+      <div class="nav-item sub" onclick="showTab('cg-oil',this)">Oil Term Curve</div>
       <div class="nav-item sub" onclick="showTab('cg-vix2',this)">VIX Term Structure</div>
     </div>
 
@@ -1287,6 +1288,44 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- GOLD / SILVER RATIO -->
+    <div class="panel cg-page" id="tab-cg-goldsilver">
+      <div class="cg-header">
+        <div class="cg-title">Gold/Silver Ratio — Long-Term Relative Regime</div>
+        <div class="cg-sub">Weekly Gold/Silver ratio with EMA 40 and EMA 100. Rising ratio means gold is outperforming silver, often a defensive or liquidity-stress regime. Falling ratio means silver is outperforming, often a cyclical/risk-on impulse.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Ratio</div><div class="signal-bar-val" id="gsRatioVal" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="gsRegimeVal" style="font-size:13px;color:#EF9F27;padding-top:5px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Last Turn</div><div class="signal-bar-val" id="gsSignalVal" style="font-size:13px;color:#777;padding-top:5px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="gsDesc">Weekly model. EMA 40 / EMA 100 crossovers mark major ratio turns.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">Gold/Silver Ratio — Weekly Long History</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Ratio</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>EMA 40</span>
+            <span><span class="cg-leg-line" style="background:#60a5fa"></span>EMA 100</span>
+            <span style="color:#1D9E75">● Silver Turn</span>
+            <span style="color:#e05050">● Gold Turn</span>
+          </div>
+        </div>
+        <canvas id="goldSilverCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Ratio Rising</div><div class="interp-text">Gold outperforming silver. Often defensive, liquidity-sensitive, or growth-scare behavior. EMA 40 above EMA 100 confirms gold leadership.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Ratio Falling</div><div class="interp-text">Silver outperforming gold. Often cyclical beta, reflation, and industrial metal strength. EMA 40 below EMA 100 confirms silver leadership.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Turn Markers</div><div class="interp-text">Markers appear when EMA 40 crosses EMA 100. Weekly smoothing is intentionally slower to reduce false turns.</div></div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /dashboard -->
 
@@ -1364,6 +1403,7 @@ function showTab(id, el) {
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
+  if(id === "cg-goldsilver") setTimeout(drawGoldSilverRatio, 60);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
@@ -3368,6 +3408,82 @@ function updateOilReadings() {
   const label = spread == null ? "—" : spread >= 0 ? "CONTANGO" : "BACKWARDATION";
   const col = spread == null ? "#888" : spread >= 0 ? "#1D9E75" : "#e05050";
   if(regimeEl){regimeEl.textContent = label; regimeEl.style.color = col;}
+}
+
+function drawGoldSilverRatio() {
+  const md = window._marketData || {};
+  const rows = Array.isArray(md.gold_silver_ratio_history) ? md.gold_silver_ratio_history.filter(r=>Number.isFinite(+r.ratio)) : [];
+  const st = md.gold_silver_ratio_status || {};
+  const ratioEl = document.getElementById("gsRatioVal");
+  const regimeEl = document.getElementById("gsRegimeVal");
+  const signalEl = document.getElementById("gsSignalVal");
+  const descEl = document.getElementById("gsDesc");
+  if(ratioEl && st.current_ratio != null) ratioEl.textContent = (+st.current_ratio).toFixed(1);
+  const goldLead = st.status === "gold_leadership";
+  const regTxt = st.status === "unavailable" ? "—" : goldLead ? "GOLD LEADERSHIP" : "SILVER LEADERSHIP";
+  const regCol = st.status === "unavailable" ? "#777" : goldLead ? "#e05050" : "#1D9E75";
+  if(regimeEl){ regimeEl.textContent = regTxt; regimeEl.style.color = regCol; }
+  if(signalEl && st.last_signal) {
+    const d = new Date(st.last_signal.date + "T12:00:00");
+    signalEl.textContent = `${st.last_signal.type === "gold_turn" ? "Gold" : "Silver"} · ${d.toLocaleDateString("en-US", {month:"short", year:"2-digit"})}`;
+    signalEl.style.color = st.last_signal.type === "gold_turn" ? "#e05050" : "#1D9E75";
+  }
+  if(descEl && rows.length) descEl.textContent = `${rows[0].date.slice(0,4)} to ${rows[rows.length-1].date.slice(0,7)} · ${rows.length} weekly observations · Source: ${st.source || "—"}`;
+
+  const c = mkCanvas("goldSilverCanvas", 360); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 64, bottom: 30, left: 46 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  if(rows.length < 80) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Gold/Silver ratio unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const vals = rows.flatMap(r => [+r.ratio, +r.ema40, +r.ema100].filter(Number.isFinite));
+  const minV = Math.min(...vals) * .96, maxV = Math.max(...vals) * 1.04;
+  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
+  const drawLine = (key, color, width, alpha=1) => {
+    ctx.beginPath(); let started=false;
+    rows.forEach((r,i)=>{
+      const v=+r[key]; if(!Number.isFinite(v)) return;
+      const x=toX(i), y=toY(v);
+      if(!started){ctx.moveTo(x,y); started=true;} else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=width; ctx.lineJoin="round"; ctx.stroke(); ctx.globalAlpha=1;
+  };
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)"; ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){ const y=PAD.top + i/5*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  rows.forEach((r,i)=>{
+    if(!r.signal) return;
+    const x=toX(i);
+    ctx.fillStyle = r.signal === "gold_turn" ? "rgba(224,80,80,.055)" : "rgba(29,158,117,.055)";
+    ctx.fillRect(x, PAD.top, Math.max(2, PW / rows.length * 5), PH);
+  });
+  drawLine("ratio", "rgba(216,216,216,.72)", 1.45);
+  drawLine("ema40", "#EF9F27", 2.1);
+  drawLine("ema100", "#60a5fa", 1.9);
+  rows.forEach((r,i)=>{
+    if(!r.signal) return;
+    const x=toX(i), y=toY(+r.ratio);
+    const col = r.signal === "gold_turn" ? "#e05050" : "#1D9E75";
+    ctx.beginPath(); ctx.arc(x,y,4.2,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle="#151515"; ctx.lineWidth=1.2; ctx.stroke();
+  });
+  const last=rows[rows.length-1];
+  [["Ratio","ratio","rgba(216,216,216,.82)"],["EMA40","ema40","#EF9F27"],["EMA100","ema100","#60a5fa"]].forEach(([lbl,key,col])=>{
+    ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, toY(+last[key])+3);
+  });
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [minV,(minV+maxV)/2,maxV].forEach(v=>ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
+    const r=rows[i]; if(!r) return;
+    const d=new Date(r.date+"T12:00:00");
+    ctx.fillText(d.getFullYear(), toX(i), H-PAD.bottom+14);
+  });
 }
 
 function mirrorVIXCharts() {
