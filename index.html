@@ -233,9 +233,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .season-month-row{display:flex;justify-content:space-between;font-size:9.5px;color:#777;padding:2px 0;border-top:1px solid rgba(255,255,255,.04)}
 .season-month-row:first-of-type{border-top:0}
 .season-month-row b{font-weight:600;color:#d8d8d8}
-.valuation-img-wrap{border:1px solid var(--line);background:#f5f5f2;padding:10px;margin-bottom:.8rem;overflow:auto}
-.valuation-img{display:block;width:100%;max-width:1120px;margin:0 auto}
-.valuation-source{font-size:9px;color:#777;margin-top:7px;text-align:right}
+.valuation-chart-note{font-size:9px;color:#777;margin:-3px 0 9px;text-align:right}
+.valuation-table{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:1px;border:1px solid var(--line);background:var(--line);margin-bottom:.8rem}
+.valuation-cell{background:var(--surface);padding:8px 10px}
+.valuation-cell .k{font-size:8.5px;color:#777;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.valuation-cell .v{font-size:17px;color:#eee;font-weight:560}
+.valuation-cell .s{font-size:9px;color:#777;margin-top:2px}
 
 /* ══════════════════════════════════════════
    CHARTS / GRAPHS — NEW SECTION STYLES
@@ -1100,12 +1103,36 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="cg-sub">S&amp;P 500 forward price-to-earnings ratio with long-history context. EY spread is intentionally excluded here; this view focuses only on the valuation multiple.</div>
       </div>
 
-      <div class="valuation-img-wrap">
-        <img class="valuation-img" alt="S&amp;P 500 Forward P/E Ratio chart"
-          src="https://product.datastream.com/dscharting/gateway.aspx?action=REFRESH&amp;chartname=S%26P+500+FORWARD+P%2FE+%28Bull%2FBear%29&amp;guid=c29e98b6-2375-4fbd-89eb-92342210e9be"
-          loading="lazy">
-        <div class="valuation-source">Source: LSEG Datastream / Yardeni Research</div>
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Latest</div><div class="signal-bar-val" id="fpeLatest">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">5Y Avg</div><div class="signal-bar-val" id="fpeAvg5">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">10Y Avg</div><div class="signal-bar-val" id="fpeAvg10">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">20Y Avg</div><div class="signal-bar-val" id="fpeAvg20">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="fpeStatus">Waiting for valuation data.</div>
       </div>
+
+      <div class="valuation-table">
+        <div class="valuation-cell"><div class="k">5Y Range</div><div class="v" id="fpeRange5">—</div><div class="s" id="fpePct5">—</div></div>
+        <div class="valuation-cell"><div class="k">10Y Range</div><div class="v" id="fpeRange10">—</div><div class="s" id="fpePct10">—</div></div>
+        <div class="valuation-cell"><div class="k">20Y Range</div><div class="v" id="fpeRange20">—</div><div class="s" id="fpePct20">—</div></div>
+        <div class="valuation-cell"><div class="k">Full History</div><div class="v" id="fpeAvgAll">—</div><div class="s" id="fpeObs">—</div></div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">S&amp;P 500 index: Forward P/E ratio</span>
+          <div class="cg-chart-legend">
+            <span><i class="cg-leg-line" style="background:#d8d8d8"></i>Forward P/E</span>
+            <span><i class="cg-leg-line" style="background:#8aa03a"></i>5Y / 10Y / 20Y Avg</span>
+          </div>
+        </div>
+        <canvas id="forwardPECanvas"></canvas>
+      </div>
+      <div class="valuation-chart-note" id="fpeSource">Source: —</div>
 
       <div class="interp-grid">
         <div class="interp-cell bear"><div class="interp-title bear">High Multiple</div><div class="interp-text">Elevated forward P/E means investors are paying more for expected earnings. It can persist in strong liquidity regimes, but leaves less margin for earnings disappointment.</div></div>
@@ -1435,6 +1462,7 @@ function showTab(id, el) {
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
+  if(id === "cg-forwardpe") setTimeout(drawForwardPEChart, 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
   if(id === "cg-goldsilver") setTimeout(drawGoldSilverRatio, 60);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
@@ -1474,6 +1502,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-seasonality") renderSeasonality();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
+    if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -3441,6 +3470,101 @@ function updateOilReadings() {
   const label = spread == null ? "—" : spread >= 0 ? "CONTANGO" : "BACKWARDATION";
   const col = spread == null ? "#888" : spread >= 0 ? "#1D9E75" : "#e05050";
   if(regimeEl){regimeEl.textContent = label; regimeEl.style.color = col;}
+}
+
+function drawForwardPEChart() {
+  const md = window._marketData || {};
+  const rows = Array.isArray(md.forward_pe_history) ? md.forward_pe_history.filter(r=>Number.isFinite(+r.pe)) : [];
+  const st = md.forward_pe_status || {};
+  const fmtX = v => Number.isFinite(+v) ? (+v).toFixed(1) + "x" : "—";
+  const rangeText = pack => pack && Number.isFinite(+pack.min) && Number.isFinite(+pack.max) ? fmtX(pack.min) + "–" + fmtX(pack.max) : "—";
+  const pctText = pack => pack && Number.isFinite(+pack.percentile) ? "Percentile " + (+pack.percentile).toFixed(1) + "% · " + (pack.obs || 0) + " obs." : "—";
+  const setTxt = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  setTxt("fpeLatest", fmtX(st.current_pe));
+  setTxt("fpeAvg5", fmtX(st.avg_5y?.avg));
+  setTxt("fpeAvg10", fmtX(st.avg_10y?.avg));
+  setTxt("fpeAvg20", fmtX(st.avg_20y?.avg));
+  setTxt("fpeRange5", rangeText(st.avg_5y));
+  setTxt("fpeRange10", rangeText(st.avg_10y));
+  setTxt("fpeRange20", rangeText(st.avg_20y));
+  setTxt("fpePct5", pctText(st.avg_5y));
+  setTxt("fpePct10", pctText(st.avg_10y));
+  setTxt("fpePct20", pctText(st.avg_20y));
+  setTxt("fpeAvgAll", fmtX(st.avg_all));
+  setTxt("fpeObs", (st.start_date || "—").slice(0,7) + " to " + (st.current_date || "—").slice(0,7) + " · " + (st.observations || rows.length || 0) + " months");
+  const statusMap = {
+    expensive: ["Expensive versus long-term average", "#e05050"],
+    above_average: ["Above average valuation", "#EF9F27"],
+    fair_value: ["Near long-term average", "#d8d8d8"],
+    cheap: ["Below long-term average", "#1D9E75"],
+    unavailable: ["Waiting for valuation data.", "#777"],
+  };
+  const [statusTxt, statusCol] = statusMap[st.status] || statusMap.unavailable;
+  const statusEl = document.getElementById("fpeStatus");
+  if(statusEl) {
+    statusEl.textContent = statusTxt + (st.current_date ? " · latest " + st.current_date.slice(0,7) : "");
+    statusEl.style.color = statusCol;
+  }
+  setTxt("fpeSource", "Source: " + (st.source || "—") + " · averages calculated by HBMS");
+
+  const c = mkCanvas("forwardPECanvas", 360); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 78, bottom: 34, left: 44 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  if(rows.length < 24) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Forward P/E data unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const vals = rows.map(r=>+r.pe);
+  const avgLines = [
+    ["5Y Avg", +(st.avg_5y?.avg), "#b7c65c"],
+    ["10Y Avg", +(st.avg_10y?.avg), "#8fa64a"],
+    ["20Y Avg", +(st.avg_20y?.avg), "#6f843c"],
+  ].filter(x=>Number.isFinite(x[1]));
+  const allVals = vals.concat(avgLines.map(x=>x[1]));
+  const minV = Math.max(6, Math.floor(Math.min(...allVals) - 1.2));
+  const maxV = Math.ceil(Math.max(...allVals) + 1.2);
+  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
+  ctx.strokeStyle="rgba(255,255,255,.055)"; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+  for(let i=0;i<=6;i++) {
+    const y = PAD.top + (i / 6) * PH;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  for(let v=Math.ceil(minV/2)*2; v<=maxV; v+=2) {
+    const y=toY(v);
+    ctx.fillText(v + "x", PAD.left - 5, y + 3);
+  }
+  avgLines.forEach(([label, v, color], idx)=>{
+    const y = toY(v);
+    ctx.strokeStyle = color; ctx.lineWidth = 1.15; ctx.setLineDash([7,6]);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = color; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText(label + " " + fmtX(v), PAD.left + PW + 5, y + 3 + idx * 2);
+  });
+  ctx.beginPath();
+  rows.forEach((r,i)=>i===0 ? ctx.moveTo(toX(i), toY(+r.pe)) : ctx.lineTo(toX(i), toY(+r.pe)));
+  ctx.strokeStyle="rgba(216,216,216,.78)"; ctx.lineWidth=1.9; ctx.lineJoin="round"; ctx.stroke();
+  const last = rows[rows.length - 1], lx = toX(rows.length - 1), ly = toY(+last.pe);
+  const dotCol = st.status === "expensive" ? "#e05050" : st.status === "above_average" ? "#EF9F27" : st.status === "cheap" ? "#1D9E75" : "#d8d8d8";
+  ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI*2); ctx.fillStyle=dotCol; ctx.fill();
+  ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
+  const d = new Date(last.date + "T12:00:00");
+  ctx.fillStyle=dotCol; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
+  ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"numeric"}) + " · " + fmtX(last.pe), Math.min(lx + 7, PAD.left + PW - 82), ly - 7);
+  ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  const seenYears = new Set();
+  rows.forEach((r,i)=>{
+    const yr = new Date(r.date + "T12:00:00").getFullYear();
+    if(yr % 2 || seenYears.has(yr)) return;
+    seenYears.add(yr);
+    ctx.fillText("'" + String(yr).slice(2), toX(i), H - PAD.bottom + 16);
+  });
 }
 
 function drawGoldSilverRatio() {
