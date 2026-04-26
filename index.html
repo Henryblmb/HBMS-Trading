@@ -380,6 +380,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-bt20 .signal-bar-divider{background:#202020!important}
 #tab-cg-bt20 .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-bt20 .interp-text{color:#a8a8a8!important}
+#tab-cg-bt50 .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-bt50 .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-bt50 .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-bt50 .signal-bar-divider{background:#202020!important}
+#tab-cg-bt50 .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-bt50 .interp-text{color:#a8a8a8!important}
 #tab-cg-oil .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-oil .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-oil .signal-bar-desc{color:#d0d0d0!important}
@@ -448,6 +454,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Breadth</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
+      <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-ndbthrust',this)">Nasdaq Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-sectornewhi',this)">Sector New Highs</div>
     </div>
@@ -1027,6 +1034,62 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <div class="panel cg-page" id="tab-cg-bt50">
+      <div class="cg-header">
+        <div class="cg-title">50D Breadth Thrust — Stocks Above 50-Day MA</div>
+        <div class="cg-sub">% of S&amp;P 500 stocks above their 50-day moving average on a weekly timeframe. A 50D Breadth Thrust confirms when this reading moves from below 10% to above 80% within 12 weeks.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">% Above 50D MA</div>
+          <div class="signal-bar-val" id="bt50Val" style="color:#1D9E75">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Thrust Start</div>
+          <div class="signal-bar-val" style="font-size:14px;color:#e05050;padding-top:4px">&lt;10%</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Thrust Confirm</div>
+          <div class="signal-bar-val" style="font-size:14px;color:#1D9E75;padding-top:4px">&gt;80%</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc">Window: ≤12 weeks from below 10% to above 80%. Weekly signal, 20-year history.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">S&amp;P 500 — 20Y Weekly · Green Dots = 50D Breadth Thrust</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span style="color:#1D9E75">● Thrust Confirmed</span>
+          </div>
+        </div>
+        <canvas id="bt50PriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">% S&amp;P 500 Stocks Above 50D MA — 20Y Weekly History</span>
+          <div class="cg-chart-legend">
+            <span style="color:#e05050">— 10% (Thrust Start)</span>
+            <span style="color:#1D9E75">— 80% (Thrust Confirm)</span>
+            <span style="color:#444">— 50% (Midline)</span>
+            <span style="color:#1D9E75">● Thrust Confirmed</span>
+          </div>
+        </div>
+        <canvas id="bt50Canvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Thrust Confirmed (&lt;10% → &gt;80%)</div><div class="interp-text">Broad recovery across the S&amp;P 500. This is slower than the 20D thrust and captures durable participation rather than short-term snapback.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Setup Zone (Below 10%)</div><div class="interp-text">Deep washout. Once breadth leaves this zone, the next 12 weekly bars decide whether a full thrust confirms.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Weekly Timeframe</div><div class="interp-text">Weekly data filters daily noise. Signals are marked on the week they confirm above 80%.</div></div>
+      </div>
+    </div>
+
     <!-- OIL TERM CURVE -->
     <div class="panel cg-page" id="tab-cg-oil">
       <div class="cg-header">
@@ -1158,6 +1221,7 @@ function showTab(id, el) {
   if(id === "cg-ndbthrust") setTimeout(() => drawNDBThrust(), 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
+  if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
 }
 
@@ -1182,6 +1246,7 @@ async function loadData() {
     // Update CG-VIX readings if open
     updateCGVIX2Readings();
     updateBT20Signal();
+    updateBT50Signal();
     const activePanel = document.querySelector(".panel.active");
     if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
@@ -2063,6 +2128,62 @@ function updateBT20Signal() {
   const pct = status.current != null ? +status.current : breadthData.pct_above_20;
   if(pct==null || !Number.isFinite(pct)) return;
   document.getElementById("bt20Val").textContent = pct.toFixed(1)+"%";
+}
+
+function drawBT50BreadthChart(rows, signals) {
+  const c = mkCanvas("bt50Canvas", 260); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
+  const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  const toY=v=>PAD.top+PH-(v/100)*PH;
+  ctx.fillStyle="rgba(29,158,117,0.07)";ctx.fillRect(PAD.left,PAD.top,PW,toY(80)-PAD.top);
+  ctx.fillStyle="rgba(212,80,80,0.07)";ctx.fillRect(PAD.left,toY(10),PW,PH-(toY(10)-PAD.top));
+  [[80,"#1D9E75","80"],[10,"#e05050","10"],[50,"rgba(255,255,255,0.06)","50"]].forEach(([v,col,lbl])=>{
+    const y=toY(v);ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+PW,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=col;ctx.font="bold 8px sans-serif";ctx.textAlign="left";ctx.fillText(lbl+"%",PAD.left+PW+4,y+3);
+  });
+  if(!rows || rows.length < 20) {
+    ctx.fillStyle="rgba(255,255,255,0.08)";ctx.font="10px sans-serif";ctx.textAlign="center";
+    ctx.fillText("50D weekly breadth history unavailable - run screener.py",W/2,H/2);
+    return;
+  }
+  const toX=i=>PAD.left+(i/(rows.length-1))*PW;
+  ctx.beginPath();
+  rows.forEach((r,i)=>i===0?ctx.moveTo(toX(i),toY(+r.value)):ctx.lineTo(toX(i),toY(+r.value)));
+  ctx.strokeStyle="#5892d4";ctx.lineWidth=1.8;ctx.lineJoin="round";ctx.stroke();
+  ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
+  [0,25,50,75,100].forEach(v=>ctx.fillText(v+"%",PAD.left-5,toY(v)+3));
+  ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
+    const r=rows[i]; if(!r) return;
+    const d=new Date(r.date+"T12:00:00");
+    ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toX(i),H-PAD.bottom+14);
+  });
+  drawBT20SignalDots("bt50Canvas", rows, signals, "value", true);
+}
+
+function drawBT50Chart() {
+  const md = window._marketData || {};
+  const priceRows = Array.isArray(md.bt50_sp500_history) ? md.bt50_sp500_history : [];
+  const breadthRows = Array.isArray(md.bt50_history) ? md.bt50_history : [];
+  const signals = Array.isArray(md.bt50_signals) ? md.bt50_signals : [];
+  if(priceRows.length > 100) {
+    drawHistoryLine("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", []);
+    drawBT20SignalDots("bt50PriceCanvas", priceRows, signals, "close", false);
+  } else {
+    emptyCanvas("bt50PriceCanvas", 260, "S&P 500 20Y weekly history unavailable - run screener.py");
+  }
+  drawBT50BreadthChart(breadthRows, signals);
+}
+
+function updateBT50Signal() {
+  const md = window._marketData || {};
+  const status = md.bt50_status || {};
+  const pct = status.current != null ? +status.current : null;
+  if(pct==null || !Number.isFinite(pct)) return;
+  document.getElementById("bt50Val").textContent = pct.toFixed(1)+"%";
 }
 
 function drawOilPriceChart(rows) {
