@@ -3543,7 +3543,6 @@ function drawGoldSilverRatio() {
     });
   }
   const last = statsRows[statsRows.length-1];
-  ctx.fillStyle="rgba(216,216,216,.9)"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText("Ratio", PAD.left+PW+5, toY(last.ratio)+3);
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [minV,(minV+maxV)/2,maxV].forEach(v=>ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
