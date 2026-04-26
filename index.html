@@ -1831,6 +1831,18 @@ function dateDomainForRows(rowGroups, range) {
   return { startMs: startDate.getTime(), endMs };
 }
 
+function commonDateDomainForRows(rowGroups, range) {
+  const base = dateDomainForRows(rowGroups, range);
+  if(!base) return null;
+  const spans = rowGroups
+    .map(group => (group || []).map(rowDateMs).filter(Number.isFinite))
+    .filter(times => times.length);
+  if(!spans.length) return base;
+  const firstCommon = Math.max(base.startMs, ...spans.map(times => Math.min(...times)));
+  const lastCommon = Math.min(base.endMs, ...spans.map(times => Math.max(...times)));
+  return { startMs: firstCommon, endMs: Math.max(firstCommon + 86400000, lastCommon) };
+}
+
 function filterRowsByDateDomain(rows, domain) {
   if(!domain) return rows || [];
   return (rows || []).filter(r => {
@@ -2871,6 +2883,52 @@ function drawBT20SignalDots(canvasId, rows, signals, valueKey, fixedScale=false,
   });
 }
 
+function drawBTSignalDotsByDate(canvasId, rows, signals, valueKey, fixedScale=false, logScale=false, domain=null) {
+  if(!rows || rows.length < 2 || !signals || !signals.length || !domain) return;
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
+  const H = canvas.clientHeight || parseFloat(canvas.style.height) || 220;
+  const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const values = rows.map(r => +r[valueKey]).filter(Number.isFinite);
+  if(values.length < 2) return;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  let toY;
+  if(logScale && !fixedScale) {
+    const positive = values.filter(v => v > 0);
+    if(positive.length < 2) return;
+    const logs = positive.map(v => Math.log(v));
+    const minV = Math.min(...logs) * .998;
+    const maxV = Math.max(...logs) * 1.002;
+    const span = maxV - minV || 1;
+    toY = v => PAD.top + PH - ((Math.log(v) - minV) / span) * PH;
+  } else {
+    const minV = fixedScale ? 0 : Math.min(...values) * .996;
+    const maxV = fixedScale ? 100 : Math.max(...values) * 1.004;
+    const span = maxV - minV || 1;
+    toY = v => PAD.top + PH - ((v - minV) / span) * PH;
+  }
+  signals.forEach(sig => {
+    const idx = firstIndexOnOrAfter(rows, sig.confirm_date);
+    const row = rows[idx];
+    const val = row ? +row[valueKey] : NaN;
+    if(!row || !Number.isFinite(val)) return;
+    const t = rowDateMs(row);
+    if(!Number.isFinite(t) || t < domain.startMs || t > domain.endMs) return;
+    const x = toX(row), y = toY(val);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(29,158,117,.18)"; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 4.2, 0, Math.PI * 2);
+    ctx.fillStyle = "#1D9E75"; ctx.fill();
+    ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(220,255,240,.85)"; ctx.stroke();
+    ctx.restore();
+  });
+}
+
 function drawBT20BreadthChart(rows, signals) {
   const c = mkCanvas("bt20Canvas", 220); if(!c) return;
   const { ctx, W, H } = c;
@@ -2927,7 +2985,7 @@ function updateBT20Signal() {
   document.getElementById("bt20Val").textContent = pct.toFixed(1)+"%";
 }
 
-function drawBT50BreadthChart(rows, signals) {
+function drawBT50BreadthChart(rows, signals, domain=null) {
   const c = mkCanvas("bt50Canvas", 260); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
@@ -2946,33 +3004,46 @@ function drawBT50BreadthChart(rows, signals) {
     ctx.fillText("50D weekly breadth history unavailable - run screener.py",W/2,H/2);
     return;
   }
-  const toX=i=>PAD.left+(i/(rows.length-1))*PW;
+  const xSpan = domain ? (domain.endMs - domain.startMs || 1) : null;
+  const toX=(row,i)=>domain ? PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW : PAD.left+(i/(rows.length-1))*PW;
+  const toDateX=ms=>PAD.left+((ms-domain.startMs)/(domain.endMs-domain.startMs||1))*PW;
   ctx.beginPath();
-  rows.forEach((r,i)=>i===0?ctx.moveTo(toX(i),toY(+r.value)):ctx.lineTo(toX(i),toY(+r.value)));
+  rows.forEach((r,i)=>i===0?ctx.moveTo(toX(r,i),toY(+r.value)):ctx.lineTo(toX(r,i),toY(+r.value)));
   ctx.strokeStyle="#5892d4";ctx.lineWidth=1.8;ctx.lineJoin="round";ctx.stroke();
   ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
   [0,25,50,75,100].forEach(v=>ctx.fillText(v+"%",PAD.left-5,toY(v)+3));
   ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
-  [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
-    const r=rows[i]; if(!r) return;
-    const d=new Date(r.date+"T12:00:00");
-    ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toX(i),H-PAD.bottom+14);
-  });
-  drawBT20SignalDots("bt50Canvas", rows, signals, "value", true);
+  if(domain) {
+    [0,.2,.4,.6,.8,1].forEach(p=>{
+      const ms=domain.startMs+(domain.endMs-domain.startMs)*p;
+      const d=new Date(ms);
+      ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toDateX(ms),H-PAD.bottom+14);
+    });
+  } else {
+    [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
+      const r=rows[i]; if(!r) return;
+      const d=new Date(r.date+"T12:00:00");
+      ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toX(r,i),H-PAD.bottom+14);
+    });
+  }
+  drawBTSignalDotsByDate("bt50Canvas", rows, signals, "value", true, false, domain);
 }
 
 function drawBT50Chart() {
   const md = window._marketData || {};
-  const priceRows = Array.isArray(md.bt50_sp500_history) ? md.bt50_sp500_history : [];
-  const breadthRows = Array.isArray(md.bt50_history) ? md.bt50_history : [];
+  const rawPriceRows = Array.isArray(md.bt50_sp500_history) ? md.bt50_sp500_history : [];
+  const rawBreadthRows = Array.isArray(md.bt50_history) ? md.bt50_history : [];
   const signals = Array.isArray(md.bt50_signals) ? md.bt50_signals : [];
+  const domain = commonDateDomainForRows([rawPriceRows, rawBreadthRows], "20Y");
+  const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
+  const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
   if(priceRows.length > 100) {
-    drawHistoryLineLog("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", []);
-    drawBT20SignalDots("bt50PriceCanvas", priceRows, signals, "close", false, true);
+    drawHistoryLineLogByDate("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", domain, []);
+    drawBTSignalDotsByDate("bt50PriceCanvas", priceRows, signals, "close", false, true, domain);
   } else {
     emptyCanvas("bt50PriceCanvas", 260, "S&P 500 20Y weekly history unavailable - run screener.py");
   }
-  drawBT50BreadthChart(breadthRows, signals);
+  drawBT50BreadthChart(breadthRows, signals, domain);
 }
 
 function updateBT50Signal() {
