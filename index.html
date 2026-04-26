@@ -888,7 +888,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="spxemaTitle">S&amp;P 500 — 20Y Weekly Log Chart · EMA 9 / EMA 21</span>
+          <span class="cg-chart-title" id="spxemaTitle">S&amp;P 500 — 20Y Daily Log Chart · Weekly EMA 9 / EMA 21</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span><span class="cg-leg-line" style="background:#5DCAA5"></span>EMA 9</span>
@@ -1657,6 +1657,12 @@ function drawSPXWeeklyEMA() {
   if(!rows.length) rows = weeklyFromDaily(marketHistory("sp500_history"));
   rows = rows.filter(d => d && d.date >= "2006-01-01" && Number.isFinite(+d.close) && +d.close > 0);
   rows = filterRowsByRange(rows, spxemaHistoryRange);
+  let dailyRows = (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history"))
+    .filter(d => d && d.date >= "2006-01-01" && Number.isFinite(+d.close) && +d.close > 0);
+  dailyRows = filterRowsByRange(dailyRows, spxemaHistoryRange);
+  if(dailyRows.length < rows.length) {
+    dailyRows = rows.map(r => ({ date: r.date, open: r.close, high: r.close, low: r.close, close: r.close }));
+  }
   if(rows.length < 30) {
     emptyCanvas("spxemaCanvas", 360, "S&P 500 weekly EMA history unavailable - run screener.py");
     ["spxemaLastCross","spxema9Val","spxema21Val"].forEach(id => {
@@ -1683,12 +1689,17 @@ function drawSPXWeeklyEMA() {
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 62, bottom: 30, left: 48 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  const values = closes.concat(ema9.filter(Number.isFinite), ema21.filter(Number.isFinite)).filter(v => v > 0);
+  const dailyCloses = dailyRows.map(r => +r.close);
+  const values = dailyCloses.concat(ema9.filter(Number.isFinite), ema21.filter(Number.isFinite)).filter(v => v > 0);
   const logs = values.map(Math.log);
   const minLog = Math.min(...logs) * .998;
   const maxLog = Math.max(...logs) * 1.002;
   const span = maxLog - minLog || 1;
-  const toX = i => PAD.left + (i / Math.max(rows.length - 1, 1)) * PW;
+  const startMs = new Date((dailyRows[0] || rows[0]).date + "T12:00:00").getTime();
+  const endMs = new Date((dailyRows[dailyRows.length - 1] || rows[rows.length - 1]).date + "T12:00:00").getTime();
+  const msSpan = Math.max(1, endMs - startMs);
+  const toXDate = date => PAD.left + ((new Date(date + "T12:00:00").getTime() - startMs) / msSpan) * PW;
+  const toX = i => toXDate(rows[i].date);
   const toY = v => PAD.top + PH - ((Math.log(v) - minLog) / span) * PH;
 
   ctx.clearRect(0, 0, W, H);
@@ -1726,12 +1737,12 @@ function drawSPXWeeklyEMA() {
   }
   ctx.setLineDash([]);
 
-  function drawLine(series, color, width=2, alpha="dd") {
+  function drawLine(series, color, width=2, alpha="dd", dateRows=rows) {
     ctx.beginPath();
     let started = false;
     series.forEach((v, i) => {
       if(!Number.isFinite(v) || v <= 0) return;
-      const x = toX(i), y = toY(v);
+      const x = toXDate(dateRows[i].date), y = toY(v);
       if(!started) { ctx.moveTo(x, y); started = true; }
       else ctx.lineTo(x, y);
     });
@@ -1741,16 +1752,40 @@ function drawSPXWeeklyEMA() {
     ctx.stroke();
   }
 
-  drawLine(closes, "#d8d8d8", 2.1, "e0");
+  const candleW = Math.max(1, Math.min(4, PW / Math.max(dailyRows.length, 1) * .72));
+  const hasOhlc = dailyRows.some(r => Number.isFinite(+r.open) && Number.isFinite(+r.high) && Number.isFinite(+r.low));
+  if(hasOhlc) {
+    dailyRows.forEach(r => {
+      const o = Number.isFinite(+r.open) ? +r.open : +r.close;
+      const h = Number.isFinite(+r.high) ? +r.high : Math.max(o, +r.close);
+      const l = Number.isFinite(+r.low) ? +r.low : Math.min(o, +r.close);
+      const cl = +r.close;
+      if(!Number.isFinite(o) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(cl)) return;
+      const x = toXDate(r.date);
+      const up = cl >= o;
+      ctx.strokeStyle = up ? "rgba(216,216,216,.42)" : "rgba(198,99,99,.34)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, toY(h));
+      ctx.lineTo(x, toY(l));
+      ctx.stroke();
+      ctx.fillStyle = up ? "rgba(216,216,216,.62)" : "rgba(198,99,99,.50)";
+      const y1 = toY(Math.max(o, cl));
+      const y2 = toY(Math.min(o, cl));
+      ctx.fillRect(x - candleW / 2, y1, candleW, Math.max(1, y2 - y1));
+    });
+  } else {
+    drawLine(dailyCloses, "#d8d8d8", 1.8, "d8", dailyRows);
+  }
   drawLine(ema21, "#9bbcff", 1.6, "bb");
   drawLine(ema9, "#5DCAA5", 1.7, "cc");
 
   ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
   [Math.exp(minLog), Math.exp((minLog + maxLog) / 2), Math.exp(maxLog)].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 5, toY(v) + 3));
   ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
-  [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
-    const d = rows[i] && rows[i].date ? new Date(rows[i].date + "T12:00:00") : null;
-    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", toX(i), H - PAD.bottom + 12);
+  [0, .2, .4, .6, .8, 1].map(p => Math.round((dailyRows.length - 1) * p)).forEach(i => {
+    const d = dailyRows[i] && dailyRows[i].date ? new Date(dailyRows[i].date + "T12:00:00") : null;
+    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", dailyRows[i] ? toXDate(dailyRows[i].date) : PAD.left, H - PAD.bottom + 12);
   });
   const last = crosses[crosses.length - 1];
   const lastCross = document.getElementById("spxemaLastCross");
@@ -1768,7 +1803,7 @@ function drawSPXWeeklyEMA() {
     desc.textContent = `${rows.length} weekly bars loaded from ${rows[0].date}. ${crosses.length} EMA crosses in ${spxemaHistoryRange} history. ${trend}`;
   }
   const title = document.getElementById("spxemaTitle");
-  if(title) title.textContent = `S&P 500 — ${spxemaHistoryRange} Weekly Log Chart · EMA 9 / EMA 21`;
+  if(title) title.textContent = `S&P 500 — ${spxemaHistoryRange} Daily Log Chart · Weekly EMA 9 / EMA 21`;
 }
 
 function calcRSIValues(closes, period=14) {
