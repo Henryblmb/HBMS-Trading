@@ -1279,8 +1279,8 @@ function showTab(id, el) {
 // ═══════════════════════════════════════════════
 async function loadData() {
   try {
-    const bustUrl = DATA_URL + "?t=" + Math.floor(Date.now()/300000);
-    const r = await fetch(bustUrl);
+    const bustUrl = DATA_URL + "?t=" + Date.now();
+    const r = await fetch(bustUrl, { cache: "no-store" });
     if(!r.ok) throw new Error("HTTP " + r.status);
     const json = await r.json();
     allStocks   = json.stocks   || [];
@@ -1689,7 +1689,7 @@ function drawSPXWeeklyEMA() {
   const desc = document.getElementById("spxemaDesc");
   if(desc) {
     const trend = ema9[ema9.length - 1] > ema21[ema21.length - 1] ? "9W EMA above 21W EMA: bullish weekly momentum regime." : "9W EMA below 21W EMA: bearish weekly momentum regime.";
-    desc.textContent = `${rows.length} weekly bars loaded. ${crosses.length} EMA crosses since Jan 2000. ${trend}`;
+    desc.textContent = `${rows.length} weekly bars loaded from ${rows[0].date}. ${crosses.length} EMA crosses since Jan 2000. ${trend}`;
   }
 }
 
