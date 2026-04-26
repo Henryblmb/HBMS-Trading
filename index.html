@@ -997,18 +997,18 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-oil">
       <div class="cg-header">
         <div class="cg-title">Oil Term Structure — Contango / Backwardation</div>
-        <div class="cg-sub">WTI crude oil history with S&amp;P 500 overlay, plus the available 10-year oil spread series from EODHD. Positive spread = WTI premium, negative spread = Brent premium. Critical for CADJPY and CAD pairs — Canada is a major oil exporter, Japan imports 95% of oil.</div>
+        <div class="cg-sub">CL1 vs. CL2 crude oil futures spread with S&amp;P 500 overlay. Negative = backwardation (front month premium, supply tightness). Positive = contango. Critical for CADJPY and CAD pairs — Canada is a major oil exporter, Japan imports 95% of oil.</div>
         <div class="cg-pill active-neut" id="oilPill"><span class="cg-dot"></span>LOADING OIL SPREAD</div>
       </div>
 
       <div class="signal-bar">
         <div>
-          <div class="signal-bar-label">WTI Crude</div>
+          <div class="signal-bar-label">CL1 Front Month</div>
           <div class="signal-bar-val" id="oilSpotVal" style="color:#EF9F27">—</div>
         </div>
         <div class="signal-bar-divider"></div>
         <div>
-          <div class="signal-bar-label">WTI − Brent</div>
+          <div class="signal-bar-label">CL1 − CL2</div>
           <div class="signal-bar-val" id="oilSpreadVal" style="color:#e05050">—</div>
         </div>
         <div class="signal-bar-divider"></div>
@@ -1017,14 +1017,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-bar-val" id="oilRegimeVal" style="font-size:13px;color:#e05050;padding-top:5px">—</div>
         </div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">10-year daily data loads from EODHD commodities. CL1/CL2 historical term-structure is not available from the current keys, so this page uses WTI price plus WTI-Brent spread.</div>
+        <div class="signal-bar-desc">12-month CL1/CL2 curve is built from the nearest liquid NYMEX crude futures contracts available via Yahoo. If contract data is missing, WTI-Brent remains the fallback.</div>
       </div>
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">WTI Crude + S&amp;P 500 — 10Y Daily</span>
+          <span class="cg-chart-title">CL1 Front Month + S&amp;P 500 — 12M Daily</span>
           <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#EF9F27"></span>WTI</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>CL1</span>
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
           </div>
         </div>
@@ -1033,10 +1033,10 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">WTI − Brent Spread — 10Y Daily</span>
+          <span class="cg-chart-title">CL1 − CL2 Spread — 12M Daily</span>
           <div class="cg-chart-legend">
-            <span style="color:#e05050">Negative = Brent Premium</span>
-            <span style="color:#1D9E75">Positive = WTI Premium</span>
+            <span style="color:#e05050">Negative = Backwardation</span>
+            <span style="color:#1D9E75">Positive = Contango</span>
           </div>
         </div>
         <canvas id="oilSpreadCanvas" style="width:100%;display:block"></canvas>
@@ -2032,8 +2032,9 @@ function drawOilPriceChart(rows) {
     ctx.fillStyle="rgba(255,255,255,.08)";ctx.font="10px sans-serif";ctx.textAlign="center";
     ctx.fillText("Oil history unavailable - run screener.py",W/2,H/2);return;
   }
-  const valid = rows.filter(r=>Number.isFinite(+r.wti));
-  const wtiVals = valid.map(r=>+r.wti);
+  const priceVal = r => Number.isFinite(+r.cl1) ? +r.cl1 : +r.wti;
+  const valid = rows.filter(r=>Number.isFinite(priceVal(r)));
+  const wtiVals = valid.map(r=>priceVal(r));
   const spVals = valid.map(r=>+r.sp500).filter(Number.isFinite);
   const minW = Math.min(...wtiVals)*.96, maxW = Math.max(...wtiVals)*1.04;
   const minS = spVals.length ? Math.min(...spVals)*.996 : 0, maxS = spVals.length ? Math.max(...spVals)*1.004 : 1;
@@ -2048,9 +2049,9 @@ function drawOilPriceChart(rows) {
     valid.forEach((r,i)=>{const v=+r.sp500;if(!Number.isFinite(v))return;const x=toX(i),y=toYS(v);if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);});
     ctx.strokeStyle="rgba(216,216,216,.72)";ctx.lineWidth=1.6;ctx.stroke();
   }
-  ctx.beginPath();valid.forEach((r,i)=>i===0?ctx.moveTo(toX(i),toYW(+r.wti)):ctx.lineTo(toX(i),toYW(+r.wti)));
+  ctx.beginPath();valid.forEach((r,i)=>i===0?ctx.moveTo(toX(i),toYW(priceVal(r))):ctx.lineTo(toX(i),toYW(priceVal(r))));
   ctx.strokeStyle="#EF9F27";ctx.lineWidth=1.9;ctx.lineJoin="round";ctx.stroke();
-  ctx.fillStyle="#EF9F27";ctx.font="bold 8px sans-serif";ctx.textAlign="left";ctx.fillText("WTI",PAD.left+PW+5,toYW(wtiVals[wtiVals.length-1])+3);
+  ctx.fillStyle="#EF9F27";ctx.font="bold 8px sans-serif";ctx.textAlign="left";ctx.fillText(valid[valid.length-1].cl1_symbol||"CL1",PAD.left+PW+5,toYW(wtiVals[wtiVals.length-1])+3);
   if(spVals.length){ctx.fillStyle="#d8d8d8";ctx.fillText("S&P",PAD.left+PW+5,toYS(valid[valid.length-1].sp500)+3);}
   ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
   [minW,(minW+maxW)/2,maxW].forEach(v=>ctx.fillText("$"+Math.round(v),PAD.left-5,toYW(v)+3));
@@ -2064,9 +2065,10 @@ function drawOilSpreadChart(rows) {
   const PAD = { top: 14, right: 68, bottom: 28, left: 46 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
-  const valid=(rows||[]).filter(r=>Number.isFinite(+r.wti_brent_spread));
+  const spreadVal = r => Number.isFinite(+r.cl1_cl2_spread) ? +r.cl1_cl2_spread : +r.wti_brent_spread;
+  const valid=(rows||[]).filter(r=>Number.isFinite(spreadVal(r)));
   if(valid.length<50){ctx.fillStyle="rgba(255,255,255,.08)";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("Oil spread unavailable - run screener.py",W/2,H/2);return;}
-  const data=valid.map(r=>+r.wti_brent_spread);
+  const data=valid.map(r=>spreadVal(r));
   const abs=Math.max(1,...data.map(v=>Math.abs(v)));
   const vMin=-abs*1.08,vMax=abs*1.08;
   const toX=i=>PAD.left+(i/(valid.length-1))*PW;
@@ -2083,7 +2085,7 @@ function drawOilSpreadChart(rows) {
   data.forEach((v,i)=>{const x=toX(i),y=toY(v);ctx.fillStyle=v>=0?"rgba(29,158,117,0.7)":"rgba(212,80,80,0.7)";
     if(v>=0)ctx.fillRect(x-bw/2,y,bw,z-y);else ctx.fillRect(x-bw/2,z,bw,y-z);});
 
-  [["WTI Premium","#1D9E75",vMax*0.7],["Brent Premium","#e05050",vMin*0.7]].forEach(([lbl,col,v])=>{
+  [["Contango","#1D9E75",vMax*0.7],["Backwardation","#e05050",vMin*0.7]].forEach(([lbl,col,v])=>{
     ctx.fillStyle=col;ctx.font="8px sans-serif";ctx.textAlign="left";ctx.fillText(lbl,PAD.left+PW+3,toY(v)+3);});
   ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
   [Math.round(vMin),0,Math.round(vMax)].forEach(v=>ctx.fillText(v,PAD.left-5,toY(v)+3));
@@ -2102,7 +2104,8 @@ function drawOilCharts() {
 function updateOilReadings() {
   const md = window._marketData || {};
   const st = md.oil_status || {};
-  const wti = st.current_wti, spread = st.current_spread;
+  const wti = st.current_cl1 != null ? st.current_cl1 : st.current_wti;
+  const spread = st.current_spread;
   const spotEl = document.getElementById("oilSpotVal");
   const spreadEl = document.getElementById("oilSpreadVal");
   const regimeEl = document.getElementById("oilRegimeVal");
@@ -2112,7 +2115,7 @@ function updateOilReadings() {
     spreadEl.textContent = (spread >= 0 ? "+" : "") + "$" + (+spread).toFixed(2);
     spreadEl.style.color = spread >= 0 ? "#1D9E75" : "#e05050";
   }
-  const label = spread == null ? "—" : spread >= 0 ? "WTI PREMIUM" : "BRENT PREMIUM";
+  const label = spread == null ? "—" : spread >= 0 ? "CONTANGO" : "BACKWARDATION";
   const col = spread == null ? "#888" : spread >= 0 ? "#1D9E75" : "#e05050";
   if(regimeEl){regimeEl.textContent = label; regimeEl.style.color = col;}
   if(pill && spread != null){
