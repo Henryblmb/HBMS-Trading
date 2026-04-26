@@ -462,6 +462,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Momentum</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
+      <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Term Structure</span><span class="nav-folder-arrow">›</span></div>
@@ -827,6 +828,53 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell neut"><div class="interp-title neut">Setup Phase — RSI &lt; 40</div><div class="interp-text">RSI oversold. Watch for recovery above 40 as first sign of momentum shift. Don't front-run — wait for 60 confirmation.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Historical Dates</div><div class="interp-text">Confirmed signals: Jul 2016 · Apr 2019 · Aug 2020 · Jun 2023 · Nov 2023 · Jun 2025 · Apr 2026. Each preceded a 10%+ rally within 3 months.</div></div>
         <div class="interp-cell bull" id="spxrsiForwardStats"><div class="interp-title bull">Forward Performance</div><div class="interp-text">Waiting for S&amp;P signal data.</div></div>
+      </div>
+    </div>
+
+    <!-- SPX 9/21 WEEKLY EMA -->
+    <div class="panel cg-page" id="tab-cg-spxema">
+      <div class="cg-header">
+        <div class="cg-title">SPX 9/21 Weekly EMA — Momentum Cross</div>
+        <div class="cg-sub">S&amp;P 500 weekly chart from January 2000 with 9-week and 21-week EMAs. Green vertical marks show bullish 9 EMA crosses above 21 EMA; red marks show bearish crosses below.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">Last Cross</div>
+          <div class="signal-bar-val" id="spxemaLastCross" style="font-size:14px;color:#1D9E75;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">EMA 9</div>
+          <div class="signal-bar-val" id="spxema9Val" style="color:#5DCAA5">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">EMA 21</div>
+          <div class="signal-bar-val" id="spxema21Val" style="color:#9bbcff">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="spxemaDesc">Waiting for screener data.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">S&amp;P 500 — Weekly Log Chart · EMA 9 / EMA 21</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span><span class="cg-leg-line" style="background:#5DCAA5"></span>EMA 9</span>
+            <span><span class="cg-leg-line" style="background:#9bbcff"></span>EMA 21</span>
+            <span style="color:#1D9E75">| Bull Cross</span>
+            <span style="color:#e05050">| Bear Cross</span>
+          </div>
+        </div>
+        <canvas id="spxemaCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Bullish Cross</div><div class="interp-text">The 9-week EMA moves above the 21-week EMA. This marks improving intermediate momentum.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Bearish Cross</div><div class="interp-text">The 9-week EMA moves below the 21-week EMA. This marks weakening intermediate momentum.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Weekly Signal</div><div class="interp-text">Weekly smoothing filters daily noise. The marker is drawn on the confirmation week.</div></div>
       </div>
     </div>
 
@@ -1217,6 +1265,7 @@ function showTab(id, el) {
   // Charts / Graphs tab actions
   if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }, 60);
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
+  if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-sectornewhi") setTimeout(() => { drawPlaceholderChart("sectornhiSPXCanvas",180,"SPX","#050505"); drawSectorNHPlaceholder("xliNHCanvas","XLI"); drawSectorNHPlaceholder("xlkNHCanvas","XLK"); drawSectorNHPlaceholder("xlreNHCanvas","XLRE"); }, 60);
   if(id === "cg-ndbthrust") setTimeout(() => drawNDBThrust(), 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
@@ -1250,6 +1299,7 @@ async function loadData() {
     const activePanel = document.querySelector(".panel.active");
     if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
+    if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -1520,6 +1570,127 @@ function weeklyFromDaily(hist) {
     weeks.set(monday.toISOString().slice(0, 10), { date: p.date, close: +p.close });
   });
   return [...weeks.values()];
+}
+
+function emaSeries(values, span) {
+  const out = Array(values.length).fill(null);
+  if(!values.length) return out;
+  const k = 2 / (span + 1);
+  let ema = null;
+  for(let i = 0; i < values.length; i++) {
+    const v = +values[i];
+    if(!Number.isFinite(v)) continue;
+    ema = ema == null ? v : (v * k + ema * (1 - k));
+    out[i] = ema;
+  }
+  return out;
+}
+
+function drawSPXWeeklyEMA() {
+  const md = window._marketData || {};
+  let rows = Array.isArray(md.sp500_ema_weekly_history) ? md.sp500_ema_weekly_history : [];
+  if(!rows.length) rows = weeklyFromDaily(marketHistory("sp500_history"));
+  rows = rows.filter(d => d && d.date >= "2000-01-01" && Number.isFinite(+d.close) && +d.close > 0);
+  if(rows.length < 80) {
+    emptyCanvas("spxemaCanvas", 360, "S&P 500 weekly EMA history unavailable - run screener.py");
+    ["spxemaLastCross","spxema9Val","spxema21Val"].forEach(id => {
+      const el = document.getElementById(id); if(el) el.textContent = "—";
+    });
+    const desc = document.getElementById("spxemaDesc");
+    if(desc) desc.textContent = "Run screener.py to load S&P weekly data from January 2000.";
+    return;
+  }
+
+  const closes = rows.map(r => +r.close);
+  const ema9 = emaSeries(closes, 9);
+  const ema21 = emaSeries(closes, 21);
+  const crosses = [];
+  for(let i = 1; i < rows.length; i++) {
+    if(ema9[i - 1] == null || ema21[i - 1] == null || ema9[i] == null || ema21[i] == null) continue;
+    const prev = ema9[i - 1] - ema21[i - 1];
+    const curr = ema9[i] - ema21[i];
+    if(prev <= 0 && curr > 0) crosses.push({ i, type: "bull", date: rows[i].date, close: closes[i] });
+    if(prev >= 0 && curr < 0) crosses.push({ i, type: "bear", date: rows[i].date, close: closes[i] });
+  }
+
+  const c = mkCanvas("spxemaCanvas", 360); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 62, bottom: 30, left: 48 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const values = closes.concat(ema9.filter(Number.isFinite), ema21.filter(Number.isFinite)).filter(v => v > 0);
+  const logs = values.map(Math.log);
+  const minLog = Math.min(...logs) * .998;
+  const maxLog = Math.max(...logs) * 1.002;
+  const span = maxLog - minLog || 1;
+  const toX = i => PAD.left + (i / Math.max(rows.length - 1, 1)) * PW;
+  const toY = v => PAD.top + PH - ((Math.log(v) - minLog) / span) * PH;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++) {
+    const y = PAD.top + (PH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  function drawLine(series, color, width=2, alpha="dd") {
+    ctx.beginPath();
+    let started = false;
+    series.forEach((v, i) => {
+      if(!Number.isFinite(v) || v <= 0) return;
+      const x = toX(i), y = toY(v);
+      if(!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color + alpha;
+    ctx.lineWidth = width;
+    ctx.lineJoin = "round";
+    ctx.stroke();
+  }
+
+  drawLine(closes, "#d8d8d8", 2.1, "e0");
+  drawLine(ema21, "#9bbcff", 1.6, "bb");
+  drawLine(ema9, "#5DCAA5", 1.7, "cc");
+
+  crosses.forEach(cross => {
+    const x = toX(cross.i);
+    const y = toY(cross.close);
+    const color = cross.type === "bull" ? "#1D9E75" : "#e05050";
+    ctx.beginPath();
+    ctx.moveTo(x, Math.max(PAD.top, y - 18));
+    ctx.lineTo(x, Math.min(PAD.top + PH, y + 18));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
+
+  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [Math.exp(minLog), Math.exp((minLog + maxLog) / 2), Math.exp(maxLog)].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 5, toY(v) + 3));
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
+    const d = rows[i] && rows[i].date ? new Date(rows[i].date + "T12:00:00") : null;
+    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", toX(i), H - PAD.bottom + 12);
+  });
+  const last = crosses[crosses.length - 1];
+  const lastCross = document.getElementById("spxemaLastCross");
+  if(lastCross) {
+    lastCross.textContent = last ? `${last.type === "bull" ? "Bullish" : "Bearish"} · ${last.date}` : "—";
+    lastCross.style.color = last && last.type === "bear" ? "#e05050" : "#1D9E75";
+  }
+  const ema9El = document.getElementById("spxema9Val");
+  const ema21El = document.getElementById("spxema21Val");
+  if(ema9El) ema9El.textContent = ema9[ema9.length - 1] ? ema9[ema9.length - 1].toFixed(1) : "—";
+  if(ema21El) ema21El.textContent = ema21[ema21.length - 1] ? ema21[ema21.length - 1].toFixed(1) : "—";
+  const desc = document.getElementById("spxemaDesc");
+  if(desc) {
+    const trend = ema9[ema9.length - 1] > ema21[ema21.length - 1] ? "9W EMA above 21W EMA: bullish weekly momentum regime." : "9W EMA below 21W EMA: bearish weekly momentum regime.";
+    desc.textContent = `${rows.length} weekly bars loaded. ${crosses.length} EMA crosses since Jan 2000. ${trend}`;
+  }
 }
 
 function calcRSIValues(closes, period=14) {
