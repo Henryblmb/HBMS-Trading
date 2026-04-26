@@ -380,6 +380,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-bt20 .signal-bar-divider{background:#202020!important}
 #tab-cg-bt20 .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-bt20 .interp-text{color:#a8a8a8!important}
+#tab-cg-oil .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-oil .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-oil .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-oil .signal-bar-divider{background:#202020!important}
+#tab-cg-oil .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-oil .interp-text{color:#a8a8a8!important}
 .interp-title.bull{color:var(--sig-green)!important}.interp-title.bear{color:var(--sig-red)!important}.interp-title.neut{color:var(--sig-amber)!important}.interp-title.info{color:var(--sig-blue)!important}
 #tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:first-child{background:var(--sig-green-bg)!important;border-color:#285f4d!important}
 #tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:nth-child(2){background:var(--sig-red-bg)!important;border-color:#5a2525!important}
@@ -1026,7 +1032,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">Oil Term Structure — Contango / Backwardation</div>
         <div class="cg-sub">CL2 − CL1 crude oil futures spread with S&amp;P 500 overlay. Negative = backwardation (front month premium, supply tightness). Positive = contango. Critical for CADJPY and CAD pairs — Canada is a major oil exporter, Japan imports 95% of oil.</div>
-        <div class="cg-pill active-neut" id="oilPill"><span class="cg-dot"></span>LOADING OIL SPREAD</div>
       </div>
 
       <div class="signal-bar">
@@ -1071,7 +1076,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
 
       <div class="interp-grid">
-        <div class="interp-cell bear"><div class="interp-title bear">Backwardation (Spread &lt;0)</div><div class="interp-text">Supply shortage signal. Front month premium = immediate demand exceeds supply. Bullish WTI. Bullish CAD (oil export revenues rise). Bearish JPY (import bill grows). Long CADJPY.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Contango (Spread &gt;0)</div><div class="interp-text">Normal/oversupply regime. Futures trade at premium to spot. Bearish WTI price direction. Bearish CAD, supportive JPY. Watch for CADJPY reversal on Hormuz opening.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Near-Zero Spread</div><div class="interp-text">Market in equilibrium. Transition zone — watch for breakout. Near-zero spread often precedes a move to one extreme or the other within 2–4 weeks.</div></div>
         <div class="interp-cell info"><div class="interp-title info">FX Impact (Apr 2026)</div><div class="interp-text">Hormuz closure → extreme backwardation → CAD strongest G10 since Feb 28. CADJPY up 12% past 12M. EIA peak forecast $115/b Q2 = further CADJPY upside if sustained.</div></div>
@@ -2150,7 +2154,6 @@ function updateOilReadings() {
   const spotEl = document.getElementById("oilSpotVal");
   const spreadEl = document.getElementById("oilSpreadVal");
   const regimeEl = document.getElementById("oilRegimeVal");
-  const pill = document.getElementById("oilPill");
   if(spotEl && wti != null) spotEl.textContent = "$" + (+wti).toFixed(2);
   if(spreadEl && spread != null) {
     spreadEl.textContent = (spread >= 0 ? "+" : "") + "$" + (+spread).toFixed(2);
@@ -2159,10 +2162,6 @@ function updateOilReadings() {
   const label = spread == null ? "—" : spread >= 0 ? "CONTANGO" : "BACKWARDATION";
   const col = spread == null ? "#888" : spread >= 0 ? "#1D9E75" : "#e05050";
   if(regimeEl){regimeEl.textContent = label; regimeEl.style.color = col;}
-  if(pill && spread != null){
-    pill.className = spread >= 0 ? "cg-pill active-bull" : "cg-pill active-bear";
-    pill.innerHTML = `<span class="cg-dot"></span>${label}`;
-  }
 }
 
 function mirrorVIXCharts() {
