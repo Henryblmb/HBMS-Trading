@@ -483,6 +483,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
+      <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Term Structure</span><span class="nav-folder-arrow">›</span></div>
@@ -1031,6 +1032,60 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- RETURN HISTOGRAM -->
+    <div class="panel cg-page" id="tab-cg-rethist">
+      <div class="cg-header">
+        <div class="cg-title">Return Histogram — Sector &amp; ETF Momentum Distribution</div>
+        <div class="cg-sub">Monthly return distribution for NYSE Arca sector ETFs, index ETFs, semiconductor proxies and industry groups. Histogram bars show return frequency, the amber curve approximates the normal distribution, and the lower panel shows the monthly return series versus ±2σ bands.</div>
+      </div>
+
+      <div class="filter-row" style="margin-bottom:.9rem">
+        <label>Ticker</label>
+        <select id="retHistTicker" onchange="renderReturnHistogram()"></select>
+        <label>Range</label>
+        <select id="retHistRange" onchange="renderReturnHistogram()"><option value="max">Max</option><option value="15">15Y</option><option value="10">10Y</option><option value="5">5Y</option></select>
+        <label>Bins</label>
+        <select id="retHistBins" onchange="renderReturnHistogram()"><option value="50">50</option><option value="30">30</option><option value="75">75</option></select>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Mean</div><div class="signal-bar-val" id="retHistMean" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Sigma</div><div class="signal-bar-val" id="retHistSigma" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Last Month</div><div class="signal-bar-val" id="retHistLast" style="color:#555">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="retHistDesc">Run screener.py to load return histogram data.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="retHistTitle">Monthly Return Histogram</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#5892d4"></span>Occurrences</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>Normal curve</span>
+            <span style="color:#1D9E75">+2σ</span>
+            <span style="color:#e05050">−2σ</span>
+          </div>
+        </div>
+        <canvas id="retHistCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="retSeriesTitle">Monthly Return Series</span>
+          <div class="cg-chart-legend"><span style="color:#1D9E75">Positive</span><span style="color:#e05050">Negative</span></div>
+        </div>
+        <canvas id="retSeriesCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Right Tail</div><div class="interp-text">A monthly return above +2σ is a high-momentum outlier. It often signals strong trend pressure, but can also mark short-term exhaustion after a vertical move.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Distribution Center</div><div class="interp-text">Mean and sigma show the typical monthly return profile for the selected ETF or index. Wide sigma means the asset has a more volatile momentum regime.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Left Tail</div><div class="interp-text">A return below −2σ marks stress. For cyclical sectors it can be capitulation; for defensive sectors it can signal regime deterioration.</div></div>
+      </div>
+    </div>
+
     <!-- SECTOR NEW HIGHS -->
     <div class="panel cg-page" id="tab-cg-sectornewhi">
       <div class="cg-header">
@@ -1419,6 +1474,7 @@ function showTab(id, el) {
   if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }, 60);
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
+  if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-sectornewhi") setTimeout(() => { drawPlaceholderChart("sectornhiSPXCanvas",180,"SPX","#050505"); drawSectorNHPlaceholder("xliNHCanvas","XLI"); drawSectorNHPlaceholder("xlkNHCanvas","XLK"); drawSectorNHPlaceholder("xlreNHCanvas","XLRE"); }, 60);
   if(id === "cg-ndbthrust") setTimeout(() => drawNDBThrust(), 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
@@ -1455,6 +1511,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
+    if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
   } catch(e) {
@@ -1488,6 +1545,161 @@ function emptyCanvas(canvasId, h, msg) {
   ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "#555"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
   ctx.fillText(msg, W / 2, H / 2);
+}
+
+
+function returnHistogramData() {
+  const md = window._marketData || {};
+  return md.return_histograms || {};
+}
+
+function ensureReturnHistogramOptions() {
+  const sel = document.getElementById("retHistTicker");
+  if(!sel) return null;
+  const data = returnHistogramData();
+  const keys = Object.keys(data).sort((a,b)=>{
+    const ga=(data[a].group||"").localeCompare(data[b].group||"");
+    return ga || a.localeCompare(b);
+  });
+  const prev = sel.value || "SOXX";
+  const sig = keys.join("|");
+  if(sel.dataset.sig !== sig) {
+    sel.innerHTML = keys.map(k => `<option value="${k}">${k} — ${data[k].name || k}</option>`).join("");
+    sel.dataset.sig = sig;
+    if(keys.includes(prev)) sel.value = prev;
+    else if(keys.includes("SOXX")) sel.value = "SOXX";
+    else if(keys.length) sel.value = keys[0];
+  }
+  return sel.value;
+}
+
+function filteredReturnRows(item) {
+  const rows = (item && item.returns || []).filter(r => r.date && Number.isFinite(+r.ret));
+  const range = document.getElementById("retHistRange")?.value || "max";
+  if(range === "max" || !rows.length) return rows;
+  const years = parseInt(range, 10);
+  const last = new Date(rows[rows.length - 1].date + "T12:00:00");
+  const cutoff = new Date(last); cutoff.setFullYear(cutoff.getFullYear() - years);
+  return rows.filter(r => new Date(r.date + "T12:00:00") >= cutoff);
+}
+
+function retStats(vals) {
+  const n = vals.length;
+  if(!n) return { mean:null, sigma:null };
+  const mean = vals.reduce((a,b)=>a+b,0) / n;
+  const variance = n > 1 ? vals.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / (n - 1) : 0;
+  return { mean, sigma: Math.sqrt(variance) };
+}
+
+function normalPdf(x, mean, sigma) {
+  if(!sigma) return 0;
+  return Math.exp(-0.5 * Math.pow((x - mean) / sigma, 2)) / (sigma * Math.sqrt(2 * Math.PI));
+}
+
+function renderReturnHistogram() {
+  const ticker = ensureReturnHistogramOptions();
+  const data = returnHistogramData();
+  const item = ticker ? data[ticker] : null;
+  if(!item) {
+    emptyCanvas("retHistCanvas", 300, "Return histogram data unavailable - run screener.py");
+    emptyCanvas("retSeriesCanvas", 170, "Return series unavailable - run screener.py");
+    return;
+  }
+  const rows = filteredReturnRows(item);
+  const vals = rows.map(r => +r.ret).filter(Number.isFinite);
+  const stats = retStats(vals);
+  if(vals.length < 12 || stats.mean == null) {
+    emptyCanvas("retHistCanvas", 300, "Not enough monthly returns");
+    emptyCanvas("retSeriesCanvas", 170, "Not enough monthly returns");
+    return;
+  }
+  const last = vals[vals.length - 1];
+  const plus2 = stats.mean + 2 * stats.sigma;
+  const minus2 = stats.mean - 2 * stats.sigma;
+  const col = last >= plus2 ? "#1D9E75" : last <= minus2 ? "#e05050" : last >= 0 ? "#5DCAA5" : "#EF9F27";
+  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  set("retHistMean", stats.mean.toFixed(2) + "%", "#d8d8d8");
+  set("retHistSigma", stats.sigma.toFixed(2) + "%", "#d8d8d8");
+  set("retHistLast", (last >= 0 ? "+" : "") + last.toFixed(2) + "%", col);
+  set("retHistDesc", `${ticker} · ${item.name || ticker} · ${rows[0].date.slice(0,7)} to ${rows[rows.length-1].date.slice(0,7)} · ${vals.length} observations · last price ${item.last_price != null ? item.last_price.toLocaleString("en-US", {maximumFractionDigits:2}) : "—"}`);
+  set("retHistTitle", `${ticker} Monthly Return Histogram`);
+  set("retSeriesTitle", `${ticker} Monthly Return Series`);
+  drawReturnHistogramChart(vals, stats.mean, stats.sigma, plus2, minus2);
+  drawReturnSeriesChart(rows, stats.mean, plus2, minus2);
+}
+
+function drawReturnHistogramChart(vals, mean, sigma, plus2, minus2) {
+  const binCount = parseInt(document.getElementById("retHistBins")?.value || "50", 10);
+  const c = mkCanvas("retHistCanvas", 300); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 52, bottom: 42, left: 48 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  let min = Math.min(...vals, minus2), max = Math.max(...vals, plus2);
+  const pad = Math.max((max - min) * .08, 1);
+  min -= pad; max += pad;
+  const width = (max - min) / binCount;
+  const bins = Array.from({length:binCount},()=>0);
+  vals.forEach(v => { let i = Math.floor((v - min) / width); i = Math.max(0, Math.min(binCount - 1, i)); bins[i]++; });
+  const maxCnt = Math.max(1, ...bins);
+  const toX = v => PAD.left + ((v - min) / (max - min)) * PW;
+  const toY = c => PAD.top + PH - (c / maxCnt) * PH;
+  ctx.strokeStyle="rgba(255,255,255,.05)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ const y=PAD.top + i/4*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  bins.forEach((cnt,i)=>{
+    const x = PAD.left + i / binCount * PW;
+    const bw = Math.max(1, PW / binCount - 2);
+    const y = toY(cnt);
+    const grad = ctx.createLinearGradient(0, y, 0, PAD.top + PH);
+    grad.addColorStop(0, "#8fd7f7"); grad.addColorStop(.55, "#2f94e5"); grad.addColorStop(1, "#1764b5");
+    ctx.fillStyle = grad; ctx.fillRect(x + 1, y, bw, PAD.top + PH - y);
+    ctx.strokeStyle="rgba(220,245,255,.45)"; ctx.strokeRect(x + 1, y, bw, PAD.top + PH - y);
+  });
+  if(sigma > 0) {
+    const scale = vals.length * width;
+    ctx.beginPath();
+    for(let i=0;i<=220;i++){
+      const xVal = min + (i / 220) * (max - min);
+      const yVal = normalPdf(xVal, mean, sigma) * scale;
+      const x = toX(xVal), y = toY(yVal);
+      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle="#EF9F27"; ctx.lineWidth=2.2; ctx.stroke();
+  }
+  [[mean,"#EF9F27","Mean"],[plus2,"#1D9E75","+2σ"],[minus2,"#e05050","−2σ"]].forEach(([v,color,label])=>{
+    const x = toX(v); ctx.strokeStyle=color; ctx.lineWidth=1.2; ctx.setLineDash(label === "Mean" ? [] : [5,4]);
+    ctx.beginPath(); ctx.moveTo(x,PAD.top); ctx.lineTo(x,PAD.top+PH); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=color; ctx.font="8px sans-serif"; ctx.textAlign="center"; ctx.fillText(label, x, PAD.top + 10);
+  });
+  ctx.fillStyle="#777"; ctx.font="9px sans-serif"; ctx.textAlign="right";
+  [0, Math.round(maxCnt/2), maxCnt].forEach(v => ctx.fillText(v, PAD.left - 6, toY(v) + 3));
+  ctx.textAlign="center";
+  for(let i=0;i<=6;i++){ const v=min+i/6*(max-min); ctx.fillText(v.toFixed(1)+"%", toX(v), H - PAD.bottom + 17); }
+  ctx.fillStyle="#8a8a8a"; ctx.font="10px sans-serif"; ctx.fillText("Monthly Price Return (%)", PAD.left + PW/2, H - 8);
+}
+
+function drawReturnSeriesChart(rows, mean, plus2, minus2) {
+  const c = mkCanvas("retSeriesCanvas", 170); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 48, bottom: 28, left: 48 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const vals = rows.map(r => +r.ret);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  const abs = Math.max(5, Math.abs(Math.min(...vals, minus2)), Math.abs(Math.max(...vals, plus2)));
+  const min = -abs * 1.1, max = abs * 1.1;
+  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - min) / (max - min)) * PH;
+  const zero = toY(0);
+  ctx.strokeStyle="rgba(255,255,255,.10)"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD.left,zero); ctx.lineTo(PAD.left+PW,zero); ctx.stroke();
+  [[plus2,"#1D9E75"],[minus2,"#e05050"]].forEach(([v,color])=>{ const y=toY(v); ctx.strokeStyle=color; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]); });
+  const bw = Math.max(1, PW / rows.length - .7);
+  vals.forEach((v,i)=>{ const x=toX(i), y=toY(v); ctx.fillStyle = v >= 0 ? "#21d947" : "#ff2f2f"; if(v>=0) ctx.fillRect(x-bw/2, y, bw, zero-y); else ctx.fillRect(x-bw/2, zero, bw, y-zero); });
+  ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [minus2,0,plus2].forEach(v => ctx.fillText(v.toFixed(1)+"%", PAD.left-5, toY(v)+3));
+  const years = [];
+  rows.forEach((r,i)=>{ const y = r.date.slice(0,4); if(!years.includes(y) && (i === 0 || rows[i-1].date.slice(0,4) !== y)) years.push(y); });
+  ctx.textAlign="center"; ctx.fillStyle="#444"; ctx.font="8px sans-serif";
+  rows.forEach((r,i)=>{ if(r.date.slice(5,7)==="01" || i===0){ ctx.fillText("'"+r.date.slice(2,4), toX(i), H-PAD.bottom+14); } });
 }
 
 function drawSPXMini(canvasId, chgId) {
