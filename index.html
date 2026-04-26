@@ -3433,15 +3433,37 @@ function drawGoldSilverRatio() {
     unavailable: ["—", "#777"],
   };
   const statusForZ = z => !Number.isFinite(z) ? "unavailable" : z >= 2 ? "plus2_extreme" : z >= 1 ? "plus1_high" : z <= -2 ? "minus2_extreme" : z <= -1 ? "minus1_low" : "mean_zone";
-  const staticMean = +st.static_mean;
-  const staticSigma = +st.static_sigma;
+  const ratioValues = rows.map(r => +r.ratio).filter(Number.isFinite);
+  const avg = vals => vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : NaN;
+  const std = vals => {
+    if(vals.length < 2) return NaN;
+    const m = avg(vals);
+    return Math.sqrt(vals.reduce((a,b)=>a+Math.pow(b-m,2),0) / (vals.length - 1));
+  };
+  const rollingWindow = +(st.rolling_window || 156);
+  const staticMean = Number.isFinite(+st.static_mean) ? +st.static_mean : Number.isFinite(+st.mean) ? +st.mean : avg(ratioValues);
+  const staticSigma = Number.isFinite(+st.static_sigma) ? +st.static_sigma : Number.isFinite(+st.sigma) ? +st.sigma : std(ratioValues);
+  const rollingCache = new Map();
+  rows.forEach((r,i)=>{
+    const suppliedMean = +r.rolling_mean;
+    const suppliedSigma = +r.rolling_sigma;
+    if(Number.isFinite(suppliedMean) && Number.isFinite(suppliedSigma)) {
+      rollingCache.set(i, { mean: suppliedMean, sigma: suppliedSigma });
+      return;
+    }
+    const start = Math.max(0, i - rollingWindow + 1);
+    const sample = rows.slice(start, i + 1).map(x => +x.ratio).filter(Number.isFinite);
+    rollingCache.set(i, { mean: sample.length >= 26 ? avg(sample) : NaN, sigma: sample.length >= 26 ? std(sample) : NaN });
+  });
   const getStats = r => {
     const ratio = +r.ratio;
-    const mean = isRolling ? +r.rolling_mean : staticMean;
-    const sigma = isRolling ? +r.rolling_sigma : staticSigma;
+    const roll = rollingCache.get(r._idx);
+    const mean = isRolling ? roll?.mean : staticMean;
+    const sigma = isRolling ? roll?.sigma : staticSigma;
     const z = Number.isFinite(mean) && Number.isFinite(sigma) && sigma ? (ratio - mean) / sigma : NaN;
     return { ratio, mean, sigma, z, status: statusForZ(z), signal: z >= 2 ? "plus2" : z <= -2 ? "minus2" : null };
   };
+  rows.forEach((r,i)=>{ r._idx = i; });
   const lastRow = rows[rows.length - 1] || null;
   const lastStats = lastRow ? getStats(lastRow) : { z: NaN, status:"unavailable" };
   if(ratioEl && st.current_ratio != null) ratioEl.textContent = (+st.current_ratio).toFixed(1);
@@ -3454,7 +3476,7 @@ function drawGoldSilverRatio() {
   const [zoneTxt, zoneCol] = zoneMap[lastStats.status] || zoneMap.unavailable;
   if(regimeEl){ regimeEl.textContent = zoneTxt; regimeEl.style.color = zoneCol; }
   if(descEl && rows.length) {
-    const win = isRolling ? `${st.rolling_window || 156}W rolling` : "full-history static";
+    const win = isRolling ? `${rollingWindow}W rolling` : "full-history static";
     descEl.textContent = `${rows[0].date.slice(0,4)} to ${rows[rows.length-1].date.slice(0,7)} · ${rows.length} weekly observations · ${win} · Mean ${Number.isFinite(lastStats.mean) ? lastStats.mean.toFixed(1) : "—"} · σ ${Number.isFinite(lastStats.sigma) ? lastStats.sigma.toFixed(1) : "—"}`;
   }
 
