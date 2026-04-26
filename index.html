@@ -227,10 +227,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .season-table th:first-child,.season-table td:first-child{width:54px;color:#777;background:#101010;font-weight:540}
 .season-cell{font-weight:600;color:#d8d8d8;transition:filter .12s,transform .12s}
 .season-cell:hover{filter:brightness(1.35);transform:scale(1.02)}
-.season-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;margin-top:.75rem}
-.season-month-card{border:1px solid var(--line);background:var(--surface);padding:9px 11px}
+.season-summary{display:grid;grid-template-columns:repeat(12,minmax(118px,1fr));gap:5px;margin:.15rem 0 .75rem;overflow-x:auto;padding-bottom:2px}
+.season-month-card{border:1px solid var(--line);background:var(--surface);padding:8px 9px;min-width:118px}
 .season-month-name{font-size:9px;color:#777;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
-.season-month-row{display:flex;justify-content:space-between;font-size:10px;color:#777;padding:2px 0;border-top:1px solid rgba(255,255,255,.04)}
+.season-month-row{display:flex;justify-content:space-between;font-size:9.5px;color:#777;padding:2px 0;border-top:1px solid rgba(255,255,255,.04)}
 .season-month-row:first-of-type{border-top:0}
 .season-month-row b{font-weight:600;color:#d8d8d8}
 
@@ -734,10 +734,10 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="signal-bar-divider"></div>
         <div class="signal-bar-desc" id="seasonDesc">Monthly return seasonality loads from the existing return histogram data.</div>
       </div>
+      <div class="season-summary" id="seasonSummary"></div>
       <div class="season-grid-wrap">
         <table class="season-table" id="seasonTable"></table>
       </div>
-      <div class="season-summary" id="seasonSummary"></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════
