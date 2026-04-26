@@ -1049,8 +1049,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-bar-label">Regime</div>
           <div class="signal-bar-val" id="oilRegimeVal" style="font-size:13px;color:#e05050;padding-top:5px">—</div>
         </div>
-        <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">12-month CL1/CL2 curve is built from the nearest liquid NYMEX crude futures contracts available via Yahoo. If contract data is missing, WTI-Brent remains the fallback.</div>
       </div>
 
       <div class="cg-chart-box">
@@ -2114,8 +2112,11 @@ function drawOilSpreadChart(rows) {
   const valid=(rows||[]).filter(r=>Number.isFinite(spreadVal(r)));
   if(valid.length<50){ctx.fillStyle="rgba(255,255,255,.08)";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("Oil spread unavailable - run screener.py",W/2,H/2);return;}
   const data=valid.map(r=>spreadVal(r));
-  const abs=Math.max(1,...data.map(v=>Math.abs(v)));
-  const vMin=-abs*1.08,vMax=abs*1.08;
+  const absVals=data.map(v=>Math.abs(v)).sort((a,b)=>a-b);
+  const q=(p)=>absVals[Math.max(0,Math.min(absVals.length-1,Math.floor((absVals.length-1)*p)))]||0;
+  const visualAbs=Math.max(0.35, Math.min(Math.max(...absVals), q(0.85)*1.6));
+  const vMin=-visualAbs*1.08,vMax=visualAbs*1.08;
+  const clamp=v=>Math.max(vMin,Math.min(vMax,v));
   const toX=i=>PAD.left+(i/(valid.length-1))*PW;
   const toY=v=>PAD.top+PH-((v-vMin)/(vMax-vMin))*PH;
   const z=toY(0);
@@ -2127,13 +2128,15 @@ function drawOilSpreadChart(rows) {
   ctx.fillStyle="#444";ctx.font="8px sans-serif";ctx.textAlign="right";ctx.fillText("0",PAD.left-4,z+3);
 
   const bw=Math.max(1,PW/valid.length-0.4);
-  data.forEach((v,i)=>{const x=toX(i),y=toY(v);ctx.fillStyle=v>=0?"rgba(29,158,117,0.7)":"rgba(212,80,80,0.7)";
-    if(v>=0)ctx.fillRect(x-bw/2,y,bw,z-y);else ctx.fillRect(x-bw/2,z,bw,y-z);});
+  data.forEach((v,i)=>{const x=toX(i),cv=clamp(v),y=toY(cv),clipped=Math.abs(v)>visualAbs;ctx.fillStyle=v>=0?(clipped?"rgba(29,158,117,0.95)":"rgba(29,158,117,0.75)"):(clipped?"rgba(212,80,80,0.95)":"rgba(212,80,80,0.75)");
+    if(v>=0)ctx.fillRect(x-bw/2,y,bw,z-y);else ctx.fillRect(x-bw/2,z,bw,y-z);
+    if(clipped){ctx.fillStyle=v>=0?"#1D9E75":"#e05050";ctx.fillRect(x-bw/2,v>=0?PAD.top+2:PAD.top+PH-4,bw,2);}
+  });
 
   [["Contango","#1D9E75",vMax*0.7],["Backwardation","#e05050",vMin*0.7]].forEach(([lbl,col,v])=>{
     ctx.fillStyle=col;ctx.font="8px sans-serif";ctx.textAlign="left";ctx.fillText(lbl,PAD.left+PW+3,toY(v)+3);});
   ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
-  [Math.round(vMin),0,Math.round(vMax)].forEach(v=>ctx.fillText(v,PAD.left-5,toY(v)+3));
+  [[vMin,"≤"+vMin.toFixed(1)],[0,"0"],[vMax,"≥"+vMax.toFixed(1)]].forEach(([v,lbl])=>ctx.fillText(lbl,PAD.left-5,toY(v)+3));
   ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
   [0,.2,.4,.6,.8,1].map(p=>Math.round((valid.length-1)*p)).forEach(i=>{const r=valid[i];if(!r)return;const d=new Date(r.date+"T12:00:00");ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+14);});
 }
