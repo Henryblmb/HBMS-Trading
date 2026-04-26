@@ -3479,13 +3479,14 @@ function drawGoldSilverRatio() {
   }
   const [zoneTxt, zoneCol] = zoneMap[lastStats.status] || zoneMap.unavailable;
   if(regimeEl){ regimeEl.textContent = zoneTxt; regimeEl.style.color = zoneCol; }
-  if(descEl && rows.length) {
+  const displayRows = isRolling ? rows.filter(r => r.date >= "2004-01-01") : rows;
+  if(descEl && displayRows.length) {
     const win = isRolling ? `${rollingWindow}W rolling` : "full-history static";
-    const firstBand = isRolling ? (rows.find((_, i) => {
-      const r = rollingCache.get(i);
-      return r && Number.isFinite(r.mean) && Number.isFinite(r.sigma);
-    })?.date?.slice(0,7)) : rows[0]?.date?.slice(0,7);
-    descEl.textContent = `${firstBand || rows[0].date.slice(0,4)} to ${rows[rows.length-1].date.slice(0,7)} · ${rows.length} weekly observations · ${win} · Mean ${Number.isFinite(lastStats.mean) ? lastStats.mean.toFixed(1) : "—"} · σ ${Number.isFinite(lastStats.sigma) ? lastStats.sigma.toFixed(1) : "—"}`;
+    const firstBand = isRolling ? (displayRows.find(r => {
+      const cached = rollingCache.get(r._idx);
+      return cached && Number.isFinite(cached.mean) && Number.isFinite(cached.sigma);
+    })?.date?.slice(0,7)) : displayRows[0]?.date?.slice(0,7);
+    descEl.textContent = `${firstBand || displayRows[0].date.slice(0,4)} to ${displayRows[displayRows.length-1].date.slice(0,7)} · ${displayRows.length} weekly observations · ${win} · Mean ${Number.isFinite(lastStats.mean) ? lastStats.mean.toFixed(1) : "—"} · σ ${Number.isFinite(lastStats.sigma) ? lastStats.sigma.toFixed(1) : "—"}`;
   }
 
   const c = mkCanvas("goldSilverCanvas", 360); if(!c) return;
@@ -3493,16 +3494,20 @@ function drawGoldSilverRatio() {
   const PAD = { top: 16, right: 70, bottom: 30, left: 46 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
-  if(rows.length < 80) {
+  if(displayRows.length < 80) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
     ctx.fillText("Gold/Silver ratio unavailable - run screener.py", W/2, H/2);
     return;
   }
-  const statsRows = rows.map((r,i) => ({ ...getStats(r), i, date:r.date })).filter(r => Number.isFinite(r.ratio));
+  const statsRows = displayRows.map(r => ({ ...getStats(r), i:r._idx, date:r.date })).filter(r => Number.isFinite(r.ratio));
   const bandRows = statsRows.filter(r => Number.isFinite(r.mean) && Number.isFinite(r.sigma));
   const vals = statsRows.map(r => r.ratio).concat(bandRows.flatMap(r => [r.mean + 3*r.sigma, r.mean - 3*r.sigma]));
   const minV = Math.min(...vals) * .96, maxV = Math.max(...vals) * 1.04;
-  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toX = i => {
+    const firstIdx = statsRows[0]?.i || 0;
+    const lastIdx = statsRows[statsRows.length - 1]?.i ?? firstIdx + 1;
+    return PAD.left + ((i - firstIdx) / Math.max(1, lastIdx - firstIdx)) * PW;
+  };
   const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
   const drawSeries = (getV, color, width, dash=[], alpha=1) => {
     ctx.beginPath(); let started=false;
@@ -3542,8 +3547,8 @@ function drawGoldSilverRatio() {
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [minV,(minV+maxV)/2,maxV].forEach(v=>ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
-  [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
-    const r=rows[i]; if(!r) return;
+  [0,.2,.4,.6,.8,1].map(p=>Math.round((displayRows.length-1)*p)).forEach(i=>{
+    const r=displayRows[i]; if(!r) return;
     const d=new Date(r.date+"T12:00:00");
     ctx.fillText(d.getFullYear(), toX(i), H-PAD.bottom+14);
   });
