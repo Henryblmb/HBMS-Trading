@@ -223,7 +223,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
    CHARTS / GRAPHS — NEW SECTION STYLES
 ══════════════════════════════════════════ */
 .cg-page{}
-.cg-header{margin-bottom:.85rem;padding-bottom:.8rem;border-bottom:1px solid #161616}
+.cg-header{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:28px;align-items:start;margin-bottom:.85rem;padding-bottom:.8rem;border-bottom:1px solid #161616}
+.cg-header .cg-title,.cg-header .cg-sub,.cg-header .cg-pill{grid-column:1}
+.cg-header .hist-range{grid-column:2;grid-row:1 / span 2;align-self:end;margin-top:0}
 .cg-title{font-size:15px;font-weight:600;color:#eee;margin-bottom:4px;letter-spacing:-.1px}
 .cg-sub{font-size:11px;color:#3a3a3a;line-height:1.55;max-width:680px}
 .cg-pill{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:10px;font-weight:600;padding:3px 10px;border:1px solid;letter-spacing:.04em}
