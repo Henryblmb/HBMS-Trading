@@ -468,7 +468,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="nav-section">Screener</div>
-    <div class="nav-item" onclick="showTab('regime',this)">Market Regime</div>
     <div class="nav-item active" onclick="showTab('gp',this)">Golden Pocket</div>
     <div class="nav-item" onclick="showTab('os',this)">Oversold</div>
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
@@ -482,8 +481,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
-      <div class="nav-item sub" onclick="showTab('cg-ndbthrust',this)">Nasdaq Breadth Thrust</div>
-      <div class="nav-item sub" onclick="showTab('cg-sectornewhi',this)">Sector New Highs</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Momentum</span><span class="nav-folder-arrow">›</span></div>
@@ -535,56 +532,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   <!-- ─── MAIN ─── -->
   <div class="main">
     <!-- ══════════════════════ SCREENER PANELS ══════════════════════ -->
-
-    <!-- MARKET REGIME -->
-    <div class="panel" id="tab-regime">
-      <div class="section-title">US Market Regime — Signal-Based Bias</div>
-      <div id="regimeMain" style="background:#111;border:1px solid #1a1a1a;padding:18px 22px;margin-bottom:.9rem;display:flex;align-items:center;gap:22px">
-        <div style="text-align:center;min-width:115px">
-          <div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px">Current Regime</div>
-          <div id="regimeLabel" style="font-size:26px;font-weight:600;line-height:1.1">—</div>
-          <div id="regimeSub" style="font-size:10.5px;color:#444;margin-top:3px">—</div>
-        </div>
-        <div style="flex:1">
-          <div style="display:flex;justify-content:space-between;font-size:8.5px;color:#252525;margin-bottom:3px"><span>STRONG BEAR</span><span>BEAR</span><span>NEUTRAL</span><span>BULL</span><span>STRONG BULL</span></div>
-          <div class="regime-score-wrap">
-            <div style="position:absolute;left:0;top:0;width:20%;height:100%;background:rgba(140,22,22,.35)"></div>
-            <div style="position:absolute;left:20%;top:0;width:20%;height:100%;background:rgba(224,80,80,.18)"></div>
-            <div style="position:absolute;left:40%;top:0;width:20%;height:100%;background:rgba(239,159,39,.18)"></div>
-            <div style="position:absolute;left:60%;top:0;width:20%;height:100%;background:rgba(29,158,117,.14)"></div>
-            <div style="position:absolute;left:80%;top:0;width:20%;height:100%;background:rgba(13,74,26,.35)"></div>
-            <div id="regimeNeedle" style="position:absolute;top:0;width:2px;height:100%;background:#fff;transform:translateX(-50%);transition:left .5s;left:50%"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:7.5px;color:#252525;margin-top:2px"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
-          <div style="margin-top:9px;font-size:10.5px;color:#444" id="regimeAction">—</div>
-        </div>
-        <div style="text-align:center;min-width:72px">
-          <div style="font-size:8.5px;color:#333;text-transform:uppercase;letter-spacing:.09em;margin-bottom:3px">Score</div>
-          <div id="regimeScore" style="font-size:30px;font-weight:600">—</div>
-          <div style="font-size:8.5px;color:#2a2a2a">/ 100</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.9rem">
-        <div class="regime-card"><div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">📈 Trend · 40%</div><div id="regimeTrend"></div></div>
-        <div class="regime-card"><div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">⚡ Volatility · 30%</div><div id="regimeVol"></div></div>
-        <div class="regime-card"><div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">🌊 Breadth · 20%</div><div id="regimeBreadth"></div></div>
-        <div class="regime-card"><div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">🚀 Momentum · 10%</div><div id="regimeMomentum"></div></div>
-      </div>
-      <div style="background:#0d0d0d;border:1px solid #1a1a1a;margin-bottom:.9rem">
-        <div style="padding:9px 13px 0;font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.09em">Regime Score — History</div>
-        <canvas id="regimeChartCanvas" style="width:100%;display:block"></canvas>
-      </div>
-      <div class="regime-card">
-        <div style="font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em;margin-bottom:9px">📋 Regime Playbook</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:6px">
-          <div style="border-left:2px solid #1D9E75;padding:7px 10px;background:#0a1a0a22"><div style="font-size:10px;font-weight:600;color:#1D9E75;margin-bottom:2px">Strong Bull 75–100</div><div style="font-size:9.5px;color:#444">Trend following. Buy dips. Size up. Momentum works best.</div></div>
-          <div style="border-left:2px solid #3a6a50;padding:7px 10px;background:#0a1a0a14"><div style="font-size:10px;font-weight:600;color:#3a8a60;margin-bottom:2px">Bull 60–75</div><div style="font-size:9.5px;color:#444">Long bias. Normal sizing. Selective pullback entries.</div></div>
-          <div style="border-left:2px solid #EF9F27;padding:7px 10px;background:#1a120022"><div style="font-size:10px;font-weight:600;color:#EF9F27;margin-bottom:2px">Neutral 40–60</div><div style="font-size:9.5px;color:#444">Reduce size. Mean reversion over momentum. Wait.</div></div>
-          <div style="border-left:2px solid #e05050;padding:7px 10px;background:#1a0a0a22"><div style="font-size:10px;font-weight:600;color:#e05050;margin-bottom:2px">Bear 25–40</div><div style="font-size:9.5px;color:#444">Short bias or flat. Hedge. Raise cash.</div></div>
-          <div style="border-left:2px solid #8a1a1a;padding:7px 10px;background:#1a0a0a22"><div style="font-size:10px;font-weight:600;color:#8a1a1a;margin-bottom:2px">Strong Bear 0–25</div><div style="font-size:9.5px;color:#444">Flat or short only. Capital preservation.</div></div>
-        </div>
-      </div>
-    </div>
 
     <!-- GOLDEN POCKET -->
     <div class="panel active" id="tab-gp">
@@ -1095,116 +1042,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
-    <!-- SECTOR NEW HIGHS -->
-    <div class="panel cg-page" id="tab-cg-sectornewhi">
-      <div class="cg-header">
-        <div class="cg-title">Three Key Sectors Dominate New Highs List</div>
-        <div class="cg-sub">XLI (Industrials), XLK (Technology), and XLRE (Real Estate) all crossing above 12% new highs simultaneously is a historically rare and powerful breadth signal, indicating a broad-based rally rather than narrow leadership.</div>
-        <div class="cg-pill active-bull"><span class="cg-dot"></span>ALL 3 ABOVE 12% — SIGNAL ACTIVE</div>
-      </div>
-
-      <div class="signal-bar">
-        <div>
-          <div class="signal-bar-label">XLI New Hi%</div>
-          <div class="signal-bar-val" style="color:#1D9E75">14.2%</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div>
-          <div class="signal-bar-label">XLK New Hi%</div>
-          <div class="signal-bar-val" style="color:#1D9E75">13.8%</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div>
-          <div class="signal-bar-label">XLRE New Hi%</div>
-          <div class="signal-bar-val" style="color:#1D9E75">12.5%</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">When cyclicals (XLI), growth tech (XLK), and rate-sensitive (XLRE) all simultaneously reach 12%+ new highs, it signals healthy broad participation across different market regimes.</div>
-      </div>
-
-      <!-- SPX on top like the screenshot -->
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 — Reference (all sectors signal when SPX recovers)</span>
-        </div>
-        <canvas id="sectornhiSPXCanvas" style="width:100%;display:block"></canvas>
-      </div>
-
-      <!-- 3 sector panels stacked -->
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title">XLI — Industrials New High %</span>
-          <div class="cg-chart-legend"><span style="color:#60a5fa">— XLI NH%</span><span style="color:#1D9E75">— 12% Signal</span></div>
-        </div>
-        <canvas id="xliNHCanvas" style="width:100%;display:block"></canvas>
-      </div>
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title">XLK — Technology New High %</span>
-          <div class="cg-chart-legend"><span style="color:#60a5fa">— XLK NH%</span><span style="color:#1D9E75">— 12% Signal</span></div>
-        </div>
-        <canvas id="xlkNHCanvas" style="width:100%;display:block"></canvas>
-      </div>
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title">XLRE — Real Estate New High %</span>
-          <div class="cg-chart-legend"><span style="color:#60a5fa">— XLRE NH%</span><span style="color:#1D9E75">— 12% Signal</span></div>
-        </div>
-        <canvas id="xlreNHCanvas" style="width:100%;display:block"></canvas>
-      </div>
-
-      <div class="interp-grid">
-        <div class="interp-cell bull"><div class="interp-title bull">All 3 Above 12%</div><div class="interp-text">Rare triple confirmation. Cyclicals, growth, and rate-sensitive sectors all participating. Historically signals continuation of bull market, not a top.</div></div>
-        <div class="interp-cell neut"><div class="interp-title neut">1–2 Sectors Above 12%</div><div class="interp-text">Partial signal. Leadership broadening but not complete. Watch for the lagging sector to confirm. Can indicate sector rotation in progress.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear">All Below 12%</div><div class="interp-text">Narrow or no breadth. Market may be led by just a few mega-caps. High risk of leadership reversal. Wait for genuine broadening before increasing exposure.</div></div>
-      </div>
-    </div>
-
-    <!-- NASDAQ BREADTH THRUST -->
-    <div class="panel cg-page" id="tab-cg-ndbthrust">
-      <div class="cg-header">
-        <div class="cg-title">NASDAQ Breadth Thrust — Historical Implications</div>
-        <div class="cg-sub">A Nasdaq Breadth Thrust fires when advancing issues surge from below 40% to above 61.5% of total NASDAQ issues within 10 trading days. Rare (~12 times since 1990) but historically followed by exceptional forward returns. Signal fired April 2026.</div>
-        <div class="cg-pill active-bull"><span class="cg-dot"></span>THRUST ACTIVE — Apr 10, 2026</div>
-      </div>
-
-      <div class="signal-bar">
-        <div>
-          <div class="signal-bar-label">Last Signal</div>
-          <div class="signal-bar-val" style="font-size:14px;color:#1D9E75;padding-top:4px">Apr 2026</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div>
-          <div class="signal-bar-label">Total Signals Since 1990</div>
-          <div class="signal-bar-val" style="color:#eee">~12</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div>
-          <div class="signal-bar-label">Avg 12M Return After</div>
-          <div class="signal-bar-val" style="color:#1D9E75">+28%</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">These signals are relatively rare, but historically have often been followed by favorable outcomes, reflecting broad-based momentum. Not a guarantee, but one of the more favorable signals when confirmed by price action.</div>
-      </div>
-
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title">NASDAQ 100 (QQQ) — Historical Breadth Thrust Signals</span>
-          <div class="cg-chart-legend">
-            <span style="color:#1D9E75">▲ Thrust Signal</span>
-            <span style="color:#e05050">▼ Market Peak</span>
-          </div>
-        </div>
-        <canvas id="ndbCanvas" style="width:100%;display:block"></canvas>
-      </div>
-
-      <div class="interp-grid">
-        <div class="interp-cell bull"><div class="interp-title bull">What Is a Breadth Thrust?</div><div class="interp-text">Advancing issues move from below 40% to above 61.5% of total in under 10 trading days. Indicates explosive institutional buying across the broad market, not just a few large caps.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Historical Performance</div><div class="interp-text">Post-signal performance is strong across all time horizons: 1M avg +5%, 3M avg +12%, 12M avg +28%. Zero confirmed signals resulted in lower prices after 12 months.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">April 2026 Context</div><div class="interp-text">Signal fired following the semiconductor snapback from the Iran-conflict lows. Confirms the rally had genuine broad participation. SOXX +42% in 17 days preceded this reading.</div></div>
-      </div>
-    </div>
-
     <!-- VIX TERM STRUCTURE (Charts copy) -->
     <div class="panel cg-page" id="tab-cg-vix2">
       <div class="cg-header">
@@ -1475,7 +1312,6 @@ function showTab(id, el) {
   // Tab-specific actions
   if(id === "hilo") renderHiLo();
   if(id === "momentum") renderMomentum();
-  if(id === "regime") setTimeout(renderRegime, 50);
   if(id === "vix") { window._marketData = window._marketData || {}; setTimeout(renderVIX, 100); }
   if(id === "sectors") { renderHeatmap(); setTimeout(renderRRG, 80); setTimeout(renderSectorDetail, 100); }
 
@@ -1484,8 +1320,6 @@ function showTab(id, el) {
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
-  if(id === "cg-sectornewhi") setTimeout(() => { drawPlaceholderChart("sectornhiSPXCanvas",180,"SPX","#050505"); drawSectorNHPlaceholder("xliNHCanvas","XLI"); drawSectorNHPlaceholder("xlkNHCanvas","XLK"); drawSectorNHPlaceholder("xlreNHCanvas","XLRE"); }, 60);
-  if(id === "cg-ndbthrust") setTimeout(() => drawNDBThrust(), 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
@@ -1511,7 +1345,7 @@ async function loadData() {
     document.getElementById("stockCount").textContent = "Stocks - " + (json.total || allStocks.length || "—");
     document.getElementById("lastUpd").textContent = "Updated: " + (json.generated || "—");
     filterGP(); filterOS(); filterTrend(); renderSectors();
-    renderHiLo(); renderMomentum(); renderRegime();
+    renderHiLo(); renderMomentum();
     // Update CG-VIX readings if open
     updateCGVIX2Readings();
     updateBT20Signal();
@@ -3055,105 +2889,6 @@ function drawPlaceholderChart(canvasId, h, label, lineColor, isBars=false, isRSI
   ctx.fillText("— Live data loads with API integration —", W/2, H/2 - (isRSI ? 0 : 5));
 }
 
-function drawSectorNHPlaceholder(canvasId, label) {
-  const c = mkCanvas(canvasId, 110); if(!c) return;
-  const { ctx, W, H } = c;
-  const PAD = { top: 12, right: 45, bottom: 22, left: 38 };
-  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
-
-  // Signal line at 12%
-  const VMAX = 30, VMIN = 0;
-  const toX = i => PAD.left + (i / 199) * PW;
-  const toY = v => PAD.top + PH - ((v - VMIN) / (VMAX - VMIN)) * PH;
-  const SIG_Y = toY(12);
-
-  // Signal fill zone
-  ctx.fillStyle = "rgba(29,158,117,0.06)"; ctx.fillRect(PAD.left, PAD.top, PW, SIG_Y - PAD.top);
-  // 12% line
-  ctx.strokeStyle = "#1D9E75" + "88"; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
-  ctx.beginPath(); ctx.moveTo(PAD.left, SIG_Y); ctx.lineTo(PAD.left+PW, SIG_Y); ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle = "#1D9E75"; ctx.font = "8px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("12%", PAD.left+PW+3, SIG_Y+3);
-
-  // Data line — oscillating between 5-20%
-  const data = Array.from({length:200}, (_, i) => {
-    const t = i/200;
-    return Math.max(0, 10 + 8*Math.sin(t*Math.PI*8) + 3*Math.cos(t*Math.PI*20));
-  });
-  ctx.beginPath();
-  data.forEach((v,i)=>i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)));
-  ctx.strokeStyle="#60a5fa88";ctx.lineWidth=1.5;ctx.stroke();
-
-  // Current dot
-  const last=data[199];
-  ctx.beginPath();ctx.arc(toX(199),toY(last),3,0,Math.PI*2);
-  ctx.fillStyle=last>12?"#1D9E75":"#60a5fa";ctx.fill();
-
-  ctx.fillStyle="#2a2a2a";ctx.font="8px sans-serif";ctx.textAlign="right";
-  [0,10,20,30].forEach(v=>ctx.fillText(v+"%",PAD.left-4,toY(v)+3));
-  ctx.fillStyle="rgba(255,255,255,0.04)";ctx.font="10px sans-serif";ctx.textAlign="center";
-  ctx.fillText("— Live data loads with API integration —",W/2,H/2);
-}
-
-function drawNDBThrust() {
-  const c = mkCanvas("ndbCanvas", 300); if(!c) return;
-  const { ctx, W, H } = c;
-  const PAD = { top: 18, right: 12, bottom: 32, left: 48 };
-  const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#0d0d0d"; ctx.fillRect(0,0,W,H);
-
-  // Simulate NDX-like price from 2009 to 2026
-  const N = 400;
-  const data = Array.from({length:N},(_,i)=>{
-    const t = i/N;
-    return 200 * Math.exp(t * 2.8) * (1 + 0.15*Math.sin(t*Math.PI*18) + 0.06*Math.cos(t*Math.PI*45));
-  });
-  const vMin=Math.min(...data)*0.96, vMax=Math.max(...data)*1.02;
-  const toX=i=>PAD.left+(i/(N-1))*PW;
-  const toY=v=>PAD.top+PH-((v-vMin)/(vMax-vMin))*PH;
-
-  // Grid
-  ctx.setLineDash([2,4]);ctx.strokeStyle="rgba(255,255,255,0.03)";ctx.lineWidth=1;
-  for(let i=0;i<=4;i++){const y=PAD.top+(PH/4)*i;ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+PW,y);ctx.stroke();}
-  ctx.setLineDash([]);
-
-  // Line
-  ctx.beginPath();
-  data.forEach((v,i)=>i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v)));
-  ctx.strokeStyle="#e0e0e0cc";ctx.lineWidth=1.5;ctx.stroke();
-
-  // Signal triangles (approx positions matching screenshot dates)
-  const thrustIdxs = [35,75,115,145,175,205,235,270,300,330,360,390];
-  thrustIdxs.forEach(i=>{
-    const x=toX(i),y=toY(data[i]);
-    ctx.beginPath();ctx.moveTo(x,y-18);ctx.lineTo(x-7,y-6);ctx.lineTo(x+7,y-6);ctx.closePath();
-    ctx.fillStyle="#1D9E75";ctx.fill();
-  });
-  const peakIdxs=[65,130,195,260,350];
-  peakIdxs.forEach(i=>{
-    const x=toX(i),y=toY(data[i]);
-    ctx.beginPath();ctx.moveTo(x,y+6);ctx.lineTo(x-7,y+18);ctx.lineTo(x+7,y+18);ctx.closePath();
-    ctx.fillStyle="#e05050";ctx.fill();
-  });
-
-  // Current dot
-  ctx.beginPath();ctx.arc(toX(N-1),toY(data[N-1]),5,0,Math.PI*2);
-  ctx.fillStyle="#1D9E75";ctx.fill();
-  ctx.strokeStyle="#0d0d0d";ctx.lineWidth=1.5;ctx.stroke();
-
-  // Year labels
-  const years=["'09","'11","'13","'15","'17","'19","'21","'23","'26"];
-  ctx.fillStyle="#1e1e1e";ctx.font="8.5px sans-serif";ctx.textAlign="center";
-  years.forEach((yr,i)=>ctx.fillText(yr,toX(Math.round(i/8*N)),H-PAD.bottom+11));
-
-  // Y labels
-  ctx.fillStyle="#2a2a2a";ctx.font="8px sans-serif";ctx.textAlign="right";
-  [vMin,(vMin+vMax)/2,vMax].forEach(v=>ctx.fillText("$"+Math.round(v),PAD.left-4,toY(v)+3));
-}
-
 function drawBT20SignalDots(canvasId, rows, signals, valueKey, fixedScale=false, logScale=false) {
   if(!rows || rows.length < 2 || !signals || !signals.length) return;
   const canvas = document.getElementById(canvasId);
@@ -3786,30 +3521,6 @@ function renderMomentum(){
     return`<div class="mom-card" style="border-left-color:${sc}"><div class="scard-header"><span class="ticker">${s.ticker}</span><span style="font-size:12px;font-weight:700;color:${sc}">${s.momScore}/7</span></div><div class="sname">${s.name}</div><div class="price-row"><span class="price">$${(s.price||0).toLocaleString("en-US",{maximumFractionDigits:2})}</span><span class="${s.chg>=0?"pos":"neg"}">${s.chg>=0?"+":""}${(s.chg||0).toFixed(2)}%</span></div><div class="mom-score-bar">${dots}</div><div style="display:flex;gap:10px;font-size:10px;margin:4px 0"><span style="color:#444">1W:<span style="color:${(s.chg_1w||0)>=0?"#1D9E75":"#e05050"}">${s.chg_1w!=null?(s.chg_1w>=0?"+":"")+s.chg_1w.toFixed(1)+"%":"—"}</span></span>${vsStr}<span style="color:#444">RSI:<span style="color:#aaa">${s.rsi_daily??'—'}</span></span></div><div style="margin-top:3px">${sigs}</div></div>`;
   }).join("");
 }
-function calcRegime(){
-  const b=breadthData,md=window._marketData||{},spy=allSectors.find(s=>s.ticker==="SPY"),spx=allTrending.find(s=>s.ticker==="^GSPC"),ref=spy||spx;
-  const trendSigs=[],volSigs=[],breadthSigs=[],momSigs=[];
-  if(ref){
-    const a200=b.pct_above_200!=null?b.pct_above_200>50:null;trendSigs.push({name:"S&P above 200D MA",bull:a200===true,bear:a200===false,val:b.pct_above_200!=null?b.pct_above_200.toFixed(1)+"% stocks":"—",score:a200===true?100:a200===false?0:50});
-    const a50=b.pct_above_50!=null?b.pct_above_50>50:null;trendSigs.push({name:"Majority above 50D MA",bull:a50===true,bear:a50===false,val:b.pct_above_50!=null?b.pct_above_50.toFixed(1)+"% stocks":"—",score:b.pct_above_50!=null?Math.min(100,b.pct_above_50*1.4):50});
-    const c1m=ref.chg_1m||0,c3m=ref.chg_3m||0;trendSigs.push({name:"SPY 1M + 3M trend",bull:c1m>0&&c3m>0,bear:c1m<0&&c3m<0,val:`1M: ${c1m>0?"+":""}${c1m.toFixed(1)}%`,score:c1m>0&&c3m>0?85:c1m<0&&c3m<0?15:50});
-    const leading=allSectors.filter(s=>s.q_12m==="leading"||s.quadrant==="leading").length,total=allSectors.filter(s=>s.sector!=="Benchmark").length||9;trendSigs.push({name:"Sectors in leading quadrant",bull:leading>=Math.ceil(total*.5),bear:leading<=Math.floor(total*.25),val:`${leading}/${total}`,score:(leading/total)*100});
-  }
-  const vix=md.vix,spread=md.vix_spread;
-  if(vix!=null){volSigs.push({name:"VIX Level",bull:vix<18,bear:vix>25,val:`VIX ${vix.toFixed(1)}`,score:Math.max(0,Math.min(100,(35-vix)/25*100))});if(md.vix_sma20){const r=vix/md.vix_sma20;volSigs.push({name:"VIX vs 20D Avg",bull:r<0.95,bear:r>1.2,val:`${(r*100).toFixed(0)}% of SMA`,score:Math.max(0,Math.min(100,(1.5-r)/.6*100))});}}
-  if(spread!=null)volSigs.push({name:"VIX Term Structure",bull:spread>0,bear:spread<-2,val:spread>=0?`Contango +${spread.toFixed(2)}`:`Backwardation ${spread.toFixed(2)}`,score:Math.max(0,Math.min(100,50+spread*8))});
-  if(b.universe_size){const adv=b.advancing||0,dec=b.declining||0,tot=adv+dec,adR=tot>0?adv/tot:.5;breadthSigs.push({name:"Advance/Decline Ratio",bull:adR>0.55,bear:adR<0.40,val:`${adv}↑ ${dec}↓`,score:adR*100});const nh=b.new_highs||0,nl=b.new_lows||0,nR=(nh+nl)>0?nh/(nh+nl):.5;breadthSigs.push({name:"New Highs vs Lows",bull:nR>0.6&&nh>5,bear:nR<0.3||nl>nh*3,val:`${nh} NH / ${nl} NL`,score:nR*100});if(b.pct_above_50!=null)breadthSigs.push({name:"% stocks above 50D",bull:b.pct_above_50>60,bear:b.pct_above_50<35,val:b.pct_above_50.toFixed(1)+"%",score:b.pct_above_50});}
-  if(ref){const c1d=ref.chg_1d||0;momSigs.push({name:"SPY 1D momentum",bull:c1d>0.3,bear:c1d<-0.3,val:`${c1d>=0?"+":""}${c1d.toFixed(2)}%`,score:Math.max(0,Math.min(100,50+c1d*15))});const mc=allStocks.filter(s=>s.group==="SP500"&&s.above_50&&s.above_200).length,mt=allStocks.filter(s=>s.group==="SP500").length||1;momSigs.push({name:"Stocks above 50D+200D",bull:mc/mt>0.5,bear:mc/mt<0.3,val:`${mc}/${mt}`,score:(mc/mt)*100});}
-  const cg=ss=>ss.length?ss.reduce((a,s)=>a+s.score,0)/ss.length:50;const ts=cg(trendSigs),vs=cg(volSigs),bs=cg(breadthSigs),ms=cg(momSigs);const total=Math.round(ts*.40+vs*.30+bs*.20+ms*.10);
-  return{total,tScore:ts,vScore:vs,bScore:bs,mScore:ms,trendSigs,volSigs,breadthSigs,momSigs};
-}
-function regimeBadge(sig){const cls=sig.bull?"regime-bull":sig.bear?"regime-bear":"regime-neut";const txt=sig.bull?"BULLISH":sig.bear?"BEARISH":"NEUTRAL";return`<span class="regime-signal-badge ${cls}">${txt}</span>`;}
-function renderSignalGroup(id,sigs){const el=document.getElementById(id);if(!el)return;if(!sigs.length){el.innerHTML='<div style="font-size:10px;color:#252525">No data — run screener.py</div>';return;}el.innerHTML=sigs.map(s=>`<div class="regime-signal-row"><span class="regime-signal-name">${s.name}</span><span class="regime-signal-val">${s.val}</span>${regimeBadge(s)}</div>`).join("");}
-function saveRegimeHistory(score){try{const today=new Date().toISOString().slice(0,10);let h=JSON.parse(localStorage.getItem("hbms_regime_v1")||"{}");h[today]=score;const keys=Object.keys(h).sort();if(keys.length>400)keys.slice(0,keys.length-400).forEach(k=>delete h[k]);localStorage.setItem("hbms_regime_v1",JSON.stringify(h));return h;}catch(e){return{};}}
-function drawRegimeChart(hist){const canvas=document.getElementById("regimeChartCanvas");if(!canvas)return;const dpr=window.devicePixelRatio||1;const cssW=canvas.parentElement.clientWidth||800;const cssH=110;canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);canvas.style.width=cssW+"px";canvas.style.height=cssH+"px";const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);const W=cssW,H=cssH,PAD={top:10,right:8,bottom:20,left:28};const PW=W-PAD.left-PAD.right,PH=H-PAD.top-PAD.bottom;ctx.clearRect(0,0,W,H);const entries=Object.entries(hist).sort((a,b)=>a[0].localeCompare(b[0]));if(entries.length<2){ctx.fillStyle="#2a2a2a";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("Builds daily",W/2,H/2);return;}const toY=v=>PAD.top+PH-(v/100)*PH;[[75,100,"rgba(13,74,26,.22)"],[55,75,"rgba(29,158,117,.1)"],[40,55,"rgba(239,159,39,.1)"],[25,40,"rgba(224,80,80,.1)"],[0,25,"rgba(170,26,26,.22)"]].forEach(([mn,mx,col])=>{ctx.fillStyle=col;ctx.fillRect(PAD.left,toY(mx),PW,toY(mn)-toY(mx));});ctx.strokeStyle="#1e1e1e";ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(PAD.left,toY(50));ctx.lineTo(PAD.left+PW,toY(50));ctx.stroke();ctx.setLineDash([]);const n=entries.length;const toX=i=>PAD.left+(i/(n-1))*PW;ctx.beginPath();entries.forEach(([,v],i)=>{i===0?ctx.moveTo(toX(i),toY(v)):ctx.lineTo(toX(i),toY(v));});const last=entries[n-1][1];const lc=last>=75?"#1D9E75":last>=60?"#5DCAA5":last>=40?"#EF9F27":last>=25?"#e05050":"#aa1a1a";ctx.strokeStyle=lc;ctx.lineWidth=2;ctx.stroke();[0,25,50,75,100].forEach(v=>{ctx.fillStyle="#1e1e1e";ctx.font="7px sans-serif";ctx.textAlign="right";ctx.fillText(v,PAD.left-3,toY(v)+3);});const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];let lm=-1;entries.forEach(([d],i)=>{const dt=new Date(d),m=dt.getMonth();if(m!==lm){lm=m;ctx.fillStyle="#1e1e1e";ctx.font="7px sans-serif";ctx.textAlign="center";ctx.fillText(months[m],toX(i),H-PAD.bottom+10);}});}
-function renderRegime(){const r=calcRegime();if(!r)return;const s=r.total;const hist=saveRegimeHistory(s);const label=s>=75?"Strong Bull":s>=60?"Bull":s>=40?"Neutral / Choppy":s>=25?"Bear":"Strong Bear";const col=s>=75?"#1D9E75":s>=60?"#5DCAA5":s>=40?"#EF9F27":s>=25?"#e05050":"#aa1a1a";const action=s>=75?"✓ Full long. Trend following works.":s>=60?"✓ Long bias. Normal sizing. Buy dips.":s>=40?"⚠ Reduce size. Avoid breakouts. Wait.":s>=25?"✗ Short bias or flat. Hedge. Raise cash.":"✗ Flat or short only. Capital preservation.";
-  const el=id=>document.getElementById(id);el("regimeLabel").textContent=label;el("regimeLabel").style.color=col;el("regimeSub").textContent=`Score: ${s}/100`;el("regimeScore").textContent=s;el("regimeScore").style.color=col;el("regimeNeedle").style.left=s+"%";el("regimeAction").textContent=action;el("regimeAction").style.color=s>=60?"#1D9E75":s>=40?"#EF9F27":"#e05050";
-  renderSignalGroup("regimeTrend",r.trendSigs);renderSignalGroup("regimeVol",r.volSigs);renderSignalGroup("regimeBreadth",r.breadthSigs);renderSignalGroup("regimeMomentum",r.momSigs);requestAnimationFrame(()=>drawRegimeChart(hist));}
 function drawPCChart(canvasId,history,color,highLine,lowLine,highLabel,lowLabel){const canvas=document.getElementById(canvasId);if(!canvas)return;const dpr=window.devicePixelRatio||1;const cssW=canvas.parentElement.clientWidth||800;const cssH=150;canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);canvas.style.width=cssW+"px";canvas.style.height=cssH+"px";const ctx=canvas.getContext("2d");ctx.scale(dpr,dpr);const W=cssW,H=cssH,PAD={top:12,right:46,bottom:24,left:38};const PW=W-PAD.left-PAD.right,PH=H-PAD.top-PAD.bottom;ctx.clearRect(0,0,W,H);if(!history||!history.length){ctx.fillStyle="#333";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("Run screener.py",W/2,H/2);return;}const vals=history.map(h=>h.val),minV=Math.min(...vals)*.92,maxV=Math.max(...vals)*1.06;const toX=i=>PAD.left+(i/(history.length-1))*PW,toY=v=>PAD.top+PH-((v-minV)/(maxV-minV))*PH;const yH=toY(highLine),yL=toY(lowLine);ctx.fillStyle="rgba(224,80,80,.07)";ctx.fillRect(PAD.left,PAD.top,PW,Math.max(0,yH-PAD.top));ctx.fillStyle="rgba(29,158,117,.07)";ctx.fillRect(PAD.left,yL,PW,H-PAD.bottom-yL);[[highLine,"#e05050",highLabel],[lowLine,"#1D9E75",lowLabel]].forEach(([v,col,lbl])=>{const y=toY(v);ctx.strokeStyle=col+"55";ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+PW,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=col;ctx.font="7.5px sans-serif";ctx.textAlign="left";ctx.fillText(lbl+" "+v,PAD.left+PW+3,y+3);});
 const ma20=history.map((_,i)=>{if(i<19)return null;return vals.slice(i-19,i+1).reduce((a,b)=>a+b,0)/20;});ctx.beginPath();let st=false;ma20.forEach((v,i)=>{if(v==null)return;if(!st){ctx.moveTo(toX(i),toY(v));st=true;}else ctx.lineTo(toX(i),toY(v));});ctx.strokeStyle="rgba(255,255,255,.12)";ctx.lineWidth=1;ctx.stroke();
 for(let i=1;i<history.length;i++){const v0=history[i-1].val,v1=history[i].val,mid=(v0+v1)/2,segCol=mid>highLine?"#e05050":mid<lowLine?"#1D9E75":color;ctx.beginPath();ctx.moveTo(toX(i-1),toY(v0));ctx.lineTo(toX(i),toY(v1));ctx.strokeStyle=segCol;ctx.lineWidth=1.8;ctx.stroke();}
