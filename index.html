@@ -233,6 +233,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .season-month-row{display:flex;justify-content:space-between;font-size:9.5px;color:#777;padding:2px 0;border-top:1px solid rgba(255,255,255,.04)}
 .season-month-row:first-of-type{border-top:0}
 .season-month-row b{font-weight:600;color:#d8d8d8}
+.valuation-img-wrap{border:1px solid var(--line);background:#f5f5f2;padding:10px;margin-bottom:.8rem;overflow:auto}
+.valuation-img{display:block;width:100%;max-width:1120px;margin:0 auto}
+.valuation-source{font-size:9px;color:#777;margin-top:7px;text-align:right}
 
 /* ══════════════════════════════════════════
    CHARTS / GRAPHS — NEW SECTION STYLES
@@ -504,6 +507,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
+    </div>
+
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Valuations</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-forwardpe',this)">Forward P/E Ratio</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Term Structure</span><span class="nav-folder-arrow">›</span></div>
@@ -1082,6 +1090,27 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Left Tail</div><div class="interp-text">A return below −2σ marks stress. For cyclical sectors it can be capitulation; for defensive sectors it can signal regime deterioration.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Forward After +2σ</div><div class="interp-text" id="retForwardPos">Waiting for return data.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Forward After −2σ</div><div class="interp-text" id="retForwardNeg">Waiting for return data.</div></div>
+      </div>
+    </div>
+
+    <!-- FORWARD P/E RATIO -->
+    <div class="panel cg-page" id="tab-cg-forwardpe">
+      <div class="cg-header">
+        <div class="cg-title">Forward P/E Ratio — S&amp;P 500 Valuation</div>
+        <div class="cg-sub">S&amp;P 500 forward price-to-earnings ratio with long-history context. EY spread is intentionally excluded here; this view focuses only on the valuation multiple.</div>
+      </div>
+
+      <div class="valuation-img-wrap">
+        <img class="valuation-img" alt="S&amp;P 500 Forward P/E Ratio chart"
+          src="https://product.datastream.com/dscharting/gateway.aspx?action=REFRESH&amp;chartname=S%26P+500+FORWARD+P%2FE+%28Bull%2FBear%29&amp;guid=c29e98b6-2375-4fbd-89eb-92342210e9be"
+          loading="lazy">
+        <div class="valuation-source">Source: LSEG Datastream / Yardeni Research</div>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">High Multiple</div><div class="interp-text">Elevated forward P/E means investors are paying more for expected earnings. It can persist in strong liquidity regimes, but leaves less margin for earnings disappointment.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Low Multiple</div><div class="interp-text">Lower forward P/E often appears after deratings or recession scares. It can improve forward return potential if earnings estimates stabilize.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Use</div><div class="interp-text">Best read alongside earnings revisions, rates and liquidity. Multiple compression can offset index gains even when EPS expectations rise.</div></div>
       </div>
     </div>
 
