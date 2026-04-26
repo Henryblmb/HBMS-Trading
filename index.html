@@ -1752,31 +1752,7 @@ function drawSPXWeeklyEMA() {
     ctx.stroke();
   }
 
-  const candleW = Math.max(1, Math.min(4, PW / Math.max(dailyRows.length, 1) * .72));
-  const hasOhlc = dailyRows.some(r => Number.isFinite(+r.open) && Number.isFinite(+r.high) && Number.isFinite(+r.low));
-  if(hasOhlc) {
-    dailyRows.forEach(r => {
-      const o = Number.isFinite(+r.open) ? +r.open : +r.close;
-      const h = Number.isFinite(+r.high) ? +r.high : Math.max(o, +r.close);
-      const l = Number.isFinite(+r.low) ? +r.low : Math.min(o, +r.close);
-      const cl = +r.close;
-      if(!Number.isFinite(o) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(cl)) return;
-      const x = toXDate(r.date);
-      const up = cl >= o;
-      ctx.strokeStyle = up ? "rgba(216,216,216,.42)" : "rgba(198,99,99,.34)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, toY(h));
-      ctx.lineTo(x, toY(l));
-      ctx.stroke();
-      ctx.fillStyle = up ? "rgba(216,216,216,.62)" : "rgba(198,99,99,.50)";
-      const y1 = toY(Math.max(o, cl));
-      const y2 = toY(Math.min(o, cl));
-      ctx.fillRect(x - candleW / 2, y1, candleW, Math.max(1, y2 - y1));
-    });
-  } else {
-    drawLine(dailyCloses, "#d8d8d8", 1.8, "d8", dailyRows);
-  }
+  drawLine(dailyCloses, "#d8d8d8", 1.9, "e0", dailyRows);
   drawLine(ema21, "#9bbcff", 1.6, "bb");
   drawLine(ema9, "#5DCAA5", 1.7, "cc");
 
