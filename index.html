@@ -262,6 +262,13 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .interp-cell.bear{border-left-color:#e05050}
 .interp-cell.neut{border-left-color:#EF9F27}
 .interp-cell.info{border-left-color:#60a5fa}
+.ret-forward-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.ret-fwd-events{font-size:9px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.ret-fwd-head,.ret-fwd-row{display:grid;grid-template-columns:38px 1fr 1fr;gap:8px;align-items:center}
+.ret-fwd-head{font-size:8px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.ret-fwd-row{font-size:10px;color:#888;padding:3px 0;border-top:1px solid rgba(255,255,255,.04)}
+.ret-fwd-row b{font-size:11px;font-weight:600;text-align:right}
+.ret-fwd-row em{font-style:normal;text-align:right;color:#777}
 .interp-title{font-size:9.5px;font-weight:600;margin-bottom:3px;letter-spacing:.03em}
 .interp-title.bull{color:#1D9E75}
 .interp-title.bear{color:#e05050}
@@ -1079,10 +1086,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <canvas id="retSeriesCanvas" style="width:100%;display:block"></canvas>
       </div>
 
-      <div class="interp-grid">
+      <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Right Tail</div><div class="interp-text">A monthly return above +2σ is a high-momentum outlier. It often signals strong trend pressure, but can also mark short-term exhaustion after a vertical move.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Distribution Center</div><div class="interp-text">Mean and sigma show the typical monthly return profile for the selected ETF or index. Wide sigma means the asset has a more volatile momentum regime.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Left Tail</div><div class="interp-text">A return below −2σ marks stress. For cyclical sectors it can be capitulation; for defensive sectors it can signal regime deterioration.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward After +2σ</div><div class="interp-text" id="retForwardPos">Waiting for return data.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Forward After −2σ</div><div class="interp-text" id="retForwardNeg">Waiting for return data.</div></div>
       </div>
     </div>
 
@@ -1596,6 +1605,51 @@ function normalPdf(x, mean, sigma) {
   return Math.exp(-0.5 * Math.pow((x - mean) / sigma, 2)) / (sigma * Math.sqrt(2 * Math.PI));
 }
 
+function forwardReturn(rows, startIdx, months) {
+  if(startIdx + months >= rows.length) return null;
+  let compounded = 1;
+  for(let i = startIdx + 1; i <= startIdx + months; i++) {
+    const v = +rows[i].ret;
+    if(!Number.isFinite(v)) return null;
+    compounded *= 1 + v / 100;
+  }
+  return (compounded - 1) * 100;
+}
+
+function returnForwardSummary(rows, predicate) {
+  const horizons = [3, 6, 12];
+  const out = {};
+  horizons.forEach(h => out[h] = []);
+  rows.forEach((r, i) => {
+    const v = +r.ret;
+    if(!Number.isFinite(v) || !predicate(v)) return;
+    horizons.forEach(h => {
+      const fwd = forwardReturn(rows, i, h);
+      if(fwd != null) out[h].push(fwd);
+    });
+  });
+  return { events: rows.filter(r => Number.isFinite(+r.ret) && predicate(+r.ret)).length, byHorizon: out };
+}
+
+function renderReturnForwardStats(rows, plus2, minus2) {
+  const fmt = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+  const html = summary => {
+    const body = [3, 6, 12].map(h => {
+      const vals = summary.byHorizon[h] || [];
+      if(!vals.length) return `<div class="ret-fwd-row"><span>${h}M</span><b>—</b><em>—</em></div>`;
+      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+      const prob = vals.filter(v => v > 0).length / vals.length * 100;
+      const col = avg >= 0 ? "#5DCAA5" : "#e05050";
+      return `<div class="ret-fwd-row"><span>${h}M</span><b style="color:${col}">${fmt(avg)}</b><em>${prob.toFixed(0)}% Profit</em></div>`;
+    }).join("");
+    return `<div class="ret-fwd-events">${summary.events} historical moves ≥ 2σ</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>${body}`;
+  };
+  const pos = document.getElementById("retForwardPos");
+  const neg = document.getElementById("retForwardNeg");
+  if(pos) pos.innerHTML = html(returnForwardSummary(rows, v => v >= plus2));
+  if(neg) neg.innerHTML = html(returnForwardSummary(rows, v => v <= minus2));
+}
+
 function renderReturnHistogram() {
   const ticker = ensureReturnHistogramOptions();
   const data = returnHistogramData();
@@ -1624,6 +1678,7 @@ function renderReturnHistogram() {
   set("retHistDesc", `${ticker} · ${item.name || ticker} · ${rows[0].date.slice(0,7)} to ${rows[rows.length-1].date.slice(0,7)} · ${vals.length} observations · last price ${item.last_price != null ? item.last_price.toLocaleString("en-US", {maximumFractionDigits:2}) : "—"}`);
   set("retHistTitle", `${ticker} Monthly Return Histogram`);
   set("retSeriesTitle", `${ticker} Monthly Return Series`);
+  renderReturnForwardStats(rows, plus2, minus2);
   drawReturnHistogramChart(vals, stats.mean, stats.sigma, plus2, minus2);
   drawReturnSeriesChart(rows, stats.mean, plus2, minus2);
 }
