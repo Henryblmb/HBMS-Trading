@@ -39,8 +39,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nav-item{padding:8px 14px;font-size:12px;font-weight:400;color:#484848;cursor:pointer;border-left:2px solid transparent;transition:all .1s;white-space:nowrap;user-select:none}
 .nav-item:hover{color:#999;background:#111}
 .nav-item.active{color:#eee;background:#131313;border-left-color:#1D9E75}
-.nav-group-title{font-size:8.5px;color:#3d3d3d;padding:11px 14px 2px 22px;text-transform:uppercase;letter-spacing:.11em;font-weight:650}
-.nav-item.sub{padding:6px 14px 6px 28px;font-size:11.5px}
+.nav-folder{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9.5px;color:#555;padding:10px 14px 5px 22px;text-transform:uppercase;letter-spacing:.11em;font-weight:650;cursor:pointer;user-select:none;transition:color .1s,background .1s}
+.nav-folder:hover{color:#aaa;background:#111}
+.nav-folder-arrow{font-size:10px;color:#555;transition:transform .16s,color .1s}
+.nav-folder.open .nav-folder-arrow{transform:rotate(90deg);color:#1D9E75}
+.nav-group-content{display:none;padding:1px 0 4px}
+.nav-group-content.open{display:block}
+.nav-item.sub{padding:6px 14px 6px 30px;font-size:11.5px}
 .nav-divider{height:1px;background:#161616;margin:3px 0}
 .nav-social{padding:7px 14px;font-size:11px;font-weight:400;color:#3a3a3a;display:flex;align-items:center;gap:7px;text-decoration:none;border-left:2px solid transparent;transition:all .1s}
 .nav-social:hover{color:#888;background:#111;border-left-color:#1D9E75}
@@ -434,24 +439,34 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
     <div class="nav-divider"></div>
     <div class="nav-section">Charts / Graphs</div>
-    <div class="nav-group-title">Breadth</div>
-    <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
-    <div class="nav-item sub" onclick="showTab('cg-ndbthrust',this)">Nasdaq Breadth Thrust</div>
-    <div class="nav-item sub" onclick="showTab('cg-sectornewhi',this)">Sector New Highs</div>
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Breadth</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
+      <div class="nav-item sub" onclick="showTab('cg-ndbthrust',this)">Nasdaq Breadth Thrust</div>
+      <div class="nav-item sub" onclick="showTab('cg-sectornewhi',this)">Sector New Highs</div>
+    </div>
 
-    <div class="nav-group-title">Momentum</div>
-    <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Momentum</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
+    </div>
 
-    <div class="nav-group-title">Term Structure</div>
-    <div class="nav-item sub" onclick="showTab('cg-oil',this)">Oil Term Curve</div>
-    <div class="nav-item sub" onclick="showTab('cg-vix2',this)">VIX Term Structure</div>
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Term Structure</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-oil',this)">Oil Term Curve</div>
+      <div class="nav-item sub" onclick="showTab('cg-vix2',this)">VIX Term Structure</div>
+    </div>
 
-    <div class="nav-group-title">Bonds</div>
-    <div class="nav-item sub" onclick="showTab('cg-hyg',this)">High Yield Bonds</div>
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-hyg',this)">High Yield Bonds</div>
+    </div>
 
-    <div class="nav-group-title">Oversold</div>
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Oversold</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content"></div>
 
-    <div class="nav-group-title">Sentiment</div>
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Sentiment</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content"></div>
 
     <div class="nav-divider"></div>
     <div class="nav-section">Socials</div>
@@ -1108,7 +1123,20 @@ function logout() {
 // ═══════════════════════════════════════════════
 // TAB MANAGEMENT
 // ═══════════════════════════════════════════════
+function toggleNavFolder(folder) {
+  const content = folder.nextElementSibling;
+  if(!content || !content.classList.contains("nav-group-content")) return;
+  const isOpen = folder.classList.toggle("open");
+  content.classList.toggle("open", isOpen);
+}
+
 function showTab(id, el) {
+  const group = el && el.closest(".nav-group-content");
+  if(group) {
+    group.classList.add("open");
+    const folder = group.previousElementSibling;
+    if(folder && folder.classList.contains("nav-folder")) folder.classList.add("open");
+  }
   document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
   if(el) el.classList.add("active");
   document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
