@@ -1291,18 +1291,18 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <!-- GOLD / SILVER RATIO -->
     <div class="panel cg-page" id="tab-cg-goldsilver">
       <div class="cg-header">
-        <div class="cg-title">Gold/Silver Ratio — Long-Term Relative Regime</div>
-        <div class="cg-sub">Weekly Gold/Silver ratio with EMA 40 and EMA 100. Rising ratio means gold is outperforming silver, often a defensive or liquidity-stress regime. Falling ratio means silver is outperforming, often a cyclical/risk-on impulse.</div>
+        <div class="cg-title">Gold/Silver Ratio — Long-Term Deviation Model</div>
+        <div class="cg-sub">Weekly Gold/Silver ratio against its long-term mean and ±1σ / ±2σ bands. High positive deviations mean gold is historically expensive versus silver; negative deviations mean silver is historically expensive versus gold.</div>
       </div>
 
       <div class="signal-bar">
         <div><div class="signal-bar-label">Ratio</div><div class="signal-bar-val" id="gsRatioVal" style="color:#d8d8d8">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="gsRegimeVal" style="font-size:13px;color:#EF9F27;padding-top:5px">—</div></div>
+        <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="gsZVal" style="font-size:16px;color:#EF9F27">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Last Turn</div><div class="signal-bar-val" id="gsSignalVal" style="font-size:13px;color:#777;padding-top:5px">—</div></div>
+        <div><div class="signal-bar-label">Zone</div><div class="signal-bar-val" id="gsRegimeVal" style="font-size:13px;color:#EF9F27;padding-top:5px">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc" id="gsDesc">Weekly model. EMA 40 / EMA 100 crossovers mark major ratio turns.</div>
+        <div class="signal-bar-desc" id="gsDesc">Weekly model. Mean and σ bands are calculated from the long-history ratio series.</div>
       </div>
 
       <div class="cg-chart-box">
@@ -1310,19 +1310,18 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <span class="cg-chart-title">Gold/Silver Ratio — Weekly Long History</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Ratio</span>
-            <span><span class="cg-leg-line" style="background:#EF9F27"></span>EMA 40</span>
-            <span><span class="cg-leg-line" style="background:#60a5fa"></span>EMA 100</span>
-            <span style="color:#1D9E75">● Silver Turn</span>
-            <span style="color:#e05050">● Gold Turn</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>Mean</span>
+            <span style="color:#5DCAA5">±1σ</span>
+            <span style="color:#e05050">±2σ</span>
           </div>
         </div>
         <canvas id="goldSilverCanvas" style="width:100%;display:block"></canvas>
       </div>
 
       <div class="interp-grid">
-        <div class="interp-cell bear"><div class="interp-title bear">Ratio Rising</div><div class="interp-text">Gold outperforming silver. Often defensive, liquidity-sensitive, or growth-scare behavior. EMA 40 above EMA 100 confirms gold leadership.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Ratio Falling</div><div class="interp-text">Silver outperforming gold. Often cyclical beta, reflation, and industrial metal strength. EMA 40 below EMA 100 confirms silver leadership.</div></div>
-        <div class="interp-cell neut"><div class="interp-title neut">Turn Markers</div><div class="interp-text">Markers appear when EMA 40 crosses EMA 100. Weekly smoothing is intentionally slower to reduce false turns.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">High Ratio</div><div class="interp-text">Above +1σ / +2σ means gold is stretched versus silver. Extreme high readings often appear during defensive or liquidity-stress regimes.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Low Ratio</div><div class="interp-text">Below −1σ / −2σ means silver is stretched versus gold. Extreme low readings often appear during cyclical silver outperformance.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Mean Reversion Map</div><div class="interp-text">The mean is the long-run anchor. ±2σ markers show statistically rare relative-value zones rather than trend crossovers.</div></div>
       </div>
     </div>
 
@@ -3415,24 +3414,29 @@ function drawGoldSilverRatio() {
   const rows = Array.isArray(md.gold_silver_ratio_history) ? md.gold_silver_ratio_history.filter(r=>Number.isFinite(+r.ratio)) : [];
   const st = md.gold_silver_ratio_status || {};
   const ratioEl = document.getElementById("gsRatioVal");
+  const zEl = document.getElementById("gsZVal");
   const regimeEl = document.getElementById("gsRegimeVal");
-  const signalEl = document.getElementById("gsSignalVal");
   const descEl = document.getElementById("gsDesc");
   if(ratioEl && st.current_ratio != null) ratioEl.textContent = (+st.current_ratio).toFixed(1);
-  const goldLead = st.status === "gold_leadership";
-  const regTxt = st.status === "unavailable" ? "—" : goldLead ? "GOLD LEADERSHIP" : "SILVER LEADERSHIP";
-  const regCol = st.status === "unavailable" ? "#777" : goldLead ? "#e05050" : "#1D9E75";
-  if(regimeEl){ regimeEl.textContent = regTxt; regimeEl.style.color = regCol; }
-  if(signalEl && st.last_signal) {
-    const d = new Date(st.last_signal.date + "T12:00:00");
-    signalEl.textContent = `${st.last_signal.type === "gold_turn" ? "Gold" : "Silver"} · ${d.toLocaleDateString("en-US", {month:"short", year:"2-digit"})}`;
-    signalEl.style.color = st.last_signal.type === "gold_turn" ? "#e05050" : "#1D9E75";
+  if(zEl && st.z_score != null) {
+    const z = +st.z_score;
+    zEl.textContent = (z >= 0 ? "+" : "") + z.toFixed(2) + "σ";
+    zEl.style.color = z >= 2 ? "#e05050" : z >= 1 ? "#EF9F27" : z <= -2 ? "#1D9E75" : z <= -1 ? "#5DCAA5" : "#d8d8d8";
   }
-  if(descEl && rows.length) descEl.textContent = `${rows[0].date.slice(0,4)} to ${rows[rows.length-1].date.slice(0,7)} · ${rows.length} weekly observations · Source: ${st.source || "—"}`;
+  const zoneMap = {
+    plus2_extreme: ["+2σ EXTREME", "#e05050"],
+    plus1_high: ["+1σ HIGH", "#EF9F27"],
+    mean_zone: ["MEAN ZONE", "#d8d8d8"],
+    minus1_low: ["−1σ LOW", "#5DCAA5"],
+    minus2_extreme: ["−2σ EXTREME", "#1D9E75"],
+  };
+  const [zoneTxt, zoneCol] = zoneMap[st.status] || ["—", "#777"];
+  if(regimeEl){ regimeEl.textContent = zoneTxt; regimeEl.style.color = zoneCol; }
+  if(descEl && rows.length) descEl.textContent = `${rows[0].date.slice(0,4)} to ${rows[rows.length-1].date.slice(0,7)} · ${rows.length} weekly observations · Mean ${st.mean != null ? (+st.mean).toFixed(1) : "—"} · σ ${st.sigma != null ? (+st.sigma).toFixed(1) : "—"}`;
 
   const c = mkCanvas("goldSilverCanvas", 360); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 16, right: 64, bottom: 30, left: 46 };
+  const PAD = { top: 16, right: 70, bottom: 30, left: 46 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
   if(rows.length < 80) {
@@ -3440,44 +3444,48 @@ function drawGoldSilverRatio() {
     ctx.fillText("Gold/Silver ratio unavailable - run screener.py", W/2, H/2);
     return;
   }
-  const vals = rows.flatMap(r => [+r.ratio, +r.ema40, +r.ema100].filter(Number.isFinite));
+  const ratios = rows.map(r => +r.ratio).filter(Number.isFinite);
+  const mean = Number.isFinite(+st.mean) ? +st.mean : ratios.reduce((a,b)=>a+b,0) / ratios.length;
+  const sigma = Number.isFinite(+st.sigma) ? +st.sigma : Math.sqrt(ratios.reduce((a,b)=>a+Math.pow(b-mean,2),0) / Math.max(1, ratios.length - 1));
+  const levels = [
+    { v: mean + 2 * sigma, label: "+2σ", color: "#e05050", dash: [6,4] },
+    { v: mean + sigma, label: "+1σ", color: "#EF9F27", dash: [4,4] },
+    { v: mean, label: "Mean", color: "#d8d8d8", dash: [] },
+    { v: mean - sigma, label: "−1σ", color: "#5DCAA5", dash: [4,4] },
+    { v: mean - 2 * sigma, label: "−2σ", color: "#1D9E75", dash: [6,4] },
+  ];
+  const vals = ratios.concat(levels.map(l => l.v));
   const minV = Math.min(...vals) * .96, maxV = Math.max(...vals) * 1.04;
   const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
   const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
-  const drawLine = (key, color, width, alpha=1) => {
-    ctx.beginPath(); let started=false;
-    rows.forEach((r,i)=>{
-      const v=+r[key]; if(!Number.isFinite(v)) return;
-      const x=toX(i), y=toY(v);
-      if(!started){ctx.moveTo(x,y); started=true;} else ctx.lineTo(x,y);
-    });
-    ctx.strokeStyle=color; ctx.globalAlpha=alpha; ctx.lineWidth=width; ctx.lineJoin="round"; ctx.stroke(); ctx.globalAlpha=1;
-  };
+
+  ctx.fillStyle = "rgba(224,80,80,.055)";
+  ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(mean + 2 * sigma) - PAD.top));
+  ctx.fillStyle = "rgba(29,158,117,.055)";
+  ctx.fillRect(PAD.left, toY(mean - 2 * sigma), PW, Math.max(0, PAD.top + PH - toY(mean - 2 * sigma)));
   ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)"; ctx.lineWidth=1;
   for(let i=0;i<=5;i++){ const y=PAD.top + i/5*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
   ctx.setLineDash([]);
-  rows.forEach((r,i)=>{
-    if(!r.signal) return;
-    const x=toX(i);
-    ctx.fillStyle = r.signal === "gold_turn" ? "rgba(224,80,80,.055)" : "rgba(29,158,117,.055)";
-    ctx.fillRect(x, PAD.top, Math.max(2, PW / rows.length * 5), PH);
+  levels.forEach(l => {
+    const y = toY(l.v);
+    ctx.strokeStyle = l.color; ctx.globalAlpha = l.label === "Mean" ? .7 : .78; ctx.lineWidth = l.label === "Mean" ? 1.3 : 1;
+    ctx.setLineDash(l.dash); ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    ctx.fillStyle = l.color; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left"; ctx.fillText(l.label, PAD.left + PW + 5, y + 3);
   });
-  drawLine("ratio", "rgba(216,216,216,.72)", 1.45);
-  drawLine("ema40", "#EF9F27", 2.1);
-  drawLine("ema100", "#60a5fa", 1.9);
+  ctx.beginPath();
+  rows.forEach((r,i)=>{ const x=toX(i), y=toY(+r.ratio); i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.strokeStyle="rgba(216,216,216,.78)"; ctx.lineWidth=1.6; ctx.lineJoin="round"; ctx.stroke();
   rows.forEach((r,i)=>{
     if(!r.signal) return;
     const x=toX(i), y=toY(+r.ratio);
-    const col = r.signal === "gold_turn" ? "#e05050" : "#1D9E75";
-    ctx.beginPath(); ctx.arc(x,y,4.2,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
-    ctx.strokeStyle="#151515"; ctx.lineWidth=1.2; ctx.stroke();
+    const col = r.signal === "plus2" ? "#e05050" : "#1D9E75";
+    ctx.beginPath(); ctx.arc(x,y,3.4,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
   });
   const last=rows[rows.length-1];
-  [["Ratio","ratio","rgba(216,216,216,.82)"],["EMA40","ema40","#EF9F27"],["EMA100","ema100","#60a5fa"]].forEach(([lbl,key,col])=>{
-    ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, toY(+last[key])+3);
-  });
+  ctx.fillStyle="rgba(216,216,216,.9)"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText("Ratio", PAD.left+PW+5, toY(+last.ratio)+3);
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
-  [minV,(minV+maxV)/2,maxV].forEach(v=>ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
+  [minV, mean - 2 * sigma, mean, mean + 2 * sigma, maxV].forEach(v=>ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
   [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
     const r=rows[i]; if(!r) return;
