@@ -519,6 +519,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Term Structure</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-yieldcurve',this)">Yield Curve</div>
       <div class="nav-item sub" onclick="showTab('cg-goldsilver',this)">Gold/Silver Ratio</div>
       <div class="nav-item sub" onclick="showTab('cg-oil',this)">Oil Term Curve</div>
       <div class="nav-item sub" onclick="showTab('cg-vix2',this)">VIX Term Structure</div>
@@ -1344,6 +1345,51 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- YIELD CURVE -->
+    <div class="panel cg-page" id="tab-cg-yieldcurve">
+      <div class="cg-header">
+        <div class="cg-title">Yield Curve — 10Y-2Y / 10Y-3M</div>
+        <div class="cg-sub">US Treasury curve spreads from FRED. 10Y−2Y captures the classic recession-cycle inversion; 10Y−3M is the front-end policy stress spread. Both are shown in basis points across 20 years.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">10Y − 2Y</div>
+          <div class="signal-bar-val" id="yc10y2y" style="color:#d8d8d8">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">10Y − 3M</div>
+          <div class="signal-bar-val" id="yc10y3m" style="color:#d8d8d8">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Regime</div>
+          <div class="signal-bar-val" id="ycRegime" style="font-size:13px;color:#EF9F27;padding-top:5px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="ycDesc">Waiting for yield curve data.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">US Treasury Yield Curve Spreads — 20Y Daily History</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#60a5fa"></span>10Y−2Y</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>10Y−3M</span>
+            <span style="color:#e05050">Below 0 = Inverted</span>
+          </div>
+        </div>
+        <canvas id="yieldCurveCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Inversion</div><div class="interp-text">Negative spreads mean short rates are above long rates. Persistent inversion usually signals tight policy and rising recession risk, especially when 10Y−3M is below zero.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Re-Steepening</div><div class="interp-text">The curve often steepens after deep inversion as the market prices future cuts. That transition can coincide with late-cycle stress rather than immediate all-clear.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Normal / Steep</div><div class="interp-text">Positive and steep spreads typically imply easier forward conditions for banks and credit creation, but an extremely steep curve can also follow a growth shock.</div></div>
+      </div>
+    </div>
+
     <!-- GOLD / SILVER RATIO -->
     <div class="panel cg-page" id="tab-cg-goldsilver">
       <div class="cg-header">
@@ -1465,6 +1511,7 @@ function showTab(id, el) {
   if(id === "cg-forwardpe") setTimeout(drawForwardPEChart, 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
   if(id === "cg-goldsilver") setTimeout(drawGoldSilverRatio, 60);
+  if(id === "cg-yieldcurve") setTimeout(drawYieldCurve, 60);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
@@ -1503,6 +1550,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
+    if(activePanel && activePanel.id === "tab-cg-yieldcurve") drawYieldCurve();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -3470,6 +3518,86 @@ function updateOilReadings() {
   const label = spread == null ? "—" : spread >= 0 ? "CONTANGO" : "BACKWARDATION";
   const col = spread == null ? "#888" : spread >= 0 ? "#1D9E75" : "#e05050";
   if(regimeEl){regimeEl.textContent = label; regimeEl.style.color = col;}
+}
+
+function drawYieldCurve() {
+  const md = window._marketData || {};
+  const rows = Array.isArray(md.yield_curve_history) ? md.yield_curve_history.filter(r=>Number.isFinite(+r.spread_10y2y) && Number.isFinite(+r.spread_10y3m)) : [];
+  const st = md.yield_curve_status || {};
+  const fmtBp = v => Number.isFinite(+v) ? ((+v) >= 0 ? "+" : "") + (+v).toFixed(0) + " bp" : "—";
+  const set = (id, txt, col) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = txt;
+    if(col) el.style.color = col;
+  };
+  const spreadColor = v => !Number.isFinite(+v) ? "#777" : +v < 0 ? "#e05050" : +v > 150 ? "#1D9E75" : "#d8d8d8";
+  set("yc10y2y", fmtBp(st.spread_10y2y), spreadColor(st.spread_10y2y));
+  set("yc10y3m", fmtBp(st.spread_10y3m), spreadColor(st.spread_10y3m));
+  const regimeMap = {
+    deep_inversion: ["DEEP INVERSION", "#e05050", "Both key curve spreads are inverted. Policy is tight versus long-end growth/inflation expectations."],
+    partial_inversion: ["PARTIAL INVERSION", "#EF9F27", "One curve spread is still inverted. The cycle signal remains stressed, but less uniformly."],
+    steep: ["STEEP CURVE", "#1D9E75", "Both spreads are steeply positive. Growth/credit conditions are easier than during inversion."],
+    normal: ["NORMAL", "#d8d8d8", "Curve is positive but not extreme. Watch whether spreads steepen from inversion or flatten from expansion."],
+    unavailable: ["—", "#777", "Waiting for yield curve data."],
+  };
+  const [regime, col, desc] = regimeMap[st.status] || regimeMap.unavailable;
+  set("ycRegime", regime, col);
+  const descEl = document.getElementById("ycDesc");
+  if(descEl) descEl.textContent = (st.current_date ? st.current_date + " · " : "") + desc;
+
+  const c = mkCanvas("yieldCurveCanvas", 360); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 76, bottom: 34, left: 48 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  if(rows.length < 100) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Yield curve data unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const vals = rows.flatMap(r=>[+r.spread_10y2y,+r.spread_10y3m,0]);
+  const minV = Math.floor((Math.min(...vals) - 35) / 50) * 50;
+  const maxV = Math.ceil((Math.max(...vals) + 35) / 50) * 50;
+  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
+  const zeroY = toY(0);
+  ctx.fillStyle="rgba(224,80,80,.075)";
+  ctx.fillRect(PAD.left, zeroY, PW, PAD.top + PH - zeroY);
+  ctx.strokeStyle="rgba(255,255,255,.055)"; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+  for(let v=Math.ceil(minV/100)*100; v<=maxV; v+=100) {
+    const y=toY(v);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+    ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right"; ctx.fillText(v, PAD.left-5, y+3);
+  }
+  ctx.setLineDash([6,5]); ctx.strokeStyle="rgba(224,80,80,.65)";
+  ctx.beginPath(); ctx.moveTo(PAD.left,zeroY); ctx.lineTo(PAD.left+PW,zeroY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle="#e05050"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("0 bp", PAD.left+PW+5, zeroY+3);
+  const drawLine = (key, color) => {
+    ctx.beginPath();
+    rows.forEach((r,i)=>i===0 ? ctx.moveTo(toX(i), toY(+r[key])) : ctx.lineTo(toX(i), toY(+r[key])));
+    ctx.strokeStyle=color; ctx.lineWidth=1.75; ctx.lineJoin="round"; ctx.stroke();
+  };
+  drawLine("spread_10y3m", "#EF9F27");
+  drawLine("spread_10y2y", "#60a5fa");
+  const last = rows[rows.length - 1];
+  [["10Y−2Y", +last.spread_10y2y, "#60a5fa"], ["10Y−3M", +last.spread_10y3m, "#EF9F27"]].forEach(([lbl,v,color])=>{
+    const x=toX(rows.length-1), y=toY(v);
+    ctx.beginPath(); ctx.arc(x,y,3.6,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+    ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle=color; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
+    ctx.fillText(lbl + " " + fmtBp(v), PAD.left+PW+5, y+3);
+  });
+  ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  const seenYears = new Set();
+  rows.forEach((r,i)=>{
+    const yr = new Date(r.date+"T12:00:00").getFullYear();
+    if(yr % 2 || seenYears.has(yr)) return;
+    seenYears.add(yr);
+    ctx.fillText("'" + String(yr).slice(2), toX(i), H-PAD.bottom+16);
+  });
 }
 
 function drawForwardPEChart() {
