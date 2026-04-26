@@ -2103,7 +2103,7 @@ function drawOilPriceChart(rows) {
 }
 
 function drawOilSpreadChart(rows) {
-  const c = mkCanvas("oilSpreadCanvas", 190); if(!c) return;
+  const c = mkCanvas("oilSpreadCanvas", 245); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 68, bottom: 28, left: 46 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
@@ -2114,7 +2114,7 @@ function drawOilSpreadChart(rows) {
   const data=valid.map(r=>spreadVal(r));
   const absVals=data.map(v=>Math.abs(v)).sort((a,b)=>a-b);
   const q=(p)=>absVals[Math.max(0,Math.min(absVals.length-1,Math.floor((absVals.length-1)*p)))]||0;
-  const visualAbs=Math.max(0.35, Math.min(Math.max(...absVals), q(0.85)*1.6));
+  const visualAbs=Math.max(1.2, Math.min(Math.max(...absVals), q(0.95)*1.25));
   const vMin=-visualAbs*1.08,vMax=visualAbs*1.08;
   const clamp=v=>Math.max(vMin,Math.min(vMax,v));
   const toX=i=>PAD.left+(i/(valid.length-1))*PW;
@@ -2129,7 +2129,8 @@ function drawOilSpreadChart(rows) {
 
   const bw=Math.max(1,PW/valid.length-0.4);
   data.forEach((v,i)=>{const x=toX(i),cv=clamp(v),y=toY(cv),clipped=Math.abs(v)>visualAbs;ctx.fillStyle=v>=0?(clipped?"rgba(29,158,117,0.95)":"rgba(29,158,117,0.75)"):(clipped?"rgba(212,80,80,0.95)":"rgba(212,80,80,0.75)");
-    if(v>=0)ctx.fillRect(x-bw/2,y,bw,z-y);else ctx.fillRect(x-bw/2,z,bw,y-z);
+    const h=Math.abs(z-y), minH=v===0?0:Math.max(1.25,h);
+    if(v>=0)ctx.fillRect(x-bw/2,z-minH,bw,minH);else ctx.fillRect(x-bw/2,z,bw,minH);
     if(clipped){ctx.fillStyle=v>=0?"#1D9E75":"#e05050";ctx.fillRect(x-bw/2,v>=0?PAD.top+2:PAD.top+PH-4,bw,2);}
   });
 
