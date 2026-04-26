@@ -1678,10 +1678,10 @@ function drawReturnHistogramChart(vals, mean, sigma, plus2, minus2) {
   ctx.fillStyle="#8a8a8a"; ctx.font="10px sans-serif"; ctx.fillText("Monthly Price Return (%)", PAD.left + PW/2, H - 8);
 }
 
-function drawReturnSeriesChart(rows, mean, plus2, minus2) {
+function drawReturnSeriesChart(rows, mean, plus2, minus2, hoverIndex=null) {
   const c = mkCanvas("retSeriesCanvas", 170); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 14, right: 48, bottom: 28, left: 48 };
+  const PAD = { top: 14, right: 62, bottom: 28, left: 48 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const vals = rows.map(r => +r.ret);
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
@@ -1693,13 +1693,56 @@ function drawReturnSeriesChart(rows, mean, plus2, minus2) {
   ctx.strokeStyle="rgba(255,255,255,.10)"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD.left,zero); ctx.lineTo(PAD.left+PW,zero); ctx.stroke();
   [[plus2,"#1D9E75","+2σ"],[minus2,"#e05050","−2σ"]].forEach(([v,color,label])=>{ const y=toY(v); ctx.strokeStyle=color; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=color; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(label, PAD.left+PW+6, y+3); });
   const bw = Math.max(1, PW / rows.length - .7);
-  vals.forEach((v,i)=>{ const x=toX(i), y=toY(v); ctx.fillStyle = v >= 0 ? "#21d947" : "#ff2f2f"; if(v>=0) ctx.fillRect(x-bw/2, y, bw, zero-y); else ctx.fillRect(x-bw/2, zero, bw, y-zero); });
+  vals.forEach((v,i)=>{
+    const x=toX(i), y=toY(v);
+    ctx.fillStyle = v >= 0 ? "#21d947" : "#ff2f2f";
+    if(v>=0) ctx.fillRect(x-bw/2, y, bw, zero-y); else ctx.fillRect(x-bw/2, zero, bw, y-zero);
+  });
   ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [minus2,0,plus2].forEach(v => ctx.fillText(v.toFixed(1)+"%", PAD.left-5, toY(v)+3));
-  const years = [];
-  rows.forEach((r,i)=>{ const y = r.date.slice(0,4); if(!years.includes(y) && (i === 0 || rows[i-1].date.slice(0,4) !== y)) years.push(y); });
   ctx.textAlign="center"; ctx.fillStyle="#444"; ctx.font="8px sans-serif";
   rows.forEach((r,i)=>{ if(r.date.slice(5,7)==="01" || i===0){ ctx.fillText("'"+r.date.slice(2,4), toX(i), H-PAD.bottom+14); } });
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], v = vals[hoverIndex], x = toX(hoverIndex), y = toY(v);
+    const dt = new Date(r.date + "T12:00:00");
+    const month = dt.toLocaleDateString("de-DE", { month:"short", year:"numeric" }).replace(".", "");
+    const ret = (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+    const label = `${month} · ${ret}`;
+    const col = v >= 0 ? "#21d947" : "#ff4a4a";
+    ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+    ctx.font = "bold 10px sans-serif";
+    const tw = ctx.measureText(label).width;
+    const boxW = tw + 14, boxH = 20;
+    let bx = Math.max(PAD.left + 2, Math.min(W - PAD.right - boxW - 2, x - boxW / 2));
+    let by = Math.max(PAD.top + 4, y - boxH - 10);
+    if(v >= 0 && by < PAD.top + 4) by = y + 10;
+    ctx.fillStyle = "rgba(8,8,8,.94)";
+    ctx.strokeStyle = "#303030";
+    ctx.lineWidth = 1;
+    ctx.fillRect(bx, by, boxW, boxH);
+    ctx.strokeRect(bx, by, boxW, boxH);
+    ctx.fillStyle = col;
+    ctx.textAlign = "left";
+    ctx.fillText(label, bx + 7, by + 13);
+  }
+
+  const canvas = document.getElementById("retSeriesCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW || !rows.length) {
+        drawReturnSeriesChart(rows, mean, plus2, minus2, null);
+        return;
+      }
+      const idx = Math.max(0, Math.min(rows.length - 1, Math.round(((x - PAD.left) / PW) * (rows.length - 1))));
+      drawReturnSeriesChart(rows, mean, plus2, minus2, idx);
+    };
+    canvas.onmouseleave = () => drawReturnSeriesChart(rows, mean, plus2, minus2, null);
+  }
 }
 
 function drawSPXMini(canvasId, chgId) {
