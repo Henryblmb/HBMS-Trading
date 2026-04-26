@@ -1649,6 +1649,58 @@ function drawHistoryLineLog(canvasId, hist, h, label, lineColor, zones=[]) {
   });
 }
 
+function drawHistoryLineLogByDate(canvasId, hist, h, label, lineColor, domain, zones=[]) {
+  if(!hist || hist.length < 2 || !domain) {
+    emptyCanvas(canvasId, h, `${label} history unavailable - run screener.py`);
+    return;
+  }
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 45, bottom: 26, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const rows = hist
+    .filter(d => Number.isFinite(+d.close) && +d.close > 0 && Number.isFinite(rowDateMs(d)))
+    .sort((a, b) => rowDateMs(a) - rowDateMs(b));
+  const data = rows.map(d => +d.close);
+  if(data.length < 2) {
+    emptyCanvas(canvasId, h, `${label} history unavailable - run screener.py`);
+    return;
+  }
+  const logData = data.map(v => Math.log(v));
+  const vMin = Math.min(...logData) * .998;
+  const vMax = Math.max(...logData) * 1.002;
+  const span = vMax - vMin || 1;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((Math.log(v) - vMin) / span) * PH;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  zones.forEach(z => {
+    const x1 = toDateX(z.startMs);
+    const x2 = toDateX(z.endMs);
+    ctx.fillStyle = z.color || "rgba(212,80,80,.10)";
+    ctx.fillRect(x1, PAD.top, Math.max(1, x2 - x1), PH);
+  });
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++) {
+    const y = PAD.top + (PH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  rows.forEach((row, i) => i === 0 ? ctx.moveTo(toX(row), toY(+row.close)) : ctx.lineTo(toX(row), toY(+row.close)));
+  ctx.strokeStyle = lineColor + "dd"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [Math.exp(vMin), Math.exp((vMin + vMax) / 2), Math.exp(vMax)].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 4, toY(v) + 3));
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    const d = new Date(ms);
+    ctx.fillText(d.toLocaleString("en-US", { year: "2-digit" }), toDateX(ms), H - PAD.bottom + 11);
+  });
+}
+
 function weeklyFromDaily(hist) {
   const weeks = new Map();
   hist.forEach(p => {
@@ -1695,6 +1747,28 @@ function cutoffDateForRows(rows, range) {
 function filterRowsByRange(rows, range) {
   const cutoff = cutoffDateForRows(rows, range);
   return cutoff ? rows.filter(r => r && r.date >= cutoff) : (rows || []);
+}
+
+function rowDateMs(row) {
+  if(!row || !row.date) return NaN;
+  return new Date(row.date + "T12:00:00").getTime();
+}
+
+function dateDomainForRows(rowGroups, range) {
+  const allTimes = rowGroups.flat().map(rowDateMs).filter(Number.isFinite);
+  if(!allTimes.length) return null;
+  const endMs = Math.max(...allTimes);
+  const startDate = new Date(endMs);
+  startDate.setFullYear(startDate.getFullYear() - rangeYears(range));
+  return { startMs: startDate.getTime(), endMs };
+}
+
+function filterRowsByDateDomain(rows, domain) {
+  if(!domain) return rows || [];
+  return (rows || []).filter(r => {
+    const t = rowDateMs(r);
+    return Number.isFinite(t) && t >= domain.startMs && t <= domain.endMs;
+  });
 }
 
 function formatSignalDate(dateStr) {
@@ -1746,8 +1820,8 @@ function vixSDLevelColor(level) {
   return "rgba(125,22,22,.88)";
 }
 
-function drawVIXSDBars(canvasId, rows, h=230) {
-  if(!rows || rows.length < 2) {
+function drawVIXSDBars(canvasId, rows, h=230, domain=null) {
+  if(!rows || rows.length < 2 || !domain) {
     emptyCanvas(canvasId, h, "VIX SD history unavailable - run screener.py");
     return;
   }
@@ -1756,7 +1830,9 @@ function drawVIXSDBars(canvasId, rows, h=230) {
   const PAD = { top: 16, right: 56, bottom: 28, left: 42 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const vMin = -2, vMax = 7, signalSD = (35 - 20) / 8;
-  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
   const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin)) * PH;
   const zeroY = toY(0);
 
@@ -1785,16 +1861,17 @@ function drawVIXSDBars(canvasId, rows, h=230) {
   rows.forEach((r, i) => {
     const sd = Math.max(vMin, Math.min(vMax, +r.sd_clamped));
     if(!Number.isFinite(sd)) return;
-    const x = toX(i), y = toY(sd);
+    const x = toX(r), y = toY(sd);
     ctx.fillStyle = vixSDColor(+r.sd, !!r.signal);
     if(sd >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
     else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
   });
 
   ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
-  [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
-    const d = rows[i] && rows[i].date ? new Date(rows[i].date + "T12:00:00") : null;
-    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", toX(i), H - PAD.bottom + 12);
+  [0, .2, .4, .6, .8, 1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    const d = new Date(ms);
+    ctx.fillText(d.toLocaleString("en-US", { year: "2-digit" }), toDateX(ms), H - PAD.bottom + 12);
   });
 
   const last = rows[rows.length - 1];
@@ -1808,17 +1885,19 @@ function drawVIXSDBars(canvasId, rows, h=230) {
 
 function drawVIXSDSignal() {
   const md = window._marketData || {};
-  let priceRows = marketHistory("sp500_history_20y");
-  if(!priceRows.length) priceRows = marketHistory("sp500_history");
-  priceRows = filterRowsByRange(priceRows, vixsdHistoryRange);
+  let allPriceRows = marketHistory("sp500_history_20y");
+  if(!allPriceRows.length) allPriceRows = marketHistory("sp500_history");
 
   const rawVix = Array.isArray(md.vix_sd_history) ? md.vix_sd_history : [];
-  const vixRows = filterRowsByRange(rawVix.filter(r => r && r.date && Number.isFinite(+r.sd_clamped)), vixsdHistoryRange);
+  const validVixRows = rawVix.filter(r => r && r.date && Number.isFinite(+r.sd_clamped));
+  const domain = dateDomainForRows([allPriceRows, validVixRows], vixsdHistoryRange);
+  const priceRows = filterRowsByDateDomain(allPriceRows, domain);
+  const vixRows = filterRowsByDateDomain(validVixRows, domain);
 
   if(priceRows.length < 2) emptyCanvas("vixsdPriceCanvas", 240, `S&P 500 ${vixsdHistoryRange} history unavailable - run screener.py`);
-  else drawHistoryLineLog("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", []);
+  else drawHistoryLineLogByDate("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
 
-  drawVIXSDBars("vixsdBarsCanvas", vixRows, 230);
+  drawVIXSDBars("vixsdBarsCanvas", vixRows, 230, domain);
 
   const title = document.getElementById("vixsdPriceTitle");
   if(title) title.textContent = `S&P 500 — ${vixsdHistoryRange} Daily Log Chart`;
