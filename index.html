@@ -1691,7 +1691,7 @@ function drawReturnSeriesChart(rows, mean, plus2, minus2) {
   const toY = v => PAD.top + PH - ((v - min) / (max - min)) * PH;
   const zero = toY(0);
   ctx.strokeStyle="rgba(255,255,255,.10)"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(PAD.left,zero); ctx.lineTo(PAD.left+PW,zero); ctx.stroke();
-  [[plus2,"#1D9E75"],[minus2,"#e05050"]].forEach(([v,color])=>{ const y=toY(v); ctx.strokeStyle=color; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]); });
+  [[plus2,"#1D9E75","+2σ"],[minus2,"#e05050","−2σ"]].forEach(([v,color,label])=>{ const y=toY(v); ctx.strokeStyle=color; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=color; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(label, PAD.left+PW+6, y+3); });
   const bw = Math.max(1, PW / rows.length - .7);
   vals.forEach((v,i)=>{ const x=toX(i), y=toY(v); ctx.fillStyle = v >= 0 ? "#21d947" : "#ff2f2f"; if(v>=0) ctx.fillRect(x-bw/2, y, bw, zero-y); else ctx.fillRect(x-bw/2, zero, bw, y-zero); });
   ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
