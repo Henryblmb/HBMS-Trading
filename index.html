@@ -835,7 +835,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-spxema">
       <div class="cg-header">
         <div class="cg-title">SPX 9/21 Weekly EMA — Momentum Cross</div>
-        <div class="cg-sub">S&amp;P 500 weekly chart from January 2000 with 9-week and 21-week EMAs. Green vertical marks show bullish 9 EMA crosses above 21 EMA; red marks show bearish crosses below.</div>
+        <div class="cg-sub">S&amp;P 500 20-year weekly chart with 9-week and 21-week EMAs. Green background shows bullish 9 EMA above 21 EMA; red background shows bearish 9 EMA below 21 EMA.</div>
       </div>
 
       <div class="signal-bar">
@@ -859,7 +859,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 — Weekly Log Chart · EMA 9 / EMA 21</span>
+          <span class="cg-chart-title">S&amp;P 500 — 20Y Weekly Log Chart · EMA 9 / EMA 21</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span><span class="cg-leg-line" style="background:#5DCAA5"></span>EMA 9</span>
@@ -1590,14 +1590,14 @@ function drawSPXWeeklyEMA() {
   const md = window._marketData || {};
   let rows = Array.isArray(md.sp500_ema_weekly_history) ? md.sp500_ema_weekly_history : [];
   if(!rows.length) rows = weeklyFromDaily(marketHistory("sp500_history"));
-  rows = rows.filter(d => d && d.date >= "2000-01-01" && Number.isFinite(+d.close) && +d.close > 0);
+  rows = rows.filter(d => d && d.date >= "2006-01-01" && Number.isFinite(+d.close) && +d.close > 0);
   if(rows.length < 80) {
     emptyCanvas("spxemaCanvas", 360, "S&P 500 weekly EMA history unavailable - run screener.py");
     ["spxemaLastCross","spxema9Val","spxema21Val"].forEach(id => {
       const el = document.getElementById(id); if(el) el.textContent = "—";
     });
     const desc = document.getElementById("spxemaDesc");
-    if(desc) desc.textContent = "Run screener.py to load S&P weekly data from January 2000.";
+    if(desc) desc.textContent = "Run screener.py to load 20-year S&P weekly data.";
     return;
   }
 
@@ -1699,7 +1699,7 @@ function drawSPXWeeklyEMA() {
   const desc = document.getElementById("spxemaDesc");
   if(desc) {
     const trend = ema9[ema9.length - 1] > ema21[ema21.length - 1] ? "9W EMA above 21W EMA: bullish weekly momentum regime." : "9W EMA below 21W EMA: bearish weekly momentum regime.";
-    desc.textContent = `${rows.length} weekly bars loaded from ${rows[0].date}. ${crosses.length} EMA crosses since Jan 2000. ${trend}`;
+    desc.textContent = `${rows.length} weekly bars loaded from ${rows[0].date}. ${crosses.length} EMA crosses in 20Y history. ${trend}`;
   }
 }
 
