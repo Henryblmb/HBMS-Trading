@@ -493,7 +493,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Volatility Models</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
-      <div class="nav-item sub" onclick="showTab('cg-vixsd',this)">VIX Standard Deviation Signal</div>
+      <div class="nav-item sub" onclick="showTab('cg-vixsd',this)">VIX SD Level</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
@@ -905,11 +905,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
-    <!-- VIX STANDARD DEVIATION SIGNAL -->
+    <!-- VIX SD LEVEL -->
     <div class="panel cg-page" id="tab-cg-vixsd">
       <div class="cg-header">
-        <div class="cg-title">VIX Standard Deviation Signal</div>
-        <div class="cg-sub">Fixed VIX standard-deviation model: mean 20, each SD is 8 VIX points. Signal starts at VIX 35 and strengthens as the daily VIX reaches higher SD levels.</div>
+        <div class="cg-title">VIX SD Level</div>
+        <div class="cg-sub">Fixed VIX standard-deviation model using 1H VIX highs: mean 20, each SD is 8 VIX points. Signal starts at VIX 35 and strengthens as intraday volatility reaches higher SD levels.</div>
         <div class="hist-range" id="vixsdRange">
           <button class="hist-btn" onclick="setHistoryRange('vixsd','1Y',this)">1Y</button>
           <button class="hist-btn" onclick="setHistoryRange('vixsd','5Y',this)">5Y</button>
@@ -947,7 +947,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="vixsdBarsTitle">VIX Standard Deviation — 20Y Daily</span>
+          <span class="cg-chart-title" id="vixsdBarsTitle">VIX SD Level — 20Y 1H High by Day</span>
           <div class="cg-chart-legend">
             <span style="color:#777">0 Mean</span>
             <span style="color:#EF9F27">+2 Stress</span>
@@ -1734,6 +1734,18 @@ function vixSDColor(sd, signal=false) {
   return "rgba(93,202,165,.55)";
 }
 
+function vixSDLevelColor(level) {
+  if(level <= -1) return "rgba(93,202,165,.55)";
+  if(level === 0) return "rgba(216,216,216,.34)";
+  if(level === 1) return "rgba(120,145,170,.52)";
+  if(level === 2) return "rgba(239,159,39,.62)";
+  if(level === 3) return "rgba(224,105,80,.66)";
+  if(level === 4) return "rgba(224,80,80,.70)";
+  if(level === 5) return "rgba(190,45,45,.76)";
+  if(level === 6) return "rgba(155,30,30,.82)";
+  return "rgba(125,22,22,.88)";
+}
+
 function drawVIXSDBars(canvasId, rows, h=230) {
   if(!rows || rows.length < 2) {
     emptyCanvas(canvasId, h, "VIX SD history unavailable - run screener.py");
@@ -1755,14 +1767,18 @@ function drawVIXSDBars(canvasId, rows, h=230) {
 
   [-2,-1,0,1,2,3,4,5,6,7].forEach(level => {
     const y = toY(level);
-    ctx.strokeStyle = level === 0 ? "rgba(255,255,255,.12)" : "rgba(255,255,255,.035)";
-    ctx.lineWidth = level === 0 ? 1.2 : 1;
-    ctx.setLineDash(level === 0 ? [] : [3, 5]);
+    ctx.strokeStyle = vixSDLevelColor(level);
+    ctx.lineWidth = level === 0 ? 1.2 : (level === -1 || level > 0 ? 1.05 : .8);
+    ctx.setLineDash(level === 0 ? [] : [5, 6]);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = level >= 3 ? "#7b3333" : level >= 2 ? "#8a6425" : "#3f3f3f";
+    ctx.fillStyle = vixSDLevelColor(level);
     ctx.font = "8px sans-serif"; ctx.textAlign = "right";
     ctx.fillText((level > 0 ? "+" : "") + level, PAD.left - 5, y + 3);
+    if(level === -1 || level > 0) {
+      ctx.textAlign = "left";
+      ctx.fillText(`${level > 0 ? "+" : ""}${level} SD`, PAD.left + PW + 4, y + 3);
+    }
   });
 
   const sy = toY(signalSD);
@@ -1815,7 +1831,7 @@ function drawVIXSDSignal() {
   const title = document.getElementById("vixsdPriceTitle");
   if(title) title.textContent = `S&P 500 — ${vixsdHistoryRange} Daily Log Chart`;
   const barsTitle = document.getElementById("vixsdBarsTitle");
-  if(barsTitle) barsTitle.textContent = `VIX Standard Deviation — ${vixsdHistoryRange} Daily`;
+  if(barsTitle) barsTitle.textContent = `VIX SD Level — ${vixsdHistoryRange} 1H High by Day`;
 
   const current = md.vix_sd_current || {};
   const latest = rawVix.length ? rawVix[rawVix.length - 1] : {};
