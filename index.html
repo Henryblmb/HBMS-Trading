@@ -491,6 +491,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-vix2',this)">VIX Term Structure</div>
     </div>
 
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Volatility Models</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-vixsd',this)">VIX Standard Deviation Signal</div>
+    </div>
+
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-hyg',this)">High Yield Bonds</div>
@@ -900,6 +905,66 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- VIX STANDARD DEVIATION SIGNAL -->
+    <div class="panel cg-page" id="tab-cg-vixsd">
+      <div class="cg-header">
+        <div class="cg-title">VIX Standard Deviation Signal</div>
+        <div class="cg-sub">Fixed VIX standard-deviation model: mean 20, each SD is 8 VIX points. Signal starts at VIX 35 and strengthens as the daily VIX reaches higher SD levels.</div>
+        <div class="hist-range" id="vixsdRange">
+          <button class="hist-btn" onclick="setHistoryRange('vixsd','1Y',this)">1Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('vixsd','5Y',this)">5Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('vixsd','10Y',this)">10Y</button>
+          <button class="hist-btn active" onclick="setHistoryRange('vixsd','20Y',this)">20Y</button>
+        </div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">VIX</div>
+          <div class="signal-bar-val" id="vixsdVixVal" style="color:#d8d8d8">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">SD Level</div>
+          <div class="signal-bar-val" id="vixsdSDVal" style="font-size:14px;color:#EF9F27;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Signal</div>
+          <div class="signal-bar-val" id="vixsdSignalVal" style="font-size:14px;color:#777;padding-top:4px">—</div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixsdPriceTitle">S&amp;P 500 — 20Y Daily Log Chart</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+          </div>
+        </div>
+        <canvas id="vixsdPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixsdBarsTitle">VIX Standard Deviation — 20Y Daily</span>
+          <div class="cg-chart-legend">
+            <span style="color:#777">0 Mean</span>
+            <span style="color:#EF9F27">+2 Stress</span>
+            <span style="color:#e05050">+3 Panic</span>
+            <span style="color:#aa1a1a">+5+ Crisis</span>
+          </div>
+        </div>
+        <canvas id="vixsdBarsCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell neut"><div class="interp-title neut">Signal Start</div><div class="interp-text">VIX 35+ is treated as the start of a stress signal. It sits just below +2 SD in the fixed model.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Stronger With SD</div><div class="interp-text">Higher SD bars indicate stronger volatility stress: +3 is panic, +5 and above is crisis-type volatility.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Fixed Model</div><div class="interp-text">SD = (VIX − 20) / 8. The chart is capped from −2 to +7 to keep calm and panic regimes comparable.</div></div>
+      </div>
+    </div>
+
     <!-- SECTOR NEW HIGHS -->
     <div class="panel cg-page" id="tab-cg-sectornewhi">
       <div class="cg-header">
@@ -1294,6 +1359,7 @@ function showTab(id, el) {
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
+  if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
 }
 
 // ═══════════════════════════════════════════════
@@ -1322,6 +1388,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
+    if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -1610,6 +1677,7 @@ function emaSeries(values, span) {
 
 let spxrsiHistoryRange = "10Y";
 let spxemaHistoryRange = "20Y";
+let vixsdHistoryRange = "20Y";
 
 function rangeYears(range) {
   return parseInt(String(range).replace("Y", ""), 10) || 10;
@@ -1649,6 +1717,123 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#spxemaRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawSPXWeeklyEMA();
+  }
+  if(chart === "vixsd") {
+    vixsdHistoryRange = range;
+    document.querySelectorAll("#vixsdRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawVIXSDSignal();
+  }
+}
+
+function vixSDColor(sd, signal=false) {
+  if(sd >= 5) return "#aa1a1a";
+  if(sd >= 3) return "#e05050";
+  if(signal || sd >= 1.875) return "#EF9F27";
+  if(sd >= 0) return "rgba(120,145,170,.65)";
+  return "rgba(93,202,165,.55)";
+}
+
+function drawVIXSDBars(canvasId, rows, h=230) {
+  if(!rows || rows.length < 2) {
+    emptyCanvas(canvasId, h, "VIX SD history unavailable - run screener.py");
+    return;
+  }
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 56, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const vMin = -2, vMax = 7, signalSD = (35 - 20) / 8;
+  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin)) * PH;
+  const zeroY = toY(0);
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "rgba(224,80,80,.055)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(signalSD) - PAD.top));
+  ctx.fillStyle = "rgba(29,158,117,.045)"; ctx.fillRect(PAD.left, zeroY, PW, Math.max(0, H - PAD.bottom - zeroY));
+
+  [-2,-1,0,1,2,3,4,5,6,7].forEach(level => {
+    const y = toY(level);
+    ctx.strokeStyle = level === 0 ? "rgba(255,255,255,.12)" : "rgba(255,255,255,.035)";
+    ctx.lineWidth = level === 0 ? 1.2 : 1;
+    ctx.setLineDash(level === 0 ? [] : [3, 5]);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = level >= 3 ? "#7b3333" : level >= 2 ? "#8a6425" : "#3f3f3f";
+    ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+    ctx.fillText((level > 0 ? "+" : "") + level, PAD.left - 5, y + 3);
+  });
+
+  const sy = toY(signalSD);
+  ctx.strokeStyle = "rgba(239,159,39,.58)";
+  ctx.setLineDash([5, 5]); ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(PAD.left + PW, sy); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#EF9F27"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("VIX 35 Signal", PAD.left + PW + 4, sy + 3);
+
+  const barW = Math.max(1, PW / rows.length - .35);
+  rows.forEach((r, i) => {
+    const sd = Math.max(vMin, Math.min(vMax, +r.sd_clamped));
+    if(!Number.isFinite(sd)) return;
+    const x = toX(i), y = toY(sd);
+    ctx.fillStyle = vixSDColor(+r.sd, !!r.signal);
+    if(sd >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
+    else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
+  });
+
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
+    const d = rows[i] && rows[i].date ? new Date(rows[i].date + "T12:00:00") : null;
+    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", toX(i), H - PAD.bottom + 12);
+  });
+
+  const last = rows[rows.length - 1];
+  if(last && Number.isFinite(+last.sd_clamped)) {
+    const y = toY(+last.sd_clamped);
+    ctx.fillStyle = vixSDColor(+last.sd, !!last.signal);
+    ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText(`${(+last.sd).toFixed(1)} SD`, PAD.left + PW + 4, y + 3);
+  }
+}
+
+function drawVIXSDSignal() {
+  const md = window._marketData || {};
+  let priceRows = marketHistory("sp500_history_20y");
+  if(!priceRows.length) priceRows = marketHistory("sp500_history");
+  priceRows = filterRowsByRange(priceRows, vixsdHistoryRange);
+
+  const rawVix = Array.isArray(md.vix_sd_history) ? md.vix_sd_history : [];
+  const vixRows = filterRowsByRange(rawVix.filter(r => r && r.date && Number.isFinite(+r.sd_clamped)), vixsdHistoryRange);
+
+  if(priceRows.length < 2) emptyCanvas("vixsdPriceCanvas", 240, `S&P 500 ${vixsdHistoryRange} history unavailable - run screener.py`);
+  else drawHistoryLineLog("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", []);
+
+  drawVIXSDBars("vixsdBarsCanvas", vixRows, 230);
+
+  const title = document.getElementById("vixsdPriceTitle");
+  if(title) title.textContent = `S&P 500 — ${vixsdHistoryRange} Daily Log Chart`;
+  const barsTitle = document.getElementById("vixsdBarsTitle");
+  if(barsTitle) barsTitle.textContent = `VIX Standard Deviation — ${vixsdHistoryRange} Daily`;
+
+  const current = md.vix_sd_current || {};
+  const latest = rawVix.length ? rawVix[rawVix.length - 1] : {};
+  const vix = current.current_vix ?? latest.vix;
+  const sd = current.current_sd ?? latest.sd;
+  const signal = !!(current.signal ?? latest.signal);
+  const color = vixSDColor(+sd, signal);
+  const vixEl = document.getElementById("vixsdVixVal");
+  const sdEl = document.getElementById("vixsdSDVal");
+  const sigEl = document.getElementById("vixsdSignalVal");
+  if(vixEl) vixEl.textContent = Number.isFinite(+vix) ? (+vix).toFixed(1) : "—";
+  if(sdEl) {
+    sdEl.textContent = Number.isFinite(+sd) ? `${+sd >= 0 ? "+" : ""}${(+sd).toFixed(2)} SD` : "—";
+    sdEl.style.color = color;
+  }
+  if(sigEl) {
+    sigEl.textContent = signal ? "STRESS ACTIVE" : "BELOW SIGNAL";
+    sigEl.style.color = signal ? color : "#777";
   }
 }
 
