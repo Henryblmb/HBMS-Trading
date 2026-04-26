@@ -219,6 +219,21 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .hilo-leg-item{display:flex;align-items:center;gap:3px;font-size:9.5px;color:#444}
 .hilo-leg-swatch{width:13px;height:13px;flex-shrink:0}
 
+/* ── Seasonality ── */
+.season-grid-wrap{overflow:auto;border:1px solid var(--line);background:var(--chart);box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.season-table{width:100%;border-collapse:collapse;min-width:760px;table-layout:fixed}
+.season-table th,.season-table td{border:1px solid rgba(255,255,255,.045);height:34px;text-align:center;font-size:10px}
+.season-table th{color:#777;background:#111;font-weight:540;text-transform:uppercase;letter-spacing:.06em}
+.season-table th:first-child,.season-table td:first-child{width:54px;color:#777;background:#101010;font-weight:540}
+.season-cell{font-weight:600;color:#d8d8d8;transition:filter .12s,transform .12s}
+.season-cell:hover{filter:brightness(1.35);transform:scale(1.02)}
+.season-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px;margin-top:.75rem}
+.season-month-card{border:1px solid var(--line);background:var(--surface);padding:9px 11px}
+.season-month-name{font-size:9px;color:#777;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.season-month-row{display:flex;justify-content:space-between;font-size:10px;color:#777;padding:2px 0;border-top:1px solid rgba(255,255,255,.04)}
+.season-month-row:first-of-type{border-top:0}
+.season-month-row b{font-weight:600;color:#d8d8d8}
+
 /* ══════════════════════════════════════════
    CHARTS / GRAPHS — NEW SECTION STYLES
 ══════════════════════════════════════════ */
@@ -474,6 +489,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
     <div class="nav-item" onclick="showTab('momentum',this)">Momentum</div>
+    <div class="nav-item" onclick="showTab('seasonality',this)">Seasonality Heatmap</div>
 
     <div class="nav-divider"></div>
     <div class="nav-section">Charts / Graphs</div>
@@ -696,6 +712,32 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="stat"><div class="stat-val" id="momElite" style="color:#EF9F27">—</div><div class="stat-lbl">Elite 6-7</div></div>
       </div>
       <div class="mom-grid" id="momGrid"><div class="empty">Loading...</div></div>
+    </div>
+
+    <!-- SEASONALITY -->
+    <div class="panel" id="tab-seasonality">
+      <div class="section-title">Seasonality Heatmap — Monthly Return Pattern</div>
+      <div class="filter-row" style="margin-bottom:.9rem">
+        <label>Ticker:</label>
+        <select id="seasonTicker" onchange="renderSeasonality()"></select>
+        <label>Range:</label>
+        <select id="seasonRange" onchange="renderSeasonality()"><option value="max">Max</option><option value="20">20Y</option><option value="15">15Y</option><option value="10">10Y</option><option value="5">5Y</option></select>
+        <label>Sort:</label>
+        <select id="seasonSort" onchange="renderSeasonality()"><option value="asc">Oldest First</option><option value="desc">Newest First</option></select>
+      </div>
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Best Month</div><div class="signal-bar-val" id="seasonBest" style="font-size:16px;color:#1D9E75">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Worst Month</div><div class="signal-bar-val" id="seasonWorst" style="font-size:16px;color:#e05050">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Win Rate</div><div class="signal-bar-val" id="seasonWin" style="font-size:16px;color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="seasonDesc">Monthly return seasonality loads from the existing return histogram data.</div>
+      </div>
+      <div class="season-grid-wrap">
+        <table class="season-table" id="seasonTable"></table>
+      </div>
+      <div class="season-summary" id="seasonSummary"></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════
@@ -1312,6 +1354,7 @@ function showTab(id, el) {
   // Tab-specific actions
   if(id === "hilo") renderHiLo();
   if(id === "momentum") renderMomentum();
+  if(id === "seasonality") renderSeasonality();
   if(id === "vix") { window._marketData = window._marketData || {}; setTimeout(renderVIX, 100); }
   if(id === "sectors") { renderHeatmap(); setTimeout(renderRRG, 80); setTimeout(renderSectorDetail, 100); }
 
@@ -1345,7 +1388,7 @@ async function loadData() {
     document.getElementById("stockCount").textContent = "Stocks - " + (json.total || allStocks.length || "—");
     document.getElementById("lastUpd").textContent = "Updated: " + (json.generated || "—");
     filterGP(); filterOS(); filterTrend(); renderSectors();
-    renderHiLo(); renderMomentum();
+    renderHiLo(); renderMomentum(); renderSeasonality();
     // Update CG-VIX readings if open
     updateCGVIX2Readings();
     updateBT20Signal();
@@ -1355,6 +1398,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
+    if(activePanel && activePanel.id === "tab-seasonality") renderSeasonality();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
   } catch(e) {
@@ -1396,6 +1440,15 @@ function returnHistogramData() {
   return md.return_histograms || {};
 }
 
+function seasonEscape(s) {
+  return String(s ?? "").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+}
+
+function fmtPct(v, digits=1) {
+  if(!Number.isFinite(v)) return "—";
+  return (v >= 0 ? "+" : "") + v.toFixed(digits) + "%";
+}
+
 function ensureReturnHistogramOptions() {
   const sel = document.getElementById("retHistTicker");
   if(!sel) return null;
@@ -1414,6 +1467,115 @@ function ensureReturnHistogramOptions() {
     else if(keys.length) sel.value = keys[0];
   }
   return sel.value;
+}
+
+function ensureSeasonalityOptions() {
+  const sel = document.getElementById("seasonTicker");
+  if(!sel) return null;
+  const data = returnHistogramData();
+  const keys = Object.keys(data).sort((a,b)=>{
+    const ga=(data[a].group||"").localeCompare(data[b].group||"");
+    return ga || a.localeCompare(b);
+  });
+  const prev = sel.value || "SPY";
+  const sig = keys.join("|");
+  if(sel.dataset.sig !== sig) {
+    sel.innerHTML = keys.map(k => `<option value="${seasonEscape(k)}">${seasonEscape(k)} — ${seasonEscape(data[k].name || k)}</option>`).join("");
+    sel.dataset.sig = sig;
+    if(keys.includes(prev)) sel.value = prev;
+    else if(keys.includes("SPY")) sel.value = "SPY";
+    else if(keys.includes("SOXX")) sel.value = "SOXX";
+    else if(keys.length) sel.value = keys[0];
+  }
+  return sel.value;
+}
+
+function filteredSeasonRows(item) {
+  const rows = (item && item.returns || []).filter(r => r.date && Number.isFinite(+r.ret));
+  const range = document.getElementById("seasonRange")?.value || "max";
+  if(range === "max" || !rows.length) return rows;
+  const years = parseInt(range, 10);
+  const last = new Date(rows[rows.length - 1].date + "T12:00:00");
+  const cutoff = new Date(last); cutoff.setFullYear(cutoff.getFullYear() - years);
+  return rows.filter(r => new Date(r.date + "T12:00:00") >= cutoff);
+}
+
+function seasonColor(v, maxAbs) {
+  if(!Number.isFinite(v)) return "#101010";
+  const x = Math.min(1, Math.abs(v) / Math.max(maxAbs, 1));
+  const a = 0.18 + x * 0.62;
+  return v >= 0 ? `rgba(29,158,117,${a.toFixed(3)})` : `rgba(224,80,80,${a.toFixed(3)})`;
+}
+
+function renderSeasonality() {
+  const ticker = ensureSeasonalityOptions();
+  const table = document.getElementById("seasonTable");
+  const summaryEl = document.getElementById("seasonSummary");
+  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  const data = returnHistogramData();
+  const item = ticker ? data[ticker] : null;
+  if(!table || !summaryEl) return;
+  if(!item) {
+    table.innerHTML = `<tr><td class="empty">Run screener.py to load seasonality data.</td></tr>`;
+    summaryEl.innerHTML = "";
+    set("seasonBest", "—"); set("seasonWorst", "—"); set("seasonWin", "—");
+    return;
+  }
+  const rows = filteredSeasonRows(item);
+  if(rows.length < 12) {
+    table.innerHTML = `<tr><td class="empty">Not enough monthly returns.</td></tr>`;
+    summaryEl.innerHTML = "";
+    return;
+  }
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const byYear = {};
+  rows.forEach(r => {
+    const d = new Date(r.date + "T12:00:00");
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    if(!byYear[y]) byYear[y] = Array(12).fill(null);
+    byYear[y][m] = +r.ret;
+  });
+  let years = Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+  if((document.getElementById("seasonSort")?.value || "asc") === "desc") years = years.reverse();
+  const vals = rows.map(r => +r.ret).filter(Number.isFinite);
+  const maxAbs = Math.max(3, ...vals.map(v => Math.abs(v)));
+  const monthStats = months.map((name, m) => {
+    const mv = rows.filter(r => new Date(r.date + "T12:00:00").getMonth() === m).map(r => +r.ret).filter(Number.isFinite);
+    const sorted = [...mv].sort((a,b)=>a-b);
+    const avg = mv.length ? mv.reduce((a,b)=>a+b,0) / mv.length : null;
+    const med = mv.length ? sorted[Math.floor((mv.length - 1) / 2)] : null;
+    const win = mv.length ? mv.filter(v => v > 0).length / mv.length * 100 : null;
+    return { name, vals: mv, avg, med, win, n: mv.length };
+  });
+  const best = monthStats.filter(s => s.avg != null).sort((a,b)=>b.avg-a.avg)[0];
+  const worst = monthStats.filter(s => s.avg != null).sort((a,b)=>a.avg-b.avg)[0];
+  const overallWin = vals.length ? vals.filter(v => v > 0).length / vals.length * 100 : null;
+  set("seasonBest", best ? `${best.name} ${fmtPct(best.avg)}` : "—", "#1D9E75");
+  set("seasonWorst", worst ? `${worst.name} ${fmtPct(worst.avg)}` : "—", "#e05050");
+  set("seasonWin", overallWin != null ? overallWin.toFixed(0) + "%" : "—", "#d8d8d8");
+  const start = rows[0].date.slice(0,7), end = rows[rows.length - 1].date.slice(0,7);
+  set("seasonDesc", `${ticker} · ${item.name || ticker} · ${start} to ${end} · ${vals.length} monthly observations`);
+  const head = `<tr><th>Year</th>${months.map(m => `<th>${m}</th>`).join("")}</tr>`;
+  const body = years.map(y => {
+    const cells = byYear[y].map((v, m) => {
+      if(v == null) return `<td></td>`;
+      const title = `${months[m]} ${y}: ${fmtPct(v, 2)}`;
+      return `<td class="season-cell" title="${seasonEscape(title)}" style="background:${seasonColor(v, maxAbs)}">${fmtPct(v, 1)}</td>`;
+    }).join("");
+    return `<tr><td>${y}</td>${cells}</tr>`;
+  }).join("");
+  table.innerHTML = head + body;
+  summaryEl.innerHTML = monthStats.map(s => {
+    const avgCol = s.avg >= 0 ? "#5DCAA5" : "#e05050";
+    return `<div class="season-month-card">
+      <div class="season-month-name">${s.name}</div>
+      <div class="season-month-row"><span>Avg Return</span><b style="color:${avgCol}">${fmtPct(s.avg)}</b></div>
+      <div class="season-month-row"><span>Win Rate</span><b>${s.win != null ? s.win.toFixed(0) + "%" : "—"}</b></div>
+      <div class="season-month-row"><span>Median</span><b>${fmtPct(s.med)}</b></div>
+      <div class="season-month-row"><span>Obs.</span><b>${s.n}</b></div>
+    </div>`;
+  }).join("");
 }
 
 function filteredReturnRows(item) {
