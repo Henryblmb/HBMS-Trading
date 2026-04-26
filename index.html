@@ -494,6 +494,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Volatility Models</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-vixsd',this)">VIX SD Level</div>
+      <div class="nav-item sub" onclick="showTab('cg-vixrv',this)">VIX vs Realized Vol</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
@@ -965,6 +966,70 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- VIX VS REALIZED VOL -->
+    <div class="panel cg-page" id="tab-cg-vixrv">
+      <div class="cg-header">
+        <div class="cg-title">S&amp;P Realized Vol vs VIX</div>
+        <div class="cg-sub">Compares the option market's expected 30-day volatility with realized S&amp;P 500 volatility. High positive premium means fear is priced above recent movement.</div>
+        <div class="hist-range" id="vixrvRange">
+          <button class="hist-btn" onclick="setHistoryRange('vixrv','1Y',this)">1Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('vixrv','5Y',this)">5Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('vixrv','10Y',this)">10Y</button>
+          <button class="hist-btn active" onclick="setHistoryRange('vixrv','20Y',this)">20Y</button>
+        </div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">VIX</div>
+          <div class="signal-bar-val" id="vixrvVixVal" style="color:#d8d8d8">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">RV20</div>
+          <div class="signal-bar-val" id="vixrvRVVal" style="color:#7aa2e8">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Premium</div>
+          <div class="signal-bar-val" id="vixrvPremVal" style="font-size:14px;color:#EF9F27;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Signal</div>
+          <div class="signal-bar-val" id="vixrvSignalVal" style="font-size:14px;color:#777;padding-top:4px">—</div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixrvPriceTitle">S&amp;P 500 — 20Y Daily Log Chart</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+          </div>
+        </div>
+        <canvas id="vixrvPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixrvVolTitle">VIX vs 20D Realized Vol — 20Y Daily</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#b9c6d8"></span>VIX</span>
+            <span><span class="cg-leg-line" style="background:#7aa2e8"></span>RV20</span>
+            <span style="color:#EF9F27">Premium</span>
+          </div>
+        </div>
+        <canvas id="vixrvVolCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Fear Premium</div><div class="interp-text">VIX above realized volatility means the options market is pricing future stress above recent S&amp;P movement.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Signal Zone</div><div class="interp-text">Signal when VIX − RV20 is above 10 and VIX/RV20 is above 1.25. Stronger after selloffs when realized volatility starts cooling.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Model</div><div class="interp-text">RV20 uses 20 daily log returns, annualized by sqrt(252). Premium = VIX − RV20.</div></div>
+      </div>
+    </div>
+
     <!-- SECTOR NEW HIGHS -->
     <div class="panel cg-page" id="tab-cg-sectornewhi">
       <div class="cg-header">
@@ -1360,6 +1425,7 @@ function showTab(id, el) {
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
+  if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
 }
 
 // ═══════════════════════════════════════════════
@@ -1389,6 +1455,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
+    if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -1730,6 +1797,7 @@ function emaSeries(values, span) {
 let spxrsiHistoryRange = "10Y";
 let spxemaHistoryRange = "20Y";
 let vixsdHistoryRange = "20Y";
+let vixrvHistoryRange = "20Y";
 
 function rangeYears(range) {
   return parseInt(String(range).replace("Y", ""), 10) || 10;
@@ -1797,6 +1865,12 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#vixsdRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawVIXSDSignal();
+  }
+  if(chart === "vixrv") {
+    vixrvHistoryRange = range;
+    document.querySelectorAll("#vixrvRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawVIXRealizedVol();
   }
 }
 
@@ -1921,6 +1995,126 @@ function drawVIXSDSignal() {
   if(sigEl) {
     sigEl.textContent = signal ? "STRESS ACTIVE" : "BELOW SIGNAL";
     sigEl.style.color = signal ? color : "#777";
+  }
+}
+
+function drawVIXRVChart(canvasId, rows, h=260, domain=null) {
+  if(!rows || rows.length < 2 || !domain) {
+    emptyCanvas(canvasId, h, "VIX vs RV20 history unavailable - run screener.py");
+    return;
+  }
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 52, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right;
+  const topH = Math.round((H - PAD.top - PAD.bottom) * .62);
+  const gap = 16;
+  const botTop = PAD.top + topH + gap;
+  const botH = H - botTop - PAD.bottom;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+
+  const vVals = rows.flatMap(r => [Number(+r.vix), Number(+r.rv20)]).filter(Number.isFinite);
+  const premVals = rows.map(r => +r.premium).filter(Number.isFinite);
+  const vMin = Math.max(0, Math.min(...vVals) * .88);
+  const vMax = Math.max(...vVals) * 1.12;
+  const pAbs = Math.max(8, Math.max(...premVals.map(v => Math.abs(v))) * 1.12);
+  const toVolY = v => PAD.top + topH - ((v - vMin) / ((vMax - vMin) || 1)) * topH;
+  const toPremY = v => botTop + botH / 2 - (v / pAbs) * (botH / 2);
+  const zeroY = toPremY(0);
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 1;
+  for(let i = 0; i <= 3; i++) {
+    const y = PAD.top + (topH / 3) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  [-10, 0, 10].forEach(level => {
+    const y = toPremY(level);
+    ctx.strokeStyle = level === 0 ? "rgba(255,255,255,.12)" : (level > 0 ? "rgba(239,159,39,.28)" : "rgba(224,80,80,.22)");
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  function drawLine(key, color, width=1.8) {
+    ctx.beginPath();
+    let started = false;
+    rows.forEach(row => {
+      const v = +row[key];
+      if(!Number.isFinite(v)) return;
+      const x = toX(row), y = toVolY(v);
+      if(!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  }
+  drawLine("vix", "#b9c6d8", 1.7);
+  drawLine("rv20", "#7aa2e8", 1.7);
+
+  const barW = Math.max(1, PW / rows.length - .35);
+  rows.forEach(row => {
+    const p = +row.premium;
+    if(!Number.isFinite(p)) return;
+    const x = toX(row), y = toPremY(p);
+    ctx.fillStyle = row.signal ? "rgba(239,159,39,.78)" : (p >= 0 ? "rgba(93,202,165,.45)" : "rgba(224,80,80,.45)");
+    if(p >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
+    else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
+  });
+
+  ctx.fillStyle = "#5a5a5a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [vMin, (vMin + vMax) / 2, vMax].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 5, toVolY(v) + 3));
+  [10, 0, -10].forEach(v => ctx.fillText((v > 0 ? "+" : "") + v, PAD.left - 5, toPremY(v) + 3));
+  ctx.fillStyle = "#EF9F27"; ctx.textAlign = "left";
+  ctx.fillText("Premium", PAD.left + PW + 4, toPremY(10) + 3);
+
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    const d = new Date(ms);
+    ctx.fillText(d.toLocaleString("en-US", { year: "2-digit" }), toDateX(ms), H - PAD.bottom + 12);
+  });
+}
+
+function drawVIXRealizedVol() {
+  const md = window._marketData || {};
+  let allPriceRows = marketHistory("sp500_history_20y");
+  if(!allPriceRows.length) allPriceRows = marketHistory("sp500_history");
+  const rawRows = Array.isArray(md.vix_realized_vol_history) ? md.vix_realized_vol_history : [];
+  const validRows = rawRows.filter(r => r && r.date && Number.isFinite(+r.vix) && Number.isFinite(+r.rv20));
+  const domain = dateDomainForRows([allPriceRows, validRows], vixrvHistoryRange);
+  const priceRows = filterRowsByDateDomain(allPriceRows, domain);
+  const rows = filterRowsByDateDomain(validRows, domain);
+
+  if(priceRows.length < 2) emptyCanvas("vixrvPriceCanvas", 230, `S&P 500 ${vixrvHistoryRange} history unavailable - run screener.py`);
+  else drawHistoryLineLogByDate("vixrvPriceCanvas", priceRows, 230, "S&P 500 Daily", "#d8d8d8", domain, []);
+  drawVIXRVChart("vixrvVolCanvas", rows, 260, domain);
+
+  const priceTitle = document.getElementById("vixrvPriceTitle");
+  if(priceTitle) priceTitle.textContent = `S&P 500 — ${vixrvHistoryRange} Daily Log Chart`;
+  const volTitle = document.getElementById("vixrvVolTitle");
+  if(volTitle) volTitle.textContent = `VIX vs 20D Realized Vol — ${vixrvHistoryRange} Daily`;
+
+  const current = md.vix_realized_vol_current || {};
+  const latest = validRows.length ? validRows[validRows.length - 1] : {};
+  const vix = current.current_vix ?? latest.vix;
+  const rv = current.current_rv20 ?? latest.rv20;
+  const prem = current.current_premium ?? latest.premium;
+  const signal = !!(current.signal ?? latest.signal);
+  const vixEl = document.getElementById("vixrvVixVal");
+  const rvEl = document.getElementById("vixrvRVVal");
+  const premEl = document.getElementById("vixrvPremVal");
+  const sigEl = document.getElementById("vixrvSignalVal");
+  if(vixEl) vixEl.textContent = Number.isFinite(+vix) ? (+vix).toFixed(1) : "—";
+  if(rvEl) rvEl.textContent = Number.isFinite(+rv) ? (+rv).toFixed(1) + "%" : "—";
+  if(premEl) {
+    premEl.textContent = Number.isFinite(+prem) ? `${+prem >= 0 ? "+" : ""}${(+prem).toFixed(1)}` : "—";
+    premEl.style.color = +prem >= 10 ? "#EF9F27" : (+prem >= 0 ? "#5DCAA5" : "#e05050");
+  }
+  if(sigEl) {
+    sigEl.textContent = signal ? "FEAR PREMIUM" : "NORMAL";
+    sigEl.style.color = signal ? "#EF9F27" : "#777";
   }
 }
 
