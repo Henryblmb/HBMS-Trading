@@ -367,6 +367,10 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-spxrsi .signal-bar-divider{background:#202020!important}
 #tab-cg-spxrsi .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-spxrsi .interp-text{color:#a8a8a8!important}
+#tab-cg-bt20 .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-bt20 .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-bt20 .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-bt20 .signal-bar-divider{background:#202020!important}
 .interp-title.bull{color:var(--sig-green)!important}.interp-title.bear{color:var(--sig-red)!important}.interp-title.neut{color:var(--sig-amber)!important}.interp-title.info{color:var(--sig-blue)!important}
 #tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:first-child{background:var(--sig-green-bg)!important;border-color:#285f4d!important}
 #tab-vix > div[style*="grid-template-columns:1fr 1fr"] > div:nth-child(2){background:var(--sig-red-bg)!important;border-color:#5a2525!important}
@@ -935,7 +939,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">20D Breadth Thrust — Stocks Above 20-Day MA</div>
         <div class="cg-sub">% of S&amp;P 500 stocks above their 20-day moving average. A Breadth Thrust fires when this reading jumps from below 15% to above 80% within 15 trading days — indicating explosive broad-based buying across the entire market, not just index-level moves.</div>
-        <div class="cg-pill active-bull" id="bt20Pill"><span class="cg-dot"></span>THRUST ZONE — STRONG BREADTH</div>
       </div>
 
       <div class="signal-bar">
@@ -2012,11 +2015,6 @@ function updateBT20Signal() {
   const pct = status.current != null ? +status.current : breadthData.pct_above_20;
   if(pct==null || !Number.isFinite(pct)) return;
   document.getElementById("bt20Val").textContent = pct.toFixed(1)+"%";
-  const pill = document.getElementById("bt20Pill");
-  if(!pill) return;
-  if(status.status === "confirmed" || pct>=80){pill.className="cg-pill active-bull";pill.innerHTML='<span class="cg-dot"></span>THRUST ZONE — STRONG BREADTH';}
-  else if(status.status === "setup" || pct<15){pill.className="cg-pill active-neut";pill.innerHTML='<span class="cg-dot"></span>SETUP ZONE — WATCHING FOR THRUST';}
-  else{pill.className="cg-pill active-neut";pill.textContent=pct.toFixed(1)+"% ABOVE 20D — NEUTRAL";}
 }
 
 function drawOilSpreadPlaceholder() {
