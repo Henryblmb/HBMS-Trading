@@ -1306,8 +1306,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="gsZVal" style="font-size:16px;color:#EF9F27">—</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Zone</div><div class="signal-bar-val" id="gsRegimeVal" style="font-size:13px;color:#EF9F27;padding-top:5px">—</div></div>
-        <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc" id="gsDesc">Rolling model uses 156 weekly observations. Static model uses the full long-history sample.</div>
       </div>
 
       <div class="cg-chart-box">
@@ -3425,7 +3423,6 @@ function drawGoldSilverRatio() {
   const ratioEl = document.getElementById("gsRatioVal");
   const zEl = document.getElementById("gsZVal");
   const regimeEl = document.getElementById("gsRegimeVal");
-  const descEl = document.getElementById("gsDesc");
   const zoneMap = {
     plus4_extreme: ["+4σ EXTREME", "#38bdf8"],
     plus3_extreme: ["+3σ EXTREME", "#a855f7"],
@@ -3483,15 +3480,6 @@ function drawGoldSilverRatio() {
   const [zoneTxt, zoneCol] = zoneMap[lastStats.status] || zoneMap.unavailable;
   if(regimeEl){ regimeEl.textContent = zoneTxt; regimeEl.style.color = zoneCol; }
   const displayRows = isRolling ? rows.filter(r => r.date >= "2004-01-01") : rows;
-  if(descEl && displayRows.length) {
-    const win = isRolling ? `${rollingWindow}W rolling` : "full-history static";
-    const firstBand = isRolling ? (displayRows.find(r => {
-      const cached = rollingCache.get(r._idx);
-      return cached && Number.isFinite(cached.mean) && Number.isFinite(cached.sigma);
-    })?.date?.slice(0,7)) : displayRows[0]?.date?.slice(0,7);
-    descEl.textContent = `${firstBand || displayRows[0].date.slice(0,4)} to ${displayRows[displayRows.length-1].date.slice(0,7)} · ${displayRows.length} weekly observations · ${win} · Mean ${Number.isFinite(lastStats.mean) ? lastStats.mean.toFixed(1) : "—"} · σ ${Number.isFinite(lastStats.sigma) ? lastStats.sigma.toFixed(1) : "—"}`;
-  }
-
   const c = mkCanvas("goldSilverCanvas", 360); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 70, bottom: 30, left: 46 };
