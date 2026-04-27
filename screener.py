@@ -1004,6 +1004,52 @@ def process_ma_stock_history(stock):
         return None
 
 
+def ma_stock_history_filename(ticker):
+    return re.sub(r"[^A-Z0-9-]", "_", str(ticker or "").upper()) + ".json"
+
+
+def ma_stock_history_stats(history_items, stock_results, generated):
+    live = {str(s.get("ticker", "")).upper(): s for s in stock_results if s.get("ticker")}
+    stats_items = []
+    gen_date = str(generated or "")[:10]
+    for item in history_items:
+        ticker = str(item.get("ticker", "")).upper()
+        stock = live.get(ticker, {})
+        ma_out = {}
+        for ma_len, idx in (("50", 1), ("200", 2)):
+            vals = [
+                float(r[idx])
+                for r in item.get("rows", [])
+                if len(r) > idx and r[idx] is not None and np.isfinite(float(r[idx]))
+            ]
+            live_dist = ((stock.get("ma_ext") or {}).get(ma_len) or {}).get("dist")
+            if vals and live_dist is not None and np.isfinite(float(live_dist)):
+                last_row = next(
+                    (r for r in reversed(item.get("rows", [])) if len(r) > idx and r[idx] is not None),
+                    None,
+                )
+                live_dist = float(live_dist)
+                if gen_date and last_row and gen_date > str(last_row[0]):
+                    vals.append(live_dist)
+                else:
+                    vals = vals[:-1] + [live_dist]
+            if len(vals) >= 60:
+                arr = pd.Series(vals, dtype=float).dropna()
+                sigma = float(arr.std(ddof=1))
+                if sigma > 0 and live_dist is not None and np.isfinite(float(live_dist)):
+                    mean = float(arr.mean())
+                    pctile = float((arr <= float(live_dist)).sum() / len(arr) * 100)
+                    ma_out[ma_len] = {
+                        "mean": round(mean, 4),
+                        "sigma": round(sigma, 4),
+                        "z": round((float(live_dist) - mean) / sigma, 4),
+                        "pctile": round(pctile, 2),
+                        "obs": int(len(arr)),
+                    }
+        stats_items.append({"ticker": ticker, "name": item.get("name") or ticker, "ma": ma_out})
+    return stats_items
+
+
 def process_trending(asset):
     t = asset["t"]; n = asset["n"]; g = asset["g"]
     try:
@@ -2970,15 +3016,33 @@ def run_once(upload=True, include_insider=True):
     data_json = json.dumps(output, ensure_ascii=False, indent=2)
     Path("data.json").write_text(data_json, encoding="utf-8")
     print(f"\nSaved: data.json ({len(data_json) // 1024} KB)")
-    ma_stock_history_payload = clean_nans({
+    ma_stats = clean_nans({
         "generated": output["generated"],
         "years": 20,
-        "stocks": ma_stock_history,
-        "schema": ["date", "dist50", "dist200"],
+        "stocks": ma_stock_history_stats(ma_stock_history, stock_results, output["generated"]),
     })
-    ma_stock_history_json = json.dumps(ma_stock_history_payload, ensure_ascii=False, separators=(",", ":"))
-    Path("ma_stock_history.json").write_text(ma_stock_history_json, encoding="utf-8")
-    print(f"Saved: ma_stock_history.json ({len(ma_stock_history_json) // 1024} KB)")
+    ma_stats_json = json.dumps(ma_stats, ensure_ascii=False, separators=(",", ":"))
+    Path("ma_stock_stats.json").write_text(ma_stats_json, encoding="utf-8")
+    hist_dir = Path("ma_stock_history")
+    hist_dir.mkdir(exist_ok=True)
+    written = 0
+    for item in ma_stock_history:
+        ticker = str(item.get("ticker", "")).upper()
+        if not ticker:
+            continue
+        payload = clean_nans({
+            "ticker": ticker,
+            "name": item.get("name") or ticker,
+            "rows": item.get("rows") or [],
+            "source": item.get("source"),
+        })
+        (hist_dir / ma_stock_history_filename(ticker)).write_text(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        written += 1
+    print(f"Saved: ma_stock_stats.json ({len(ma_stats_json) // 1024} KB)")
+    print(f"Saved: ma_stock_history/*.json ({written} files)")
     if upload:
         upload_to_github(data_json)
     else:
