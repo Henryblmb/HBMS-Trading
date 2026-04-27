@@ -1656,11 +1656,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 // ═══════════════════════════════════════════════
 const PASS = "HBMS2026";
 const DATA_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/data.json";
+const MA_STOCK_HISTORY_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/ma_stock_history.json";
 let allStocks=[], allTrending=[], allSectors=[], breadthData={};
 let currentTF = "1d";
 let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
 let maDistBacktestSigmaLevel = 2;
+let maStockHistoryByTicker = null;
+let maStockHistoryPromise = null;
 
 // ═══════════════════════════════════════════════
 // AUTH
@@ -2264,6 +2267,30 @@ function maStockMetric(stock, ma) {
   return { dist:+m.dist, z, pct, obs:+m.obs || 0, pos52 };
 }
 
+function loadMAStockHistory() {
+  if(maStockHistoryByTicker) return Promise.resolve(maStockHistoryByTicker);
+  if(maStockHistoryPromise) return maStockHistoryPromise;
+  maStockHistoryPromise = fetch(MA_STOCK_HISTORY_URL + "?t=" + Date.now(), { cache: "no-store" })
+    .then(r => {
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(json => {
+      maStockHistoryByTicker = new Map();
+      (json.stocks || []).forEach(s => {
+        if(!s || !s.ticker) return;
+        maStockHistoryByTicker.set(String(s.ticker).toUpperCase(), s);
+      });
+      return maStockHistoryByTicker;
+    })
+    .catch(err => {
+      console.warn("MA stock history load failed", err);
+      maStockHistoryPromise = null;
+      throw err;
+    });
+  return maStockHistoryPromise;
+}
+
 function renderMAStockDistance() {
   const ma = document.getElementById("maStockAvg")?.value || "200";
   const input = document.getElementById("maStockSearch");
@@ -2318,7 +2345,23 @@ function renderMAStockHistoryChart(stock, ma) {
   const key = ma === "50" ? "dist50" : "dist200";
   const title = document.getElementById("maStockChartTitle");
   if(title) title.textContent = stock ? `${stock.ticker} Distance From ${ma}D Moving Average` : "Selected Stock Distance History";
-  const rows = (stock?.ma_ext_history || []).filter(r => r.date && Number.isFinite(+r[key]));
+  if(!stock) {
+    emptyCanvas("maStockChartCanvas", 360, "Search or click a stock to show its MA distance history");
+    return;
+  }
+  if(!maStockHistoryByTicker) {
+    emptyCanvas("maStockChartCanvas", 360, "Loading 20Y stock MA distance history...");
+    loadMAStockHistory().then(() => renderMAStockDistance()).catch(() => {
+      emptyCanvas("maStockChartCanvas", 360, "20Y stock MA distance history unavailable");
+    });
+    return;
+  }
+  const hist = maStockHistoryByTicker.get(String(stock.ticker).toUpperCase());
+  const rows = (hist?.rows || []).map(r => ({
+    date: r[0],
+    dist50: r[1],
+    dist200: r[2],
+  })).filter(r => r.date && Number.isFinite(+r[key]));
   const vals = rows.map(r => +r[key]).filter(Number.isFinite);
   const stats = retStats(vals);
   if(vals.length < 60 || stats.mean == null || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
