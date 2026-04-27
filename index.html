@@ -1148,7 +1148,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <span class="cg-chart-title" id="putIvTitle">Put IV vs Rolling Sigma Bands</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Put IV</span>
-            <span><span class="cg-leg-line" style="background:#5892d4"></span>63D mean</span>
+            <span><span class="cg-leg-line" style="background:#5892d4"></span>Rolling mean</span>
             <span style="color:#EF9F27">±2σ</span>
             <span style="color:#e05050">±3σ / ±4σ</span>
           </div>
@@ -1921,8 +1921,10 @@ function drawPutIVOptions() {
     return;
   }
   const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-putiv", [rawRows], "max"));
-  if(rows.length < 20) {
+  if(rows.length < 5) {
     emptyCanvas("putIvCanvas", 360, "Not enough Put IV observations in selected range");
+    const desc = document.getElementById("putIvDesc");
+    if(desc) desc.textContent = `${ticker} · ${item.name || ticker} · ${rows.length} observations in selected range`;
     return;
   }
   const last = [...rows].reverse().find(r => Number.isFinite(+r.z)) || rows[rows.length - 1];
