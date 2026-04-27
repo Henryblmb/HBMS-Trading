@@ -268,6 +268,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .signal-bar-label{font-size:10px;color:#444;margin-bottom:2px;text-transform:uppercase;letter-spacing:.07em}
 .signal-bar-desc{font-size:10.5px;color:#666;line-height:1.45}
 .signal-bar-divider{width:1px;height:36px;background:#1e1e1e;flex-shrink:0}
+#tab-cg-spxrsi .signal-range-controls{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:350px}
+#tab-cg-spxrsi .signal-range-controls .hist-range{margin:0;gap:18px}
+#tab-cg-spxrsi .signal-range-controls .hist-btn{border:0;background:transparent;color:#8a8a8a;padding:0;font-size:10.5px;font-weight:600}
+#tab-cg-spxrsi .signal-range-controls .hist-btn:hover{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
+#tab-cg-spxrsi .signal-range-controls .hist-btn.active{border:0;background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
+#tab-cg-spxrsi .signal-range-controls .cg-date-range{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0;white-space:nowrap}
+#tab-cg-spxrsi .signal-range-controls .cg-date-range label{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.07em}
+#tab-cg-spxrsi .signal-range-controls .cg-date-range input{width:82px;height:auto;border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;outline:none;color-scheme:dark}
+#tab-cg-spxrsi .signal-range-controls .cg-date-range input:focus{border:0;color:#fff;text-decoration:underline;text-underline-offset:3px}
+#tab-cg-spxrsi .signal-range-controls .cg-date-range button{height:auto;border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;cursor:pointer}
+#tab-cg-spxrsi .signal-range-controls .cg-date-range button:hover{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
 
 /* SPX mini chart strip */
 .spx-strip{background:#0d0d0d;border:1px solid #1a1a1a;margin-bottom:.8rem;position:relative}
@@ -829,12 +840,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="cg-title">SPX RSI Momentum — Signal</div>
         <div class="cg-sub">Weekly RSI 40/60 reversal on the S&amp;P 500 using selectable EODHD history. When weekly RSI drops below 40 and later confirms above 60, the momentum signal is marked on price and RSI.</div>
         <div class="cg-pill active-bull" id="spxrsiPill"><span class="cg-dot"></span>LOADING WEEKLY SIGNAL</div>
-        <div class="hist-range" id="spxrsiRange">
-          <button class="hist-btn" onclick="setHistoryRange('spxrsi','1Y',this)">1Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('spxrsi','5Y',this)">5Y</button>
-          <button class="hist-btn active" onclick="setHistoryRange('spxrsi','10Y',this)">10Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('spxrsi','20Y',this)">20Y</button>
-        </div>
       </div>
 
       <div class="signal-bar">
@@ -849,6 +854,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         </div>
         <div class="signal-bar-divider"></div>
         <div class="signal-bar-desc" id="spxrsiDesc">Waiting for screener data.</div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="spxrsiRange">
+            <button class="hist-btn" onclick="setHistoryRange('spxrsi','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('spxrsi','5Y',this)">5Y</button>
+            <button class="hist-btn active" onclick="setHistoryRange('spxrsi','10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('spxrsi','20Y',this)">20Y</button>
+          </div>
+        </div>
       </div>
 
       <!-- SPX Price -->
@@ -2571,14 +2584,15 @@ function minMaxDates(rowGroups) {
 function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
   const panel = document.getElementById("tab-" + chart);
   const header = panel ? panel.querySelector(".cg-header") : null;
+  const host = panel ? (panel.querySelector("[data-cg-date-host]") || header) : null;
   const bounds = minMaxDates(rowGroups);
-  if(!header || !bounds) return null;
-  let wrap = header.querySelector(".cg-date-range");
+  if(!host || !bounds) return null;
+  let wrap = host.querySelector(".cg-date-range");
   if(!wrap) {
     wrap = document.createElement("div");
     wrap.className = "cg-date-range";
     wrap.innerHTML = `<label>From</label><input type="date" data-cg-date="start"><label>To</label><input type="date" data-cg-date="end"><button type="button" data-cg-max>Max</button>`;
-    header.appendChild(wrap);
+    host.appendChild(wrap);
     const start = wrap.querySelector('[data-cg-date="start"]');
     const end = wrap.querySelector('[data-cg-date="end"]');
     const redraw = () => { cgDateRanges[chart] = { start: start.value, end: end.value }; (cgRedraw[chart] || (()=>{}))(); };
