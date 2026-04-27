@@ -98,6 +98,19 @@ OPTIONS_PUT_IV_SYMBOLS = [
     {"t": "SOXX", "n": "iShares Semiconductor ETF", "g": "Semiconductors"},
 ]
 
+TOP_100_US_OPTIONS_SYMBOLS = [
+    "AAPL", "MSFT", "NVDA", "GOOGL", "GOOG", "AMZN", "META", "BRK.B", "AVGO", "TSLA",
+    "LLY", "JPM", "WMT", "V", "ORCL", "MA", "XOM", "NFLX", "COST", "JNJ",
+    "PG", "HD", "ABBV", "BAC", "KO", "PLTR", "PM", "UNH", "GE", "CSCO",
+    "IBM", "WFC", "CRM", "ABT", "LIN", "MCD", "MRK", "AMD", "MS", "T",
+    "AXP", "GS", "DIS", "RTX", "PEP", "UBER", "NOW", "INTU", "BX", "VZ",
+    "CAT", "QCOM", "BKNG", "TMO", "ISRG", "SCHW", "BA", "SPGI", "TXN", "AMGN",
+    "NEE", "PGR", "BLK", "HON", "C", "PFE", "SYK", "DHR", "UNP", "LOW",
+    "AMAT", "DE", "ADBE", "TJX", "GILD", "PANW", "ETN", "BSX", "CMCSA", "ADP",
+    "COP", "VRTX", "LMT", "MU", "ADI", "KLAC", "CB", "MDT", "MMC", "SBUX",
+    "NKE", "UPS", "BMY", "SO", "MO", "ELV", "ICE", "CME", "APH", "MCO",
+]
+
 
 class PolygonClient:
     BASE = "https://api.polygon.io"
@@ -371,7 +384,7 @@ class EODHDClient:
         except Exception:
             return None, "none"
 
-    def options_eod(self, symbol, start_date, end_date, exp_from=None, exp_to=None, limit=1000, offset=0, compact=True):
+    def options_eod(self, symbol, start_date, end_date, exp_from=None, exp_to=None, limit=1000, offset=0, compact=True, option_type="put"):
         if not self.enabled:
             return []
         try:
@@ -379,12 +392,13 @@ class EODHDClient:
             params = {
                 "api_token": self.api_key,
                 "filter[underlying_symbol]": symbol,
-                "filter[type]": "put",
                 "filter[tradetime_from]": str(start_date),
                 "filter[tradetime_to]": str(end_date),
                 "page[limit]": str(limit),
                 "page[offset]": str(offset),
             }
+            if option_type:
+                params["filter[type]"] = option_type
             if compact:
                 params["compact"] = "1"
             if exp_from:
@@ -1547,6 +1561,186 @@ def options_put_iv_payload(symbols=None):
     return payload
 
 
+def _dte_bucket(dte):
+    if dte is None:
+        return "na"
+    if dte <= 7:
+        return "0-7"
+    if dte <= 30:
+        return "8-30"
+    if dte <= 90:
+        return "31-90"
+    if dte <= 180:
+        return "91-180"
+    return "180+"
+
+
+def _moneyness_bucket(moneyness):
+    if moneyness is None:
+        return "na"
+    if moneyness <= -0.20:
+        return "<-20%"
+    if moneyness <= -0.05:
+        return "-20/-5%"
+    if moneyness <= 0.05:
+        return "atm"
+    if moneyness <= 0.20:
+        return "+5/+20%"
+    return ">20%"
+
+
+def unusual_options_for_symbol(symbol, lookback_days=45):
+    if not EODHD.enabled:
+        return []
+    end = datetime.date.today()
+    start = end - datetime.timedelta(days=lookback_days)
+    rows = EODHD.options_eod(
+        symbol,
+        start,
+        end,
+        exp_from=start,
+        exp_to=end + datetime.timedelta(days=365),
+        limit=1000,
+        compact=True,
+        option_type=None,
+    )
+    parsed = []
+    for row in rows:
+        date = str(row.get("tradetime", ""))[:10]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            continue
+        typ = str(row.get("type", "")).lower()
+        if typ not in ("call", "put"):
+            continue
+        vol = _safe_float(row.get("volume")) or 0
+        oi = _safe_float(row.get("open_interest")) or 0
+        dte = _safe_float(row.get("dte"))
+        if dte is not None and (dte < 0 or dte > 365):
+            continue
+        midpoint = _safe_float(row.get("midpoint"))
+        last = _safe_float(row.get("last"))
+        bid = _safe_float(row.get("bid"))
+        ask = _safe_float(row.get("ask"))
+        if midpoint is None and bid is not None and ask is not None and ask >= bid:
+            midpoint = (bid + ask) / 2
+        price = midpoint if midpoint and midpoint > 0 else (last if last and last > 0 else None)
+        premium = vol * price * 100 if price else 0
+        parsed.append({
+            "date": date,
+            "symbol": symbol,
+            "contract": row.get("contract"),
+            "type": typ,
+            "strike": _safe_float(row.get("strike")),
+            "exp_date": row.get("exp_date"),
+            "dte": dte,
+            "moneyness": _safe_float(row.get("moneyness")),
+            "volume": vol,
+            "open_interest": oi,
+            "vol_oi": (vol / oi) if oi > 0 else (vol if vol >= 1000 else None),
+            "price": price,
+            "premium": premium,
+            "iv": (_safe_float(row.get("volatility")) or 0) * 100,
+            "delta": _safe_float(row.get("delta")),
+            "volume_pctchange": _safe_float(row.get("volume_pctchange")),
+        })
+    if not parsed:
+        return []
+    latest = max(r["date"] for r in parsed)
+    buckets = {}
+    for r in parsed:
+        key = (r["type"], _dte_bucket(r["dte"]), _moneyness_bucket(r["moneyness"]))
+        buckets.setdefault(key, []).append(r["volume"])
+    out = []
+    for r in parsed:
+        if r["date"] != latest:
+            continue
+        if r["volume"] < 500 or r["premium"] < 250000:
+            continue
+        key = (r["type"], _dte_bucket(r["dte"]), _moneyness_bucket(r["moneyness"]))
+        base = [v for v in buckets.get(key, []) if v is not None and v >= 0]
+        mean = float(np.mean(base)) if base else 0.0
+        sigma = float(np.std(base, ddof=1)) if len(base) > 1 else 0.0
+        z = (r["volume"] - mean) / sigma if sigma > 0 else None
+        vol_oi = r["vol_oi"] or 0
+        pct = r["volume_pctchange"] or 0
+        truly_unusual = (
+            (z is not None and z >= 2.5 and r["volume"] >= 750)
+            or vol_oi >= 2.0
+            or pct >= 500
+        )
+        if not truly_unusual:
+            continue
+        score = 0
+        if z is not None:
+            score += min(40, max(0, z) * 10)
+        score += min(30, max(0, np.log10(max(r["premium"], 1) / 250000)) * 18)
+        score += min(25, vol_oi * 7)
+        if pct >= 500:
+            score += 12
+        if r["dte"] is not None and r["dte"] <= 45:
+            score += 8
+        if r["volume"] >= 5000:
+            score += 8
+        if score < 55:
+            continue
+        out.append({
+            "date": r["date"],
+            "symbol": symbol,
+            "contract": r["contract"],
+            "type": r["type"],
+            "strike": round(r["strike"], 2) if r["strike"] is not None else None,
+            "exp_date": r["exp_date"],
+            "dte": int(r["dte"]) if r["dte"] is not None else None,
+            "moneyness": round(r["moneyness"], 4) if r["moneyness"] is not None else None,
+            "volume": int(r["volume"]),
+            "open_interest": int(r["open_interest"]),
+            "vol_oi": round(vol_oi, 2) if vol_oi else None,
+            "price": round(r["price"], 2) if r["price"] is not None else None,
+            "premium": int(r["premium"]),
+            "iv": round(r["iv"], 2) if r["iv"] else None,
+            "delta": round(r["delta"], 3) if r["delta"] is not None else None,
+            "volume_z": round(z, 2) if z is not None else None,
+            "volume_pctchange": round(pct, 1) if pct else None,
+            "score": round(score, 1),
+        })
+    return out
+
+
+def unusual_options_trades_payload(symbols=None, top_n=100):
+    symbols = list(symbols or TOP_100_US_OPTIONS_SYMBOLS)
+    rows = []
+    workers = max(1, int(os.getenv("UNUSUAL_OPTIONS_WORKERS", "10")))
+
+    def fetch(symbol):
+        try:
+            found = unusual_options_for_symbol(symbol)
+            print(f"  Unusual options {symbol}: {len(found)}")
+            return found
+        except Exception as e:
+            print(f"  Unusual options {symbol}: {e}")
+            return []
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(fetch, symbol) for symbol in symbols]
+        for future in as_completed(futures):
+            rows.extend(future.result())
+    rows.sort(key=lambda r: (r.get("score") or 0, r.get("premium") or 0, r.get("volume") or 0), reverse=True)
+    latest = max((r.get("date") for r in rows if r.get("date")), default=None)
+    return {
+        "source": "eodhd:options_eod",
+        "universe": symbols,
+        "lookback_days": 45,
+        "latest_date": latest,
+        "rows": rows[:top_n],
+        "status": {
+            "status": "ok" if rows else "empty",
+            "symbols": len(symbols),
+            "matches": len(rows),
+            "returned": min(len(rows), top_n),
+        },
+    }
+
+
 def vix_sd_payload(years=20):
     hist = None
     source = "none"
@@ -2638,6 +2832,7 @@ def fetch_market_indicators():
         "forward_pe_status": {},
         "return_histograms": {},
         "options_put_iv": {},
+        "unusual_options_trades": {},
         "pc_total_history": [],
         "pc_equity_history": [],
     }
@@ -2681,6 +2876,7 @@ def fetch_market_indicators():
     result["hyg_nhnl_history"], result["hyg_nhnl_current"] = high_yield_nhnl_history()
     result["return_histograms"] = return_histogram_payload()
     result["options_put_iv"] = options_put_iv_payload()
+    result["unusual_options_trades"] = unusual_options_trades_payload()
     print(f"  S&P/EODHD history: {len(result['sp500_history'])} days ({sp500_source})")
     print(f"  S&P weekly EMA history: {len(result['sp500_ema_weekly_history'])} weeks ({sp500_ema_source})")
     print(f"  S&P 20Y weekly history: {len(result['bt50_sp500_history'])} weeks ({sp500_20y_source})")
@@ -2697,6 +2893,7 @@ def fetch_market_indicators():
     print(f"  HYG NH-NL history: {len(result['hyg_nhnl_history'])} days")
     print(f"  Return histograms: {len(result['return_histograms'])} symbols")
     print(f"  Options put IV: {len(result['options_put_iv'])} symbols")
+    print(f"  Unusual options trades: {len(result['unusual_options_trades'].get('rows', []))} rows")
 
     # ── VIX 30D ──────────────────────────────────────────────────
     try:
