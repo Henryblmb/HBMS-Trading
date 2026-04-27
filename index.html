@@ -269,17 +269,24 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .signal-bar-desc{font-size:10.5px;color:#666;line-height:1.45}
 .cg-page .signal-bar-desc{display:none!important}
 .signal-bar-divider{width:1px;height:36px;background:#1e1e1e;flex-shrink:0}
-#tab-cg-spxrsi .signal-range-controls{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:350px}
-#tab-cg-spxrsi .signal-range-controls .hist-range{margin:0;gap:18px}
-#tab-cg-spxrsi .signal-range-controls .hist-btn{border:0;background:transparent;color:#8a8a8a;padding:0;font-size:10.5px;font-weight:600}
-#tab-cg-spxrsi .signal-range-controls .hist-btn:hover{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
-#tab-cg-spxrsi .signal-range-controls .hist-btn.active{border:0;background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
-#tab-cg-spxrsi .signal-range-controls .cg-date-range{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0;white-space:nowrap}
-#tab-cg-spxrsi .signal-range-controls .cg-date-range label{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.07em}
-#tab-cg-spxrsi .signal-range-controls .cg-date-range input{width:82px;height:auto;border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;outline:none;color-scheme:dark}
-#tab-cg-spxrsi .signal-range-controls .cg-date-range input:focus{border:0;color:#fff;text-decoration:underline;text-underline-offset:3px}
-#tab-cg-spxrsi .signal-range-controls .cg-date-range button{height:auto;border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;cursor:pointer}
-#tab-cg-spxrsi .signal-range-controls .cg-date-range button:hover{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
+.signal-range-controls{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:350px}
+.signal-range-controls .hist-range{margin:0;gap:18px}
+.signal-range-controls .hist-btn{border:0;background:transparent;color:#8a8a8a;padding:0;font-size:10.5px;font-weight:600}
+.signal-range-controls .hist-btn:hover{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
+.signal-range-controls .hist-btn.active{border:0;background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
+.signal-range-controls .cg-date-range,.signal-bar>.cg-date-range{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 0 auto;white-space:nowrap}
+.signal-range-controls .cg-date-range{margin:0}
+.signal-range-controls .cg-date-range label,.signal-bar>.cg-date-range label{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.07em}
+.signal-range-controls .cg-date-range input,.signal-bar>.cg-date-range input{width:82px;height:auto;border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;outline:none;color-scheme:dark}
+.signal-range-controls .cg-date-range input:focus,.signal-bar>.cg-date-range input:focus{border:0;color:#fff;text-decoration:underline;text-underline-offset:3px}
+.signal-range-controls .cg-date-range button,.signal-bar>.cg-date-range button{height:auto;border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;cursor:pointer}
+.signal-range-controls .cg-date-range button:hover,.signal-bar>.cg-date-range button:hover{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
+.signal-inline-controls{display:flex;align-items:center;gap:18px;margin-left:auto}
+.signal-inline-control{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.signal-inline-control label{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.07em}
+.signal-inline-control select{border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0 16px 0 0;outline:none;color-scheme:dark}
+.signal-inline-control select:hover,.signal-inline-control select:focus{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.signal-inline-controls+.signal-range-controls{margin-left:24px}
 
 /* SPX mini chart strip */
 .spx-strip{background:#0d0d0d;border:1px solid #1a1a1a;margin-bottom:.8rem;position:relative}
@@ -902,12 +909,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">SPX 9/21 Weekly EMA — Momentum Cross</div>
         <div class="cg-sub">S&amp;P 500 20-year weekly chart with 9-week and 21-week EMAs. Green background shows bullish 9 EMA above 21 EMA; red background shows bearish 9 EMA below 21 EMA.</div>
-        <div class="hist-range" id="spxemaRange">
-          <button class="hist-btn" onclick="setHistoryRange('spxema','1Y',this)">1Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('spxema','5Y',this)">5Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('spxema','10Y',this)">10Y</button>
-          <button class="hist-btn active" onclick="setHistoryRange('spxema','20Y',this)">20Y</button>
-        </div>
       </div>
 
       <div class="signal-bar">
@@ -917,6 +918,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         </div>
         <div class="signal-bar-divider spxema-desc-divider"></div>
         <div class="signal-bar-desc" id="spxemaDesc">Waiting for screener data.</div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="spxemaRange">
+            <button class="hist-btn" onclick="setHistoryRange('spxema','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('spxema','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('spxema','10Y',this)">10Y</button>
+            <button class="hist-btn active" onclick="setHistoryRange('spxema','20Y',this)">20Y</button>
+          </div>
+        </div>
       </div>
 
       <div class="cg-chart-box">
@@ -945,12 +954,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">VIX SD Level</div>
         <div class="cg-sub">Fixed VIX standard-deviation model using 1H VIX highs: mean 20, each SD is 8 VIX points. Signal starts at VIX 35 and strengthens as intraday volatility reaches higher SD levels.</div>
-        <div class="hist-range" id="vixsdRange">
-          <button class="hist-btn" onclick="setHistoryRange('vixsd','1Y',this)">1Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('vixsd','5Y',this)">5Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('vixsd','10Y',this)">10Y</button>
-          <button class="hist-btn active" onclick="setHistoryRange('vixsd','20Y',this)">20Y</button>
-        </div>
       </div>
 
       <div class="signal-bar">
@@ -967,6 +970,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div>
           <div class="signal-bar-label">Signal</div>
           <div class="signal-bar-val" id="vixsdSignalVal" style="font-size:14px;color:#777;padding-top:4px">—</div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="vixsdRange">
+            <button class="hist-btn" onclick="setHistoryRange('vixsd','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixsd','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixsd','10Y',this)">10Y</button>
+            <button class="hist-btn active" onclick="setHistoryRange('vixsd','20Y',this)">20Y</button>
+          </div>
         </div>
       </div>
 
@@ -1005,12 +1016,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">S&amp;P Realized Vol vs VIX</div>
         <div class="cg-sub">Compares the option market's expected 30-day volatility with realized S&amp;P 500 volatility. High positive premium means fear is priced above recent movement.</div>
-        <div class="hist-range" id="vixrvRange">
-          <button class="hist-btn" onclick="setHistoryRange('vixrv','1Y',this)">1Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('vixrv','5Y',this)">5Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('vixrv','10Y',this)">10Y</button>
-          <button class="hist-btn active" onclick="setHistoryRange('vixrv','20Y',this)">20Y</button>
-        </div>
       </div>
 
       <div class="signal-bar">
@@ -1032,6 +1037,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div>
           <div class="signal-bar-label">Signal</div>
           <div class="signal-bar-val" id="vixrvSignalVal" style="font-size:14px;color:#777;padding-top:4px">—</div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="vixrvRange">
+            <button class="hist-btn" onclick="setHistoryRange('vixrv','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixrv','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixrv','10Y',this)">10Y</button>
+            <button class="hist-btn active" onclick="setHistoryRange('vixrv','20Y',this)">20Y</button>
+          </div>
         </div>
       </div>
 
@@ -1070,12 +1083,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">VIX Spike Model</div>
         <div class="cg-sub">Close-to-close daily VIX change ranked by percentile. Upper-tail spikes mark upside volatility overreactions; lower-tail drops mark downside volatility compression.</div>
-        <div class="hist-range" id="vixspikeRange">
-          <button class="hist-btn" onclick="setHistoryRange('vixspike','1Y',this)">1Y</button>
-          <button class="hist-btn active" onclick="setHistoryRange('vixspike','5Y',this)">5Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('vixspike','10Y',this)">10Y</button>
-          <button class="hist-btn" onclick="setHistoryRange('vixspike','20Y',this)">20Y</button>
-        </div>
       </div>
 
       <div class="filter-row" style="margin-bottom:.9rem">
@@ -1099,6 +1106,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div><div class="signal-bar-label">Lower Tail</div><div class="signal-bar-val" id="vixSpikeLowerVal" style="font-size:14px;color:#1D9E75;padding-top:4px">—</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Signal</div><div class="signal-bar-val" id="vixSpikeSignalVal" style="font-size:14px;color:#777;padding-top:4px">—</div></div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="vixspikeRange">
+            <button class="hist-btn" onclick="setHistoryRange('vixspike','1Y',this)">1Y</button>
+            <button class="hist-btn active" onclick="setHistoryRange('vixspike','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixspike','10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixspike','20Y',this)">20Y</button>
+          </div>
+        </div>
       </div>
 
       <div class="cg-chart-box">
@@ -1197,15 +1212,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="cg-sub">Daily distance from the selected moving average. The model compares current extension with the selected history window and marks unusually stretched or washed-out regimes, capped to one signal per month per side.</div>
       </div>
 
-      <div class="filter-row" style="margin-bottom:.9rem">
-        <label>Ticker</label>
-        <select id="maDistTicker" onchange="renderMADistance()"></select>
-        <label>Moving Avg</label>
-        <select id="maDistAvg" onchange="renderMADistance()"><option value="200" selected>200D</option><option value="50">50D</option></select>
-        <label>Range</label>
-        <select id="maDistRange" onchange="setMADistanceRange()"><option value="max">Max</option><option value="10">10Y</option><option value="5" selected>5Y</option><option value="3">3Y</option><option value="1">1Y</option></select>
-      </div>
-
       <div class="signal-bar">
         <div><div class="signal-bar-label">Distance</div><div class="signal-bar-val" id="maDistNow" style="color:#d8d8d8">—</div></div>
         <div class="signal-bar-divider"></div>
@@ -1214,6 +1220,21 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div><div class="signal-bar-label">Percentile</div><div class="signal-bar-val" id="maDistPctile" style="color:#777">—</div></div>
         <div class="signal-bar-divider"></div>
         <div class="signal-bar-desc" id="maDistDesc">Run screener.py to load moving-average distance data.</div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Ticker</label>
+            <select id="maDistTicker" onchange="renderMADistance()"></select>
+          </div>
+          <div class="signal-inline-control">
+            <label>Moving Avg</label>
+            <select id="maDistAvg" onchange="renderMADistance()"><option value="200" selected>200D</option><option value="50">50D</option></select>
+          </div>
+          <div class="signal-inline-control">
+            <label>Range</label>
+            <select id="maDistRange" onchange="setMADistanceRange()"><option value="max">Max</option><option value="10">10Y</option><option value="5" selected>5Y</option><option value="3">3Y</option><option value="1">1Y</option></select>
+          </div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host></div>
       </div>
 
       <div class="cg-chart-box">
@@ -2585,7 +2606,7 @@ function minMaxDates(rowGroups) {
 function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
   const panel = document.getElementById("tab-" + chart);
   const header = panel ? panel.querySelector(".cg-header") : null;
-  const host = panel ? (panel.querySelector("[data-cg-date-host]") || header) : null;
+  const host = panel ? (panel.querySelector("[data-cg-date-host]") || panel.querySelector(".signal-bar") || header) : null;
   const bounds = minMaxDates(rowGroups);
   if(!host || !bounds) return null;
   let wrap = host.querySelector(".cg-date-range");
