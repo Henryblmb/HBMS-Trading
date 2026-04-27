@@ -2451,6 +2451,7 @@ def fetch_market_indicators():
         "spy_history": [],
         "sp500_history": [],
         "sp500_history_20y": [],
+        "sp500_history_rsi": [],
         "sp500_ema_weekly_history": [],
         "sp500_rsi_weekly": [],
         "sp500_rsi_signals": [],
@@ -2483,12 +2484,14 @@ def fetch_market_indicators():
     sp500_rows, sp500_hist, sp500_source = eodhd_sp500_history(years=10)
     sp500_ema_rows, sp500_ema_hist, sp500_ema_source = eodhd_sp500_history(years=20, display_start="2006-01-01")
     sp500_20y_rows, sp500_20y_hist, sp500_20y_source = eodhd_sp500_history(years=20, display_start="2006-01-01")
-    weekly_rsi, rsi_signals, rsi_status = sp500_weekly_rsi_payload(sp500_20y_hist, sp500_20y_source, display_start="2006-01-01")
+    sp500_rsi_rows, sp500_rsi_hist, sp500_rsi_source = eodhd_sp500_history(years=35, display_start="1994-01-01")
+    weekly_rsi, rsi_signals, rsi_status = sp500_weekly_rsi_payload(sp500_rsi_hist, sp500_rsi_source, display_start="1994-01-01")
     bt20_rows, bt20_signals, bt20_status = bt20_breadth_payload(years=10)
     bt50_rows, bt50_signals, bt50_status = bt50_weekly_breadth_payload(years=20)
     result["spy_history"] = sp500_rows
     result["sp500_history"] = sp500_rows
     result["sp500_history_20y"] = sp500_20y_rows
+    result["sp500_history_rsi"] = sp500_rsi_rows
     result["sp500_ema_weekly_history"] = weekly_rows_from_history_df(sp500_ema_hist, sp500_ema_source, display_start="2006-01-01")
     result["bt50_sp500_history"] = weekly_rows_from_history_df(sp500_20y_hist, sp500_20y_source, display_start="2006-01-01")
     result["sp500_rsi_weekly"] = weekly_rsi
