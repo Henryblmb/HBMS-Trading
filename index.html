@@ -1352,7 +1352,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Extended Upside</div><div class="interp-text">Stocks above +2σ are unusually stretched above their own trend. This can mark strong momentum, but also short-term exhaustion after fast vertical moves.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Washed Out</div><div class="interp-text">Stocks below −2σ are unusually stretched below trend. −3σ names are the deepest current dislocations in the S&amp;P 500 universe.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Search First</div><div class="interp-text">Type a ticker or stock name to pin one stock in the top readings. The ranking table still shows the most extreme current names for the selected moving average.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull" id="maStockForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maStockForwardPos">Click a stock to load forward performance.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear" id="maStockForwardNegTitle">Forward After −2σ</div><div class="interp-text" id="maStockForwardNeg">Click a stock to load forward performance.</div></div>
       </div>
     </div>
 
@@ -2385,14 +2386,17 @@ function renderMAStockHistoryChart(stock, ma) {
   if(title) title.textContent = stock ? `${stock.ticker} Distance From ${ma}D Moving Average` : "Selected Stock Distance History";
   if(!stock) {
     emptyCanvas("maStockChartCanvas", 360, "Search or click a stock to show its MA distance history");
+    renderMAStockForwardStats(null, null, null, null);
     return;
   }
   const tickerKey = String(stock.ticker).toUpperCase();
   const cached = maStockHistoryCache.get(tickerKey);
   if(!cached) {
     emptyCanvas("maStockChartCanvas", 360, `Loading ${tickerKey} 20Y MA distance history...`);
+    renderMAStockForwardStats(null, null, null, null, `Loading ${tickerKey} history...`);
     loadMAStockHistory(tickerKey).then(() => renderMAStockDistance()).catch(() => {
       emptyCanvas("maStockChartCanvas", 360, "20Y stock MA distance history unavailable");
+      renderMAStockForwardStats(null, null, null, null, "20Y stock MA distance history unavailable");
     });
     return;
   }
@@ -2400,24 +2404,67 @@ function renderMAStockHistoryChart(stock, ma) {
     date: r[0],
     dist50: r[1],
     dist200: r[2],
+    close: r[3],
   })).filter(r => r.date && r[key] != null && Number.isFinite(+r[key]));
   const liveMetric = stock?.ma_ext?.[String(ma)];
   const liveDist = liveMetric && Number.isFinite(+liveMetric.dist) ? +liveMetric.dist : null;
   const liveDate = dataGenerated ? dataGenerated.slice(0, 10) : "";
   if(liveDist != null && rows.length) {
+    const liveClose = stock && Number.isFinite(+stock.price) ? +stock.price : null;
     if(liveDate && liveDate > rows[rows.length - 1].date) {
-      rows.push({ date: liveDate, [key]: liveDist });
+      rows.push({ date: liveDate, [key]: liveDist, close: liveClose });
     } else {
-      rows[rows.length - 1] = { ...rows[rows.length - 1], [key]: liveDist };
+      rows[rows.length - 1] = { ...rows[rows.length - 1], [key]: liveDist, close: liveClose ?? rows[rows.length - 1].close };
     }
   }
   const vals = rows.map(r => +r[key]).filter(Number.isFinite);
   const stats = retStats(vals);
   if(vals.length < 60 || stats.mean == null || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
     emptyCanvas("maStockChartCanvas", 360, stock ? "Not enough stock MA distance history" : "Search or click a stock to show its MA distance history");
+    renderMAStockForwardStats(null, null, null, null, "Not enough stock MA distance history");
     return;
   }
+  renderMAStockForwardStats(rows, key, stats.mean, stats.sigma);
   drawMADistanceChart(rows, key, stats.mean, stats.mean + 2 * stats.sigma, stats.mean - 2 * stats.sigma, stats.mean - 3 * stats.sigma, null, "maStockChartCanvas");
+}
+
+function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
+  const posTitle = document.getElementById("maStockForwardPosTitle");
+  const negTitle = document.getElementById("maStockForwardNegTitle");
+  if(posTitle) posTitle.textContent = "Forward After +2σ";
+  if(negTitle) negTitle.textContent = "Forward After −2σ";
+  const renderEmpty = txt => {
+    ["maStockForwardPos","maStockForwardNeg"].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.textContent = txt || "Click a stock to load forward performance.";
+    });
+  };
+  if(message || !rows || !key || mean == null || !Number.isFinite(sigma) || sigma <= 0) {
+    renderEmpty(message);
+    return;
+  }
+  const plus = mean + 2 * sigma, minus = mean - 2 * sigma;
+  const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
+  const calc = side => {
+    const events = maDistanceMonthlyEvents(rows, key, plus, minus, side).filter(({i}) => i + 21 < rows.length);
+    return horizons.map(h => {
+      const rets = events.map(({r,i}) => {
+        const f = rows[i + h.days];
+        return f && Number.isFinite(+r.close) && Number.isFinite(+f.close) ? (+f.close / +r.close - 1) * 100 : null;
+      }).filter(Number.isFinite);
+      const avg = rets.length ? rets.reduce((a,b)=>a+b,0)/rets.length : null;
+      const win = rets.length ? rets.filter(v=>v>0).length / rets.length * 100 : null;
+      return { label:h.label, avg, win, n:rets.length };
+    });
+  };
+  const render = (id, events) => {
+    const el = document.getElementById(id); if(!el) return;
+    const n = Math.max(...events.map(e=>e.n), 0);
+    el.innerHTML = `<div class="ret-fwd-events">${n} monthly-capped moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
+      events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
+  };
+  render("maStockForwardPos", calc("pos"));
+  render("maStockForwardNeg", calc("neg"));
 }
 
 function toggleMADistSigma(e) {
