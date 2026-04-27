@@ -1066,6 +1066,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <option value="90">90 / 10</option>
           <option value="95" selected>95 / 5</option>
           <option value="97.5">97.5 / 2.5</option>
+          <option value="98">98 / 2</option>
+          <option value="99">99 / 1</option>
         </select>
       </div>
 
@@ -2022,7 +2024,7 @@ function alignHistoryByDate(primary, secondary) {
 
 function drawSPYHYGCompare(canvasId, chgId) {
   const rawRows = alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history"));
-  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-hyg", [rawRows, ((window._marketData || {}).hyg_nhnl_history || [])], "1Y"));
+  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-hyg", [rawRows, ((window._marketData || {}).hyg_nhnl_history || [])], "max"));
   if(rows.length < 20) {
     emptyCanvas(canvasId, 280, "S&P/HYG history unavailable - run screener.py");
     return;
@@ -2334,12 +2336,14 @@ function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
     start.addEventListener("change", redraw);
     end.addEventListener("change", redraw);
     wrap.querySelector("[data-cg-max]").addEventListener("click", () => {
-      cgDateRanges[chart] = { start: bounds.min, end: bounds.max };
-      start.value = bounds.min;
-      end.value = bounds.max;
+      const latestBounds = wrap._cgBounds || bounds;
+      cgDateRanges[chart] = { start: latestBounds.min, end: latestBounds.max };
+      start.value = latestBounds.min;
+      end.value = latestBounds.max;
       (cgRedraw[chart] || (()=>{}))();
     });
   }
+  wrap._cgBounds = bounds;
   const start = wrap.querySelector('[data-cg-date="start"]');
   const end = wrap.querySelector('[data-cg-date="end"]');
   [start, end].forEach(input => { input.min = bounds.min; input.max = bounds.max; });
@@ -3278,7 +3282,7 @@ function updateHYGReadings() {
 
 function drawHYGNhnlChart() {
   const rawHist = ((window._marketData || {}).hyg_nhnl_history || []).filter(d => d && Number.isFinite(+d.scaled));
-  const hist = filterRowsByDateDomain(rawHist, ensureCGDateControls("cg-hyg", [rawHist, alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history"))], "1Y"));
+  const hist = filterRowsByDateDomain(rawHist, ensureCGDateControls("cg-hyg", [rawHist, alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history"))], "max"));
   if(hist.length < 5) {
     emptyCanvas("hygNHNLCanvas", 160, "High Yield NH-NL unavailable - run screener.py");
     return;
@@ -3980,13 +3984,13 @@ function drawGoldSilverRatio() {
 }
 
 function mirrorVIXCharts() {
-  // Mirror the VIX data already computed for the screener tab
   const md = window._marketData || {};
+  const rawRows = Array.isArray(md.vix_history) ? md.vix_history : [];
+  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-vix2", [rawRows], "max"));
   updateCGVIX2Readings();
-  // Re-draw canvases using same functions as the screener VIX tab
   requestAnimationFrame(()=>{
-    const h=md.vix_history||[];
-    if(h.length&&document.getElementById("cgvixCanvas")) drawVIXChartToCanvas("cgvixCanvas",h);
+    if(rows.length&&document.getElementById("cgvixCanvas")) drawVIXChartToCanvas("cgvixCanvas",rows);
+    else emptyCanvas("cgvixCanvas", 360, "VIX term-structure history unavailable - run screener.py");
   });
 }
 function updateCGVIX2Readings() {
@@ -4001,12 +4005,6 @@ function updateCGVIX2Readings() {
     if(spread>=0){pEl.className="cg-pill active-bull";pEl.innerHTML='<span class="cg-dot"></span>CONTANGO — CALM REGIME';}
     else{pEl.className="cg-pill active-bear";pEl.innerHTML='<span class="cg-dot"></span>BACKWARDATION — FEAR REGIME';}
   }
-  // Mirror the canvases from screener vix tab
-  const md2=md;
-  requestAnimationFrame(()=>{
-    const h=md2.vix_history||[];
-    if(h.length&&document.getElementById("cgvixCanvas")) drawVIXChartToCanvas("cgvixCanvas",h);
-  });
 }
 function drawVIXChartToCanvas(canvasId,history){
   // Same as drawVIXChart but targets a different canvas
