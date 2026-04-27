@@ -1359,6 +1359,59 @@ def return_histogram_payload(symbols=None, years=25):
     return payload
 
 
+def ma_distance_payload(symbols=None, years=20):
+    payload = {}
+    for meta in symbols or RETURN_HISTOGRAM_SYMBOLS:
+        symbol = meta["t"]
+        try:
+            hist = yf_df(symbol, period="max", interval="1d")
+            source = "yfinance:max" if hist is not None and not hist.empty else "none"
+            if hist is None or hist.empty or len(hist) < 260:
+                hist, source = history_df(symbol, years=years, period="max")
+            if hist is None or hist.empty or "Close" not in hist.columns:
+                continue
+            close = hist["Close"].astype(float).dropna().sort_index()
+            if len(close) < 260:
+                continue
+            cutoff = pd.Timestamp.utcnow().tz_localize(None) - pd.DateOffset(years=years)
+            close = close[close.index.tz_localize(None) >= cutoff] if getattr(close.index, "tz", None) is not None else close[close.index >= cutoff]
+            if len(close) < 260:
+                continue
+            ma50 = close.rolling(50).mean()
+            ma200 = close.rolling(200).mean()
+            rows = []
+            for idx, px in close.items():
+                m50 = ma50.loc[idx]
+                m200 = ma200.loc[idx]
+                item = {
+                    "date": str(pd.Timestamp(idx).date()),
+                    "close": round(float(px), 4),
+                }
+                if pd.notna(m50) and m50:
+                    item["ma50"] = round(float(m50), 4)
+                    item["dist50"] = round((float(px) / float(m50) - 1) * 100, 4)
+                if pd.notna(m200) and m200:
+                    item["ma200"] = round(float(m200), 4)
+                    item["dist200"] = round((float(px) / float(m200) - 1) * 100, 4)
+                if "dist50" in item or "dist200" in item:
+                    rows.append(item)
+            if len(rows) < 120:
+                continue
+            payload[symbol] = {
+                "ticker": symbol,
+                "name": meta.get("n", symbol),
+                "group": meta.get("g", "ETF"),
+                "source": source,
+                "start": rows[0]["date"],
+                "end": rows[-1]["date"],
+                "last_price": round(float(close.iloc[-1]), 4),
+                "rows": rows,
+            }
+        except Exception as e:
+            print(f"  MA distance {symbol}: {e}")
+    return payload
+
+
 def _safe_float(value):
     try:
         if value is None:
@@ -2930,6 +2983,7 @@ def fetch_market_indicators():
         "forward_pe_history": [],
         "forward_pe_status": {},
         "return_histograms": {},
+        "ma_distance": {},
         "options_put_iv": {},
         "unusual_options_trades": {},
         "pc_total_history": [],
@@ -2974,6 +3028,7 @@ def fetch_market_indicators():
         result["hyg_price"] = hyg_price_history[-1]["close"]
     result["hyg_nhnl_history"], result["hyg_nhnl_current"] = high_yield_nhnl_history()
     result["return_histograms"] = return_histogram_payload()
+    result["ma_distance"] = ma_distance_payload()
     result["options_put_iv"] = options_put_iv_payload()
     result["unusual_options_trades"] = unusual_options_trades_payload()
     print(f"  S&P/EODHD history: {len(result['sp500_history'])} days ({sp500_source})")
@@ -2991,6 +3046,7 @@ def fetch_market_indicators():
     print(f"  HYG total-return history: {len(result['hyg_history'])} days")
     print(f"  HYG NH-NL history: {len(result['hyg_nhnl_history'])} days")
     print(f"  Return histograms: {len(result['return_histograms'])} symbols")
+    print(f"  MA distance: {len(result['ma_distance'])} symbols")
     print(f"  Options put IV: {len(result['options_put_iv'])} symbols")
     print(f"  Unusual options trades: {len(result['unusual_options_trades'].get('rows', []))} rows")
 
