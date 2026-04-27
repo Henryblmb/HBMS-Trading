@@ -941,6 +941,21 @@ def process_stock(stock):
                         "sigma": round(sigma, 4) if sigma > 0 else None,
                         "obs": int(len(vals)),
                     }
+        ma_ext_history = []
+        if len(live_close) >= 90:
+            hist_frame = pd.DataFrame(index=live_close.index)
+            for ma_len in (50, 200):
+                if len(live_close) >= ma_len + 40:
+                    ma = live_close.rolling(ma_len).mean()
+                    hist_frame[f"dist{ma_len}"] = ((live_close / ma) - 1) * 100
+            hist_frame = hist_frame.dropna(how="all")
+            for dt, row in hist_frame.iterrows():
+                item = {"date": str(dt.date())}
+                if pd.notna(row.get("dist50")):
+                    item["dist50"] = round(float(row["dist50"]), 4)
+                if pd.notna(row.get("dist200")):
+                    item["dist200"] = round(float(row["dist200"]), 4)
+                ma_ext_history.append(item)
         return {
             "ticker": t, "name": n, "group": g,
             "price": round(price, 4), "chg": chg_pct,
@@ -957,6 +972,7 @@ def process_stock(stock):
             "above_100": bool(e100 and price > e100),
             "above_200": bool(e200 and price > e200),
             "ma_ext": ma_ext,
+            "ma_ext_history": ma_ext_history,
             "source": source,
         }
     except Exception as e:
