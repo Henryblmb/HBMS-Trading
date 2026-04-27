@@ -1335,6 +1335,20 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         </div>
       </div>
 
+      <div class="cg-chart-box" id="maStockChartBox">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="maStockChartTitle">Selected Stock Distance History</span>
+          <div class="cg-chart-legend">
+            <span><i style="background:#d8d8d8"></i>Distance</span>
+            <span style="color:#EF9F27">Mean</span>
+            <span style="color:#1D9E75">+2σ</span>
+            <span style="color:#e05050">−2σ</span>
+            <span style="color:#a855f7">−3σ</span>
+          </div>
+        </div>
+        <canvas id="maStockChartCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
       <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Extended Upside</div><div class="interp-text">Stocks above +2σ are unusually stretched above their own trend. This can mark strong momentum, but also short-term exhaustion after fast vertical moves.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Washed Out</div><div class="interp-text">Stocks below −2σ are unusually stretched below trend. −3σ names are the deepest current dislocations in the S&amp;P 500 universe.</div></div>
@@ -2269,6 +2283,7 @@ function renderMAStockDistance() {
   } else {
     set("maStockNow", "—"); set("maStockZ", "—"); set("maStockPctile", "—");
   }
+  renderMAStockHistoryChart(match, ma);
   const title = document.getElementById("maStockBoardTitle");
   if(title) title.textContent = `S&P 500 Stock Distance From ${ma}D Moving Average`;
   const filtered = stocks
@@ -2297,6 +2312,20 @@ function renderMAStockDistance() {
       <td>${posTxt}</td>
     </tr>`;
   }).join("");
+}
+
+function renderMAStockHistoryChart(stock, ma) {
+  const key = ma === "50" ? "dist50" : "dist200";
+  const title = document.getElementById("maStockChartTitle");
+  if(title) title.textContent = stock ? `${stock.ticker} Distance From ${ma}D Moving Average` : "Selected Stock Distance History";
+  const rows = (stock?.ma_ext_history || []).filter(r => r.date && Number.isFinite(+r[key]));
+  const vals = rows.map(r => +r[key]).filter(Number.isFinite);
+  const stats = retStats(vals);
+  if(vals.length < 60 || stats.mean == null || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
+    emptyCanvas("maStockChartCanvas", 360, stock ? "Not enough stock MA distance history" : "Search or click a stock to show its MA distance history");
+    return;
+  }
+  drawMADistanceChart(rows, key, stats.mean, stats.mean + 2 * stats.sigma, stats.mean - 2 * stats.sigma, stats.mean - 3 * stats.sigma, null, "maStockChartCanvas");
 }
 
 function toggleMADistSigma(e) {
@@ -2368,8 +2397,8 @@ function maDistanceMonthlyEvents(rows, key, plus2, minus2, side) {
   return [...byMonth.values()].sort((a,b)=>a.i-b.i);
 }
 
-function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=null) {
-  const c = mkCanvas("maDistCanvas", 360); if(!c) return;
+function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=null, canvasId="maDistCanvas") {
+  const c = mkCanvas(canvasId, 360); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 20, right: 64, bottom: 34, left: 50 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
@@ -2443,10 +2472,10 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=
     ctx.fillStyle="rgba(8,8,8,.94)"; ctx.strokeStyle="#303030"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
     ctx.fillStyle=col; ctx.textAlign="left"; ctx.fillText(label,bx+8,by+14);
   }
-  const canvas=document.getElementById("maDistCanvas");
+  const canvas=document.getElementById(canvasId);
   if(canvas){
-    canvas.onmousemove=e=>{ const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left; if(x<PAD.left||x>PAD.left+PW){drawMADistanceChart(rows,key,mean,plus2,minus2,minus3,null);return;} const idx=Math.max(0,Math.min(rows.length-1,Math.round(((x-PAD.left)/PW)*(rows.length-1)))); drawMADistanceChart(rows,key,mean,plus2,minus2,minus3,idx); };
-    canvas.onmouseleave=()=>drawMADistanceChart(rows,key,mean,plus2,minus2,minus3,null);
+    canvas.onmousemove=e=>{ const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left; if(x<PAD.left||x>PAD.left+PW){drawMADistanceChart(rows,key,mean,plus2,minus2,minus3,null,canvasId);return;} const idx=Math.max(0,Math.min(rows.length-1,Math.round(((x-PAD.left)/PW)*(rows.length-1)))); drawMADistanceChart(rows,key,mean,plus2,minus2,minus3,idx,canvasId); };
+    canvas.onmouseleave=()=>drawMADistanceChart(rows,key,mean,plus2,minus2,minus3,null,canvasId);
   }
 }
 
