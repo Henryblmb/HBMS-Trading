@@ -941,21 +941,6 @@ def process_stock(stock):
                         "sigma": round(sigma, 4) if sigma > 0 else None,
                         "obs": int(len(vals)),
                     }
-        ma_ext_history = []
-        if len(live_close) >= 90:
-            hist_frame = pd.DataFrame(index=live_close.index)
-            for ma_len in (50, 200):
-                if len(live_close) >= ma_len + 40:
-                    ma = live_close.rolling(ma_len).mean()
-                    hist_frame[f"dist{ma_len}"] = ((live_close / ma) - 1) * 100
-            hist_frame = hist_frame.dropna(how="all")
-            for dt, row in hist_frame.iterrows():
-                item = {"date": str(dt.date())}
-                if pd.notna(row.get("dist50")):
-                    item["dist50"] = round(float(row["dist50"]), 4)
-                if pd.notna(row.get("dist200")):
-                    item["dist200"] = round(float(row["dist200"]), 4)
-                ma_ext_history.append(item)
         return {
             "ticker": t, "name": n, "group": g,
             "price": round(price, 4), "chg": chg_pct,
@@ -972,11 +957,50 @@ def process_stock(stock):
             "above_100": bool(e100 and price > e100),
             "above_200": bool(e200 and price > e200),
             "ma_ext": ma_ext,
-            "ma_ext_history": ma_ext_history,
             "source": source,
         }
     except Exception as e:
         print(f"  ERROR {t}: {e}")
+        return None
+
+
+def process_ma_stock_history(stock):
+    t = stock["t"]; n = stock["n"]
+    try:
+        hist_d, source = None, "none"
+        if EODHD.enabled:
+            eod_symbols = [f"{t}.US"]
+            if "." in t:
+                eod_symbols.append(f"{t.replace('.', '-')}.US")
+            hist_d, source = EODHD.eod_history(
+                eod_symbols,
+                years=20,
+                start_date=datetime.date.today() - datetime.timedelta(days=20 * 370 + 10),
+            )
+        if hist_d is None or len(hist_d) < 260:
+            hist_d, source = history_df(t, years=20, period="20y")
+        if hist_d is None or len(hist_d) < 260:
+            return None
+        close = hist_d.dropna(subset=["Close"])["Close"].astype(float)
+        if len(close) < 260:
+            return None
+        frame = pd.DataFrame(index=close.index)
+        for ma_len in (50, 200):
+            ma = close.rolling(ma_len).mean()
+            frame[f"dist{ma_len}"] = ((close / ma) - 1) * 100
+        frame = frame.dropna(how="all")
+        rows = []
+        for dt, row in frame.iterrows():
+            d50 = row.get("dist50")
+            d200 = row.get("dist200")
+            rows.append([
+                str(dt.date()),
+                round(float(d50), 2) if pd.notna(d50) else None,
+                round(float(d200), 2) if pd.notna(d200) else None,
+            ])
+        return {"ticker": t, "name": n, "rows": rows, "source": source}
+    except Exception as e:
+        print(f"  ERROR MA history {t}: {e}")
         return None
 
 
@@ -2893,6 +2917,7 @@ def run_once(upload=True, include_insider=True):
 
     trending_results = run_parallel("[2/5] Trending Assets", assets, process_trending, "asset")
     stock_results = run_parallel("[3/5] Stocks (S&P 500, DAX, HSI)", universe, process_stock, "stock")
+    ma_stock_history = run_parallel("[3b/5] MA Distance Stock History (20Y S&P 500)", sp500, process_ma_stock_history, "ma_history")
 
     print("\n[4/5] Market Breadth...")
     breadth = calc_breadth(stock_results)
@@ -2945,6 +2970,15 @@ def run_once(upload=True, include_insider=True):
     data_json = json.dumps(output, ensure_ascii=False, indent=2)
     Path("data.json").write_text(data_json, encoding="utf-8")
     print(f"\nSaved: data.json ({len(data_json) // 1024} KB)")
+    ma_stock_history_payload = clean_nans({
+        "generated": output["generated"],
+        "years": 20,
+        "stocks": ma_stock_history,
+        "schema": ["date", "dist50", "dist200"],
+    })
+    ma_stock_history_json = json.dumps(ma_stock_history_payload, ensure_ascii=False, separators=(",", ":"))
+    Path("ma_stock_history.json").write_text(ma_stock_history_json, encoding="utf-8")
+    print(f"Saved: ma_stock_history.json ({len(ma_stock_history_json) // 1024} KB)")
     if upload:
         upload_to_github(data_json)
     else:
