@@ -1372,7 +1372,8 @@ def _add_put_iv_rows_to_buckets(rows, buckets):
     for row in rows:
         if str(row.get("type", "")).lower() != "put":
             continue
-        date = str(row.get("tradetime", ""))[:10]
+        raw_trade_time = str(row.get("tradetime", ""))
+        date = raw_trade_time[:10]
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
             continue
         dte = _safe_float(row.get("dte"))
@@ -1620,7 +1621,8 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
     rows = short_rows + long_rows
     parsed = []
     for row in rows:
-        date = str(row.get("tradetime", ""))[:10]
+        raw_trade_time = str(row.get("tradetime", ""))
+        date = raw_trade_time[:10]
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
             continue
         typ = str(row.get("type", "")).lower()
@@ -1641,6 +1643,7 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
         premium = vol * price * 100 if price else 0
         parsed.append({
             "date": date,
+            "trade_time": raw_trade_time,
             "symbol": symbol,
             "contract": row.get("contract"),
             "type": typ,
@@ -1744,6 +1747,7 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
         setup = " / ".join(tags[:3]) if tags else "premium flow"
         out.append({
             "date": r["date"],
+            "trade_time": r.get("trade_time") or r["date"],
             "symbol": symbol,
             "contract": r["contract"],
             "type": r["type"],
