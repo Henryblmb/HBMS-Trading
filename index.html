@@ -296,6 +296,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .ret-fwd-row{font-size:10px;color:#888;padding:3px 0;border-top:1px solid rgba(255,255,255,.04)}
 .ret-fwd-row b{font-size:11px;font-weight:600;text-align:right}
 .ret-fwd-row em{font-style:normal;text-align:right;color:#777}
+.ma-sigma-toggle{margin-left:10px;border:0;background:transparent;color:#f1f1f1;font:inherit;font-size:9.5px;font-weight:600;cursor:pointer;padding:0;text-transform:none;letter-spacing:.02em}
+.ma-sigma-toggle:hover{color:#fff;text-decoration:underline;text-underline-offset:2px}
 .interp-title{font-size:9.5px;font-weight:600;margin-bottom:3px;letter-spacing:.03em}
 .interp-title.bull{color:#1D9E75}
 .interp-title.bear{color:#e05050}
@@ -1307,16 +1309,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bull"><div class="interp-title bull">Above +2σ</div><div class="interp-text">Price is unusually extended above its trend. Often trend-following strength, but watch for exhaustion when the move is vertical.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Below −2σ</div><div class="interp-text">Price is unusually stretched below its trend. Often stress or capitulation; forward response separates crash continuation from mean reversion.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull" id="maDistForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maDistForwardPos">Waiting for MA distance data.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear" id="maDistForwardNegTitle">Forward After −2σ</div><div class="interp-text" id="maDistForwardNeg">Waiting for MA distance data.</div></div>
-        <div class="interp-cell neut">
-          <div class="interp-title neut">Backtest Sigma</div>
-          <div class="interp-text">
-            <select id="maDistBacktestSigma" onchange="renderMADistance()" style="height:24px;border:1px solid #202020;background:#101010;color:#aaa;font-size:10px;padding:2px 7px;outline:none;color-scheme:dark">
-              <option value="2" selected>2σ moves</option>
-              <option value="3">3σ moves</option>
-            </select>
-          </div>
-        </div>
+        <div class="interp-cell bear"><div class="interp-title bear"><span id="maDistForwardNegTitle">Forward After −2σ</span><button class="ma-sigma-toggle" id="maDistSigmaToggle" onclick="toggleMADistSigma(event)">Backtest 2σ</button></div><div class="interp-text" id="maDistForwardNeg">Waiting for MA distance data.</div></div>
       </div>
     </div>
 
@@ -1624,6 +1617,7 @@ let allStocks=[], allTrending=[], allSectors=[], breadthData={};
 let currentTF = "1d";
 let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
+let maDistBacktestSigmaLevel = 2;
 
 // ═══════════════════════════════════════════════
 // AUTH
@@ -2532,6 +2526,7 @@ function renderMADistance() {
   const pct = percentileRank(vals, last);
   const plus2 = stats.mean + 2 * stats.sigma;
   const minus2 = stats.mean - 2 * stats.sigma;
+  const minus3 = stats.mean - 3 * stats.sigma;
   const col = z >= 2 ? "#1D9E75" : z <= -2 ? "#e05050" : last >= 0 ? "#5DCAA5" : "#EF9F27";
   set("maDistNow", fmtPct(last, 2), col);
   set("maDistZ", (z >= 0 ? "+" : "") + z.toFixed(2) + "σ", col);
@@ -2542,15 +2537,23 @@ function renderMADistance() {
   drawMADistanceChart(rows, key, stats.mean, plus2, minus2, minus3);
 }
 
+function toggleMADistSigma(e) {
+  if(e) e.preventDefault();
+  maDistBacktestSigmaLevel = maDistBacktestSigmaLevel === 2 ? 3 : 2;
+  renderMADistance();
+}
+
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
-  const sigmaLevel = parseInt(document.getElementById("maDistBacktestSigma")?.value || "2", 10) === 3 ? 3 : 2;
+  const sigmaLevel = maDistBacktestSigmaLevel === 3 ? 3 : 2;
   const plus = mean + sigmaLevel * sigma;
   const minus = mean - sigmaLevel * sigma;
   const posTitle = document.getElementById("maDistForwardPosTitle");
   const negTitle = document.getElementById("maDistForwardNegTitle");
+  const toggle = document.getElementById("maDistSigmaToggle");
   if(posTitle) posTitle.textContent = `Forward After +${sigmaLevel}σ`;
   if(negTitle) negTitle.textContent = `Forward After −${sigmaLevel}σ`;
+  if(toggle) toggle.textContent = `Backtest ${sigmaLevel}σ`;
   const calc = side => {
     const events = maDistanceMonthlyEvents(rows, key, plus, minus, side).filter(({i}) => i + 21 < rows.length);
     return horizons.map(h => {
@@ -2594,7 +2597,8 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const vals = rows.map(r => +r[key]);
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
-  const abs = Math.max(5, Math.abs(Math.min(...vals, minus2, minus3)), Math.abs(Math.max(...vals, plus2)));
+  const scaleVals = [...vals, plus2, minus2, minus3].filter(Number.isFinite);
+  const abs = Math.max(5, ...scaleVals.map(v => Math.abs(v)));
   const min = -abs * 1.12, max = abs * 1.12;
   const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
   const toY = v => PAD.top + PH - ((v - min) / (max - min)) * PH;
