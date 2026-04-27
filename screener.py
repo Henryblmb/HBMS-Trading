@@ -1359,7 +1359,7 @@ def return_histogram_payload(symbols=None, years=25):
     return payload
 
 
-def ma_distance_payload(symbols=None, years=20):
+def ma_distance_payload(symbols=None):
     payload = {}
     for meta in symbols or RETURN_HISTOGRAM_SYMBOLS:
         symbol = meta["t"]
@@ -1371,10 +1371,6 @@ def ma_distance_payload(symbols=None, years=20):
             if hist is None or hist.empty or "Close" not in hist.columns:
                 continue
             close = hist["Close"].astype(float).dropna().sort_index()
-            if len(close) < 260:
-                continue
-            cutoff = pd.Timestamp.utcnow().tz_localize(None) - pd.DateOffset(years=years)
-            close = close[close.index.tz_localize(None) >= cutoff] if getattr(close.index, "tz", None) is not None else close[close.index >= cutoff]
             if len(close) < 260:
                 continue
             ma50 = close.rolling(50).mean()
