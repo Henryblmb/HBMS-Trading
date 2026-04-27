@@ -569,6 +569,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-hyg',this)">High Yield Bonds</div>
+      <div class="nav-item sub" onclick="showTab('cg-creditproxy',this)">Credit Spread Proxy</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Oversold</span><span class="nav-folder-arrow">›</span></div>
@@ -845,6 +846,56 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bull"><div class="interp-title bull">Reading &gt; 350 — Bullish</div><div class="interp-text">Strong High Yield breadth. Credit markets healthy. Favorable for risk assets. Often precedes continued equity strength.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Reading 0 to 350 — Neutral</div><div class="interp-text">Neutral zone. Monitor direction. HYG underperforming IG bonds can signal early credit stress before equities react.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Reading &lt; −100 — Warning</div><div class="interp-text">Credit stress signal. HY deteriorating. Often leads equity weakness by 2–4 weeks. Consider reducing risk exposure.</div></div>
+      </div>
+    </div>
+
+    <!-- CREDIT SPREAD PROXY -->
+    <div class="panel cg-page" id="tab-cg-creditproxy">
+      <div class="cg-header">
+        <div class="cg-title">Credit Spread Proxy — HYG vs S&amp;P 500</div>
+        <div class="cg-sub">High-yield credit stress proxy using HYG total-return relative strength versus the S&amp;P 500. Weak HYG/SPX relative strength signals widening credit stress; recovery back above trend marks improving risk appetite.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">HYG / SPX RS</div><div class="signal-bar-val" id="creditRSVal" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">RS Z-Score</div><div class="signal-bar-val" id="creditZVal" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">HYG Drawdown</div><div class="signal-bar-val" id="creditDDVal" style="color:#777">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="creditRegimeVal" style="font-size:14px;color:#777;padding-top:4px">—</div></div>
+        <div class="signal-range-controls" data-cg-date-host></div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">HYG Total Return vs S&amp;P 500 — Indexed To 100</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#5DCAA5"></span>S&amp;P 500</span>
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>HYG TR</span>
+            <span style="color:#e05050">Credit stress</span>
+            <span style="color:#1D9E75">Credit recovery</span>
+          </div>
+        </div>
+        <canvas id="creditProxyCompareCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">HYG/SPX Relative Strength Z-Score</span>
+          <div class="cg-chart-legend">
+            <span style="color:#1D9E75">Recovery &gt; 0σ</span>
+            <span style="color:#e05050">Stress &lt; −2σ</span>
+          </div>
+        </div>
+        <canvas id="creditProxyZCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Credit Stress</div><div class="interp-text">HYG underperforms the S&amp;P strongly when credit risk is repriced. A move below −2σ marks widening stress and often warns before broad equity weakness.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Credit Recovery</div><div class="interp-text">After credit stress, HYG/SPX relative strength recovering above its mean signals risk appetite returning beneath the equity surface.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward After Recovery</div><div class="interp-text" id="creditForwardRecovery">Waiting for credit proxy data.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Forward After Stress</div><div class="interp-text" id="creditForwardStress">Waiting for credit proxy data.</div></div>
       </div>
     </div>
 
@@ -1643,6 +1694,7 @@ function showTab(id, el) {
 
   // Charts / Graphs tab actions
   if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }, 60);
+  if(id === "cg-creditproxy") setTimeout(drawCreditProxyModel, 60);
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
@@ -1682,6 +1734,7 @@ async function loadData() {
     updateBT50Signal();
     const activePanel = document.querySelector(".panel.active");
     if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
+    if(activePanel && activePanel.id === "tab-cg-creditproxy") drawCreditProxyModel();
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
@@ -2602,6 +2655,7 @@ const cgDateRanges = {};
 
 const cgRedraw = {
   "cg-hyg": () => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); },
+  "cg-creditproxy": () => drawCreditProxyModel(),
   "cg-spxrsi": () => drawSPXRSIReversal(),
   "cg-spxema": () => drawSPXWeeklyEMA(),
   "cg-vixsd": () => drawVIXSDSignal(),
@@ -3696,6 +3750,154 @@ function drawHYGNhnlChart() {
     const d = new Date(hist[i].date + "T12:00:00");
     ctx.fillText(d.toLocaleString("en-US", { month: "short", year: "2-digit" }), toX(i), H - PAD.bottom + 13);
   });
+}
+
+function creditProxyRows() {
+  const md = window._marketData || {};
+  const spyBase = marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("spy_history"));
+  const hygBase = marketHistory("hyg_history");
+  const spyMap = new Map((spyBase || []).map(r => [r.date, +r.close]));
+  const rows = [];
+  (hygBase || []).forEach(r => {
+    const spy = spyMap.get(r.date), hyg = +r.close;
+    if(!r.date || !Number.isFinite(spy) || !Number.isFinite(hyg) || spy <= 0 || hyg <= 0) return;
+    rows.push({ date: r.date, spy, hyg, rs: hyg / spy });
+  });
+  const windowN = 126;
+  rows.forEach((r, i) => {
+    const sample = rows.slice(Math.max(0, i - windowN + 1), i + 1).map(x => x.rs);
+    if(sample.length >= 80) {
+      const mean = sample.reduce((a,b)=>a+b,0) / sample.length;
+      const variance = sample.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / Math.max(1, sample.length - 1);
+      r.mean = mean;
+      r.sigma = Math.sqrt(variance);
+      r.z = r.sigma > 0 ? (r.rs - mean) / r.sigma : 0;
+    } else {
+      r.mean = null; r.sigma = null; r.z = null;
+    }
+    const hi = Math.max(...rows.slice(Math.max(0, i - 251), i + 1).map(x => x.hyg));
+    r.hyg_dd = hi > 0 ? (r.hyg / hi - 1) * 100 : null;
+  });
+  return rows;
+}
+
+function creditProxyEvents(rows) {
+  const stress = [], recovery = [];
+  let lastStress = -999, lastRecovery = -999, wasStressed = false;
+  rows.forEach((r, i) => {
+    const prev = rows[i - 1];
+    if(r.z == null) return;
+    if((r.z <= -2 || r.hyg_dd <= -8) && i - lastStress > 21) {
+      stress.push({ ...r, i });
+      lastStress = i;
+      wasStressed = true;
+    }
+    if(wasStressed && prev && prev.z != null && prev.z < 0 && r.z >= 0 && i - lastRecovery > 21) {
+      recovery.push({ ...r, i });
+      lastRecovery = i;
+      wasStressed = false;
+    }
+  });
+  return { stress, recovery };
+}
+
+function drawCreditProxyModel() {
+  const rawRows = creditProxyRows();
+  const domain = ensureCGDateControls("cg-creditproxy", [rawRows], "max");
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  if(rows.length < 120) {
+    emptyCanvas("creditProxyCompareCanvas", 260, "Credit proxy history unavailable - run screener.py");
+    emptyCanvas("creditProxyZCanvas", 180, "Credit proxy z-score unavailable");
+    return;
+  }
+  const events = creditProxyEvents(rows);
+  const last = rows[rows.length - 1];
+  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  const z = last.z;
+  const dd = last.hyg_dd;
+  const regime = z == null ? "WARMUP" : z <= -2 || dd <= -8 ? "CREDIT STRESS" : z >= 0 ? "RECOVERY / RISK-ON" : "NEUTRAL";
+  const regCol = regime.includes("STRESS") ? "#e05050" : regime.includes("RECOVERY") ? "#1D9E75" : "#EF9F27";
+  set("creditRSVal", last.rs.toFixed(5), "#d8d8d8");
+  set("creditZVal", z == null ? "—" : (z >= 0 ? "+" : "") + z.toFixed(2) + "σ", z == null ? "#777" : z <= -2 ? "#e05050" : z >= 0 ? "#1D9E75" : "#EF9F27");
+  set("creditDDVal", dd == null ? "—" : fmtPct(dd, 1), dd <= -8 ? "#e05050" : dd < -3 ? "#EF9F27" : "#1D9E75");
+  set("creditRegimeVal", regime, regCol);
+  drawCreditCompareChart(rows, events);
+  drawCreditZChart(rows, events);
+  renderCreditForwardStats(rows, events);
+}
+
+function drawCreditCompareChart(rows, events) {
+  const c = mkCanvas("creditProxyCompareCanvas", 260); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 58, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const spy0 = rows[0].spy, hyg0 = rows[0].hyg;
+  const spy = rows.map(r => r.spy / spy0 * 100);
+  const hyg = rows.map(r => r.hyg / hyg0 * 100);
+  const vals = spy.concat(hyg);
+  const minV = Math.min(...vals) * .96, maxV = Math.max(...vals) * 1.04;
+  const toX = i => PAD.left + i / Math.max(1, rows.length - 1) * PW;
+  const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)";
+  for(let i=0;i<=5;i++){ const y=PAD.top+i/5*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  const drawLine = (arr, col, width) => { ctx.beginPath(); arr.forEach((v,i)=> i ? ctx.lineTo(toX(i),toY(v)) : ctx.moveTo(toX(i),toY(v))); ctx.strokeStyle=col; ctx.lineWidth=width; ctx.stroke(); };
+  drawLine(hyg, "rgba(216,216,216,.72)", 1.8);
+  drawLine(spy, "#5DCAA5", 2.1);
+  [...events.stress.map(e => ({...e, type:"stress"})), ...events.recovery.map(e => ({...e, type:"recovery"}))].forEach(e => {
+    const idx = rows.findIndex(r => r.date === e.date);
+    if(idx < 0) return;
+    const y = toY(spy[idx]);
+    ctx.beginPath(); ctx.arc(toX(idx), y, 3.5, 0, Math.PI*2);
+    ctx.fillStyle = e.type === "stress" ? "#e05050" : "#1D9E75";
+    ctx.fill(); ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
+  });
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{ const d=new Date(rows[i].date+"T12:00:00"); ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+13); });
+  ctx.fillStyle="#5DCAA5"; ctx.textAlign="left"; ctx.fillText("S&P " + spy[spy.length-1].toFixed(1), PAD.left+PW+5, toY(spy[spy.length-1])+3);
+  ctx.fillStyle="#d8d8d8"; ctx.fillText("HYG " + hyg[hyg.length-1].toFixed(1), PAD.left+PW+5, toY(hyg[hyg.length-1])+3);
+}
+
+function drawCreditZChart(rows, events) {
+  const valid = rows.filter(r => r.z != null && Number.isFinite(r.z));
+  const c = mkCanvas("creditProxyZCanvas", 180); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 52, bottom: 26, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  if(valid.length < 20) { emptyCanvas("creditProxyZCanvas", 180, "Credit proxy z-score unavailable"); return; }
+  const minV = Math.min(-3, ...valid.map(r => r.z)) * 1.08, maxV = Math.max(2, ...valid.map(r => r.z)) * 1.08;
+  const toX = i => PAD.left + i / Math.max(1, valid.length - 1) * PW;
+  const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  [[0,"#777","0"],[-2,"#e05050","−2σ"],[1,"#1D9E75","+1σ"]].forEach(([v,col,lbl])=>{ const y=toY(v); ctx.strokeStyle=col+"66"; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=col; ctx.font="8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl,PAD.left+PW+5,y+3); });
+  const bw = Math.max(1.2, PW / valid.length - .4), zeroY = toY(0);
+  valid.forEach((r,i)=>{ const y=toY(r.z); ctx.fillStyle = r.z >= 0 ? "rgba(29,158,117,.65)" : "rgba(224,80,80,.65)"; if(r.z >= 0) ctx.fillRect(toX(i)-bw/2,y,bw,zeroY-y); else ctx.fillRect(toX(i)-bw/2,zeroY,bw,y-zeroY); });
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.25,.5,.75,1].map(p=>Math.round((valid.length-1)*p)).forEach(i=>{ const d=new Date(valid[i].date+"T12:00:00"); ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+13); });
+}
+
+function renderCreditForwardStats(rows, events) {
+  const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"12M",days:252}];
+  const fmt = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+  const html = evs => {
+    const byDate = new Map(rows.map((r,i)=>[r.date,i]));
+    return `<div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` + horizons.map(h => {
+      const vals = evs.map(e => {
+        const i = byDate.get(e.date);
+        if(i == null || !rows[i+h.days]) return null;
+        return (rows[i+h.days].spy / rows[i].spy - 1) * 100;
+      }).filter(Number.isFinite);
+      if(!vals.length) return `<div class="ret-fwd-row"><span>${h.label}</span><b>—</b><em>—</em></div>`;
+      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+      const prob = vals.filter(v => v > 0).length / vals.length * 100;
+      return `<div class="ret-fwd-row"><span>${h.label}</span><b style="color:${avg >= 0 ? "#5DCAA5" : "#e05050"}">${fmt(avg)}</b><em>${prob.toFixed(0)}% Profit</em></div>`;
+    }).join("");
+  };
+  const rec = document.getElementById("creditForwardRecovery");
+  const stress = document.getElementById("creditForwardStress");
+  if(rec) rec.innerHTML = `<div class="ret-fwd-events">${events.recovery.length} historical recovery moves</div>${html(events.recovery)}`;
+  if(stress) stress.innerHTML = `<div class="ret-fwd-events">${events.stress.length} historical stress moves</div>${html(events.stress)}`;
 }
 
 function drawPlaceholderChart(canvasId, h, label, lineColor, isBars=false, isRSI=false) {
