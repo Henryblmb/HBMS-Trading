@@ -288,6 +288,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .signal-inline-control select option{background:#101010;color:#f1f1f1}
 #maDistTicker{width:220px}
 #maDistAvg{width:44px}
+#retHistTicker{width:220px}
+#retHistBins{width:28px}
+#vixSpikePct{width:54px}
 .signal-inline-control select:hover,.signal-inline-control select:focus{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .signal-inline-controls+.signal-range-controls{margin-left:24px}
 
@@ -1088,19 +1091,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="cg-sub">Close-to-close daily VIX change ranked by percentile. Upper-tail spikes mark upside volatility overreactions; lower-tail drops mark downside volatility compression.</div>
       </div>
 
-      <div class="filter-row" style="margin-bottom:.9rem">
-        <label>Percentile:</label>
-        <select id="vixSpikePct" onchange="drawVIXSpikeModel()">
-          <option value="90">90 / 10</option>
-          <option value="95" selected>95 / 5</option>
-          <option value="97.5">97.5 / 2.5</option>
-          <option value="98">98 / 2</option>
-          <option value="99">99 / 1</option>
-          <option value="99.5">99.5 / 0.5</option>
-          <option value="99.9">99.9 / 0.1</option>
-        </select>
-      </div>
-
       <div class="signal-bar">
         <div><div class="signal-bar-label">VIX Change</div><div class="signal-bar-val" id="vixSpikeChgVal" style="color:#d8d8d8">—</div></div>
         <div class="signal-bar-divider"></div>
@@ -1109,6 +1099,20 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div><div class="signal-bar-label">Lower Tail</div><div class="signal-bar-val" id="vixSpikeLowerVal" style="font-size:14px;color:#1D9E75;padding-top:4px">—</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Signal</div><div class="signal-bar-val" id="vixSpikeSignalVal" style="font-size:14px;color:#777;padding-top:4px">—</div></div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Percentile</label>
+            <select id="vixSpikePct" onchange="drawVIXSpikeModel()">
+              <option value="90">90 / 10</option>
+              <option value="95" selected>95 / 5</option>
+              <option value="97.5">97.5 / 2.5</option>
+              <option value="98">98 / 2</option>
+              <option value="99">99 / 1</option>
+              <option value="99.5">99.5 / 0.5</option>
+              <option value="99.9">99.9 / 0.1</option>
+            </select>
+          </div>
+        </div>
         <div class="signal-range-controls" data-cg-date-host>
           <div class="hist-range" id="vixspikeRange">
             <button class="hist-btn" onclick="setHistoryRange('vixspike','1Y',this)">1Y</button>
@@ -1159,15 +1163,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="cg-sub">Monthly return distribution for NYSE Arca sector ETFs, index ETFs, semiconductor proxies and industry groups. Histogram bars show return frequency, the amber curve approximates the normal distribution, and the lower panel shows the monthly return series versus ±2σ bands.</div>
       </div>
 
-      <div class="filter-row" style="margin-bottom:.9rem">
-        <label>Ticker</label>
-        <select id="retHistTicker" onchange="renderReturnHistogram()"></select>
-        <label>Range</label>
-        <select id="retHistRange" onchange="renderReturnHistogram()"><option value="max">Max</option><option value="15">15Y</option><option value="10">10Y</option><option value="5">5Y</option></select>
-        <label>Bins</label>
-        <select id="retHistBins" onchange="renderReturnHistogram()"><option value="50">50</option><option value="30">30</option><option value="75">75</option></select>
-      </div>
-
       <div class="signal-bar">
         <div><div class="signal-bar-label">Mean</div><div class="signal-bar-val" id="retHistMean" style="color:#d8d8d8">—</div></div>
         <div class="signal-bar-divider"></div>
@@ -1176,6 +1171,24 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div><div class="signal-bar-label">Last Month</div><div class="signal-bar-val" id="retHistLast" style="color:#555">—</div></div>
         <div class="signal-bar-divider"></div>
         <div class="signal-bar-desc" id="retHistDesc">Run screener.py to load return histogram data.</div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Ticker</label>
+            <select id="retHistTicker" onchange="renderReturnHistogram()"></select>
+          </div>
+          <div class="signal-inline-control">
+            <label>Bins</label>
+            <select id="retHistBins" onchange="renderReturnHistogram()"><option value="50">50</option><option value="30">30</option><option value="75">75</option></select>
+          </div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="retHistRange">
+            <button class="hist-btn" onclick="setReturnHistogramRange('1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setReturnHistogramRange('5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setReturnHistogramRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setReturnHistogramRange('20Y',this)">20Y</button>
+          </div>
+        </div>
       </div>
 
       <div class="cg-chart-box">
@@ -1883,7 +1896,7 @@ function renderSeasonality() {
 
 function filteredReturnRows(item) {
   const rows = (item && item.returns || []).filter(r => r.date && Number.isFinite(+r.ret));
-  const range = document.getElementById("retHistRange")?.value || "max";
+  const range = retHistHistoryRange || "max";
   if(range === "max" || !rows.length) return rows;
   const years = parseInt(range, 10);
   const last = new Date(rows[rows.length - 1].date + "T12:00:00");
@@ -1959,8 +1972,7 @@ function renderReturnHistogram() {
     return;
   }
   const rawRetRows = (item && item.returns || []).filter(r => r.date && Number.isFinite(+r.ret));
-  const retRange = document.getElementById("retHistRange")?.value || "max";
-  const rows = filterRowsByDateDomain(rawRetRows, ensureCGDateControls("cg-rethist", [rawRetRows], retRange === "max" ? "max" : retRange + "Y"));
+  const rows = filterRowsByDateDomain(rawRetRows, ensureCGDateControls("cg-rethist", [rawRetRows], retHistHistoryRange));
   const vals = rows.map(r => +r.ret).filter(Number.isFinite);
   const stats = retStats(vals);
   if(vals.length < 12 || stats.mean == null) {
@@ -2158,6 +2170,14 @@ function setMADistanceRange(range, btn) {
   document.querySelectorAll("#maDistRange .hist-btn").forEach(b => b.classList.remove("active"));
   if(btn) btn.classList.add("active");
   renderMADistance();
+}
+
+function setReturnHistogramRange(range, btn) {
+  retHistHistoryRange = range || retHistHistoryRange;
+  delete cgDateRanges["cg-rethist"];
+  document.querySelectorAll("#retHistRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  renderReturnHistogram();
 }
 
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
@@ -2577,6 +2597,7 @@ let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
 let vixspikeHistoryRange = "5Y";
 let maDistHistoryRange = "5Y";
+let retHistHistoryRange = "max";
 const cgDateRanges = {};
 
 const cgRedraw = {
