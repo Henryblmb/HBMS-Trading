@@ -2017,7 +2017,11 @@ function fmtTradeTime(value) {
 }
 
 function fmtOptionSide(row) {
-  const side = String(row.side || "unknown").toLowerCase();
+  let side = String(row.side || "unknown").toLowerCase();
+  if((side === "unknown" || side === "—") && Number.isFinite(+row.last) && Number.isFinite(+row.bid) && Number.isFinite(+row.ask) && +row.ask > +row.bid) {
+    const pos = (+row.last - +row.bid) / (+row.ask - +row.bid);
+    side = pos >= .70 ? "ask" : pos <= .30 ? "bid" : "mid";
+  }
   const last = Number.isFinite(+row.last) ? (+row.last).toFixed(2) : "—";
   const bid = Number.isFinite(+row.bid) ? (+row.bid).toFixed(2) : "—";
   const ask = Number.isFinite(+row.ask) ? (+row.ask).toFixed(2) : "—";
