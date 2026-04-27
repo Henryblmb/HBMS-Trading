@@ -1990,6 +1990,19 @@ function fmtCompactUsd(v) {
   return "$" + n.toFixed(0);
 }
 
+function fmtOptionExpiry(dateStr) {
+  if(!dateStr) return "—";
+  const d = new Date(dateStr + "T12:00:00");
+  if(Number.isNaN(d.getTime())) return dateStr;
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${String(d.getDate()).padStart(2, "0")}${months[d.getMonth()]}´${String(d.getFullYear()).slice(2)}`;
+}
+
+function fmtOptionStrike(v) {
+  if(!Number.isFinite(+v)) return "—";
+  return (+v).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
 function renderUnusualOptionsTrades() {
   const data = unusualOptionsData();
   const rows = Array.isArray(data.rows) ? data.rows : [];
@@ -2016,8 +2029,8 @@ function renderUnusualOptionsTrades() {
     const scoreCol = score >= 90 ? "#ff6b6b" : score >= 75 ? "#EF9F27" : "#d8d8d8";
     const z = Number.isFinite(+r.volume_z) ? (+r.volume_z).toFixed(1) + "σ" : "—";
     const volOi = Number.isFinite(+r.vol_oi) ? (+r.vol_oi).toFixed(2) : "—";
-    const strike = r.strike != null ? "$" + (+r.strike).toLocaleString("en-US", { maximumFractionDigits:2 }) : "—";
-    const exp = r.exp_date ? r.exp_date.slice(2) : "—";
+    const strike = fmtOptionStrike(r.strike);
+    const exp = fmtOptionExpiry(r.exp_date);
     return `<tr title="${seasonEscape(r.contract || "")}">
       <td style="color:${scoreCol};font-weight:700">${score.toFixed(0)}</td>
       <td style="font-weight:700;color:#fff">${seasonEscape(r.symbol)}</td>
