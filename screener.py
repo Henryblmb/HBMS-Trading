@@ -371,7 +371,7 @@ class EODHDClient:
         except Exception:
             return None, "none"
 
-    def options_eod(self, symbol, start_date, end_date, exp_from=None, exp_to=None, limit=1000):
+    def options_eod(self, symbol, start_date, end_date, exp_from=None, exp_to=None, limit=1000, offset=0, compact=True):
         if not self.enabled:
             return []
         try:
@@ -383,7 +383,10 @@ class EODHDClient:
                 "filter[tradetime_from]": str(start_date),
                 "filter[tradetime_to]": str(end_date),
                 "page[limit]": str(limit),
+                "page[offset]": str(offset),
             }
+            if compact:
+                params["compact"] = "1"
             if exp_from:
                 params["filter[exp_date_from]"] = str(exp_from)
             if exp_to:
@@ -395,6 +398,15 @@ class EODHDClient:
             rows = payload.get("data") if isinstance(payload, dict) else payload
             if not isinstance(rows, list):
                 return []
+            fields = payload.get("meta", {}).get("fields", []) if isinstance(payload, dict) else []
+            if compact and fields:
+                parsed = []
+                for row in rows:
+                    if isinstance(row, list):
+                        parsed.append({fields[i]: row[i] for i in range(min(len(fields), len(row)))})
+                    elif isinstance(row, dict):
+                        parsed.append(row.get("attributes", row))
+                return parsed
             return [row.get("attributes", row) for row in rows if isinstance(row, dict)]
         except Exception:
             return []
@@ -1342,20 +1354,7 @@ def _safe_float(value):
         return None
 
 
-def put_iv_rows_for_symbol(symbol, months=3, rolling_window=20):
-    if not EODHD.enabled:
-        return [], {"status": "missing_api_key"}
-    end = datetime.date.today()
-    start = end - datetime.timedelta(days=int(months * 31))
-    buckets = {}
-    rows = EODHD.options_eod(
-        symbol,
-        start,
-        end,
-        exp_from=start + datetime.timedelta(days=14),
-        exp_to=end + datetime.timedelta(days=120),
-        limit=1000,
-    )
+def _add_put_iv_rows_to_buckets(rows, buckets):
     for row in rows:
         if str(row.get("type", "")).lower() != "put":
             continue
@@ -1382,6 +1381,8 @@ def put_iv_rows_for_symbol(symbol, months=3, rolling_window=20):
         bucket["ivw"] += iv_pct * weight
         bucket["contracts"] += 1
 
+
+def _put_iv_rows_from_buckets(buckets, rolling_window=63):
     daily = []
     for date, bucket in sorted(buckets.items()):
         if bucket["w"] <= 0:
@@ -1395,7 +1396,7 @@ def put_iv_rows_for_symbol(symbol, months=3, rolling_window=20):
         return [], {"status": "insufficient_data", "observations": len(daily)}
 
     ivs = pd.Series([r["iv"] for r in daily], dtype="float64")
-    min_periods = min(5, rolling_window)
+    min_periods = min(20, rolling_window)
     means = ivs.rolling(rolling_window, min_periods=min_periods).mean()
     sigmas = ivs.rolling(rolling_window, min_periods=min_periods).std(ddof=1)
     out = []
@@ -1430,13 +1431,87 @@ def put_iv_rows_for_symbol(symbol, months=3, rolling_window=20):
     }
 
 
+def put_iv_rows_for_symbol(symbol, years=2, existing_rows=None, force_backfill=False, rolling_window=63):
+    if not EODHD.enabled:
+        return [], {"status": "missing_api_key"}
+    end = datetime.date.today()
+    existing_rows = [r for r in (existing_rows or []) if r.get("date") and NumberLike(r.get("iv"))]
+    buckets = {}
+    for row in existing_rows:
+        buckets[row["date"]] = {"w": 1.0, "ivw": float(row["iv"]), "contracts": int(row.get("contracts") or 1)}
+
+    have_dates = sorted(buckets)
+    has_backfill = bool(have_dates and have_dates[0] <= str(end - datetime.timedelta(days=365 * years - 30)))
+    last_date = datetime.date.fromisoformat(have_dates[-1]) if have_dates else None
+    if force_backfill or not has_backfill:
+        start = end - datetime.timedelta(days=365 * years)
+        windows = []
+        cur = start.replace(day=1)
+        while cur <= end:
+            nxt = (cur.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+            win_start = max(start, cur)
+            win_end = min(end, nxt - datetime.timedelta(days=1))
+            windows.append((win_start, win_end, (0,)))
+            cur = nxt
+    else:
+        start = max(end - datetime.timedelta(days=21), (last_date or end) - datetime.timedelta(days=3))
+        windows = [(start, end, (0, 1000, 2000))]
+
+    fetched = 0
+    for win_start, win_end, offsets in windows:
+        for offset in offsets:
+            rows = EODHD.options_eod(
+                symbol,
+                win_start,
+                win_end,
+                exp_from=win_start + datetime.timedelta(days=14),
+                exp_to=win_end + datetime.timedelta(days=120),
+                limit=1000,
+                offset=offset,
+                compact=True,
+            )
+            fetched += len(rows)
+            _add_put_iv_rows_to_buckets(rows, buckets)
+        time.sleep(0.02)
+
+    out, status = _put_iv_rows_from_buckets(buckets, rolling_window=rolling_window)
+    status["fetched_contract_rows"] = fetched
+    status["history_mode"] = "backfill_2y" if (force_backfill or not has_backfill) else "incremental"
+    if out:
+        status["start"] = out[0]["date"]
+        status["end"] = out[-1]["date"]
+    return out, status
+
+
+def NumberLike(value):
+    try:
+        float(value)
+        return True
+    except Exception:
+        return False
+
+
+def existing_options_put_iv_payload():
+    try:
+        path = Path(__file__).resolve().parent / "data.json"
+        if not path.exists():
+            return {}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data.get("market", {}).get("options_put_iv", {}) or {}
+    except Exception:
+        return {}
+
+
 def options_put_iv_payload(symbols=None):
     payload = {}
-    for meta in symbols or OPTIONS_PUT_IV_SYMBOLS:
+    existing = existing_options_put_iv_payload()
+    metas = list(symbols or OPTIONS_PUT_IV_SYMBOLS)
+
+    def build_item(meta):
         symbol = meta["t"]
         try:
-            rows, status = put_iv_rows_for_symbol(symbol)
-            payload[symbol] = {
+            rows, status = put_iv_rows_for_symbol(symbol, existing_rows=existing.get(symbol, {}).get("rows", []))
+            item = {
                 "ticker": symbol,
                 "name": meta.get("n", symbol),
                 "group": meta.get("g", "ETF"),
@@ -1445,8 +1520,9 @@ def options_put_iv_payload(symbols=None):
                 "status": status,
             }
             print(f"  Put IV {symbol}: {len(rows)} days | status: {status.get('status')}")
+            return symbol, item
         except Exception as e:
-            payload[symbol] = {
+            item = {
                 "ticker": symbol,
                 "name": meta.get("n", symbol),
                 "group": meta.get("g", "ETF"),
@@ -1455,6 +1531,19 @@ def options_put_iv_payload(symbols=None):
                 "status": {"status": "error", "message": str(e)[:120]},
             }
             print(f"  Put IV {symbol}: {e}")
+            return symbol, item
+
+    workers = max(1, int(os.getenv("OPTIONS_PUT_IV_WORKERS", "4")))
+    if workers == 1 or len(metas) <= 1:
+        for meta in metas:
+            symbol, item = build_item(meta)
+            payload[symbol] = item
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(build_item, meta) for meta in metas]
+            for future in as_completed(futures):
+                symbol, item = future.result()
+                payload[symbol] = item
     return payload
 
 
