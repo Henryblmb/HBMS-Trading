@@ -1656,15 +1656,18 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 // ═══════════════════════════════════════════════
 const PASS = "HBMS2026";
 const DATA_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/data.json";
-const MA_STOCK_HISTORY_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/ma_stock_history.json";
+const MA_STOCK_STATS_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/ma_stock_stats.json";
+const MA_STOCK_HISTORY_BASE = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/ma_stock_history/";
 let allStocks=[], allTrending=[], allSectors=[], breadthData={};
 let currentTF = "1d";
 let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
 let dataGenerated = "";
 let maDistBacktestSigmaLevel = 2;
-let maStockHistoryByTicker = null;
-let maStockHistoryPromise = null;
+let maStockStatsByTicker = null;
+let maStockStatsPromise = null;
+let maStockHistoryCache = new Map();
+let maStockHistoryRequests = new Map();
 
 // ═══════════════════════════════════════════════
 // AUTH
@@ -2263,61 +2266,72 @@ function ensureMAStockOptions(stocks) {
 function maStockMetric(stock, ma) {
   const m = stock && stock.ma_ext ? stock.ma_ext[String(ma)] : null;
   if(!m || !Number.isFinite(+m.dist)) return null;
-  const hist = maStockHistoryByTicker ? maStockHistoryByTicker.get(String(stock.ticker).toUpperCase()) : null;
-  const histIdx = ma === "50" ? 1 : 2;
-  let histVals = hist ? (hist.rows || []).map(r => +r[histIdx]).filter(Number.isFinite) : [];
-  const dist = +m.dist;
-  if(histVals.length && Number.isFinite(dist)) {
-    const lastRow = (hist.rows || []).slice().reverse().find(r => Number.isFinite(+r[histIdx]));
-    const liveDate = dataGenerated ? dataGenerated.slice(0, 10) : "";
-    if(liveDate && lastRow && liveDate > lastRow[0]) histVals = histVals.concat(dist);
-    else histVals = histVals.slice(0, -1).concat(dist);
-  }
-  let z = Number.isFinite(+m.z) ? +m.z : null;
-  let pct = Number.isFinite(+m.pctile) ? +m.pctile : null;
-  let obs = +m.obs || 0;
-  if(histVals.length >= 60) {
-    const stats = retStats(histVals);
-    if(stats.mean != null && Number.isFinite(stats.sigma) && stats.sigma > 0) {
-      z = (dist - stats.mean) / stats.sigma;
-      pct = percentileRank(histVals, dist);
-      obs = histVals.length;
-    }
-  }
+  const s20 = maStockStatsByTicker ? maStockStatsByTicker.get(String(stock.ticker).toUpperCase())?.[String(ma)] : null;
+  const z = s20 && Number.isFinite(+s20.z) ? +s20.z : (Number.isFinite(+m.z) ? +m.z : null);
+  const pct = s20 && Number.isFinite(+s20.pctile) ? +s20.pctile : (Number.isFinite(+m.pctile) ? +m.pctile : null);
+  const obs = s20 && Number.isFinite(+s20.obs) ? +s20.obs : (+m.obs || 0);
   const pos52 = stock.hi52 > stock.lo52 ? ((+stock.price - +stock.lo52) / (+stock.hi52 - +stock.lo52)) * 100 : null;
   return { dist:+m.dist, z, pct, obs, pos52 };
 }
 
-function loadMAStockHistory() {
-  if(maStockHistoryByTicker) return Promise.resolve(maStockHistoryByTicker);
-  if(maStockHistoryPromise) return maStockHistoryPromise;
-  maStockHistoryPromise = fetch(MA_STOCK_HISTORY_URL + "?t=" + Date.now(), { cache: "no-store" })
+function maStockHistoryFile(ticker) {
+  return String(ticker || "").toUpperCase().replace(/[^A-Z0-9-]/g, "_") + ".json";
+}
+
+function loadMAStockStats() {
+  if(maStockStatsByTicker) return Promise.resolve(maStockStatsByTicker);
+  if(maStockStatsPromise) return maStockStatsPromise;
+  maStockStatsPromise = fetch(MA_STOCK_STATS_URL + "?t=" + Date.now(), { cache: "no-store" })
     .then(r => {
       if(!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     })
     .then(json => {
-      maStockHistoryByTicker = new Map();
+      maStockStatsByTicker = new Map();
       (json.stocks || []).forEach(s => {
         if(!s || !s.ticker) return;
-        maStockHistoryByTicker.set(String(s.ticker).toUpperCase(), s);
+        maStockStatsByTicker.set(String(s.ticker).toUpperCase(), s.ma || {});
       });
-      return maStockHistoryByTicker;
+      return maStockStatsByTicker;
     })
     .catch(err => {
-      console.warn("MA stock history load failed", err);
-      maStockHistoryPromise = null;
+      console.warn("MA stock stats load failed", err);
+      maStockStatsPromise = null;
       throw err;
     });
-  return maStockHistoryPromise;
+  return maStockStatsPromise;
+}
+
+function loadMAStockHistory(ticker) {
+  const key = String(ticker || "").toUpperCase();
+  if(!key) return Promise.reject(new Error("missing ticker"));
+  if(maStockHistoryCache.has(key)) return Promise.resolve(maStockHistoryCache.get(key));
+  if(maStockHistoryRequests.has(key)) return maStockHistoryRequests.get(key);
+  const req = fetch(MA_STOCK_HISTORY_BASE + maStockHistoryFile(key) + "?t=" + Date.now(), { cache: "no-store" })
+    .then(r => {
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(json => {
+      maStockHistoryCache.set(key, json);
+      maStockHistoryRequests.delete(key);
+      return json;
+    })
+    .catch(err => {
+      console.warn("MA stock history load failed", key, err);
+      maStockHistoryRequests.delete(key);
+      throw err;
+    });
+  maStockHistoryRequests.set(key, req);
+  return req;
 }
 
 function renderMAStockDistance() {
   const ma = document.getElementById("maStockAvg")?.value || "200";
   const input = document.getElementById("maStockSearch");
   const query = (input?.value || "").trim().toUpperCase();
-  if(!maStockHistoryByTicker && !maStockHistoryPromise) {
-    loadMAStockHistory().then(() => renderMAStockDistance()).catch(() => {});
+  if(!maStockStatsByTicker && !maStockStatsPromise) {
+    loadMAStockStats().then(() => renderMAStockDistance()).catch(() => {});
   }
   const stocks = maStockUniverse().filter(s => maStockMetric(s, ma));
   ensureMAStockOptions(stocks);
@@ -2373,15 +2387,16 @@ function renderMAStockHistoryChart(stock, ma) {
     emptyCanvas("maStockChartCanvas", 360, "Search or click a stock to show its MA distance history");
     return;
   }
-  if(!maStockHistoryByTicker) {
-    emptyCanvas("maStockChartCanvas", 360, "Loading 20Y stock MA distance history...");
-    loadMAStockHistory().then(() => renderMAStockDistance()).catch(() => {
+  const tickerKey = String(stock.ticker).toUpperCase();
+  const cached = maStockHistoryCache.get(tickerKey);
+  if(!cached) {
+    emptyCanvas("maStockChartCanvas", 360, `Loading ${tickerKey} 20Y MA distance history...`);
+    loadMAStockHistory(tickerKey).then(() => renderMAStockDistance()).catch(() => {
       emptyCanvas("maStockChartCanvas", 360, "20Y stock MA distance history unavailable");
     });
     return;
   }
-  const hist = maStockHistoryByTicker.get(String(stock.ticker).toUpperCase());
-  const rows = (hist?.rows || []).map(r => ({
+  const rows = (cached?.rows || []).map(r => ({
     date: r[0],
     dist50: r[1],
     dist200: r[2],
