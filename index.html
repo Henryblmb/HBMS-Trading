@@ -2202,14 +2202,14 @@ function drawHistoryLineLog(canvasId, hist, h, label, lineColor, zones=[]) {
   });
 }
 
-function drawHistoryLineLogByDate(canvasId, hist, h, label, lineColor, domain, zones=[]) {
+function drawHistoryLineLogByDate(canvasId, hist, h, label, lineColor, domain, zones=[], padOverride=null) {
   if(!hist || hist.length < 2 || !domain) {
     emptyCanvas(canvasId, h, `${label} history unavailable - run screener.py`);
     return;
   }
   const c = mkCanvas(canvasId, h); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 14, right: 45, bottom: 26, left: 42 };
+  const PAD = padOverride || { top: 14, right: 45, bottom: 26, left: 42 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const rows = hist
     .filter(d => Number.isFinite(+d.close) && +d.close > 0 && Number.isFinite(rowDateMs(d)))
@@ -2788,8 +2788,9 @@ function drawVIXSpikeModel() {
     const ms = rowDateMs(r);
     return { startMs: ms - 43200000, endMs: ms + 43200000, color: +r.chg_pct >= upThr ? "rgba(224,80,80,.11)" : "rgba(29,158,117,.09)" };
   });
+  const sharedXPad = { top: 14, right: 70, bottom: 26, left: 42 };
   if(priceRows.length < 2) emptyCanvas("vixSpikePriceCanvas", 230, `S&P 500 ${vixspikeHistoryRange} history unavailable - run screener.py`);
-  else drawHistoryLineLogByDate("vixSpikePriceCanvas", priceRows, 230, "S&P 500 Daily", "#d8d8d8", domain, zones);
+  else drawHistoryLineLogByDate("vixSpikePriceCanvas", priceRows, 230, "S&P 500 Daily", "#d8d8d8", domain, zones, sharedXPad);
   drawVIXSpikeBars("vixSpikeBarsCanvas", rows, 280, domain, upThr, lowThr);
 
   const priceTitle = document.getElementById("vixSpikePriceTitle");
