@@ -853,7 +853,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-creditproxy">
       <div class="cg-header">
         <div class="cg-title">Credit Spread Proxy — HYG vs S&amp;P 500</div>
-        <div class="cg-sub">High-yield credit stress proxy using HYG total-return relative strength versus the S&amp;P 500. Weak HYG/SPX relative strength signals widening credit stress; recovery back above trend marks improving risk appetite.</div>
+        <div class="cg-sub">High-yield credit proxy using HYG total-return relative strength versus the S&amp;P 500. Positive HYG/SPX spikes often mark defensive credit outperformance while equities weaken; negative readings usually mean equities are leading credit in a risk-on tape.</div>
       </div>
 
       <div class="signal-bar">
@@ -873,8 +873,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#5DCAA5"></span>S&amp;P 500</span>
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>HYG TR</span>
-            <span style="color:#e05050">Credit stress</span>
-            <span style="color:#1D9E75">Credit recovery</span>
+            <span style="color:#e05050">Equity stress warning</span>
+            <span style="color:#1D9E75">Risk-on unwind</span>
           </div>
         </div>
         <canvas id="creditProxyCompareCanvas" style="width:100%;display:block"></canvas>
@@ -884,18 +884,18 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="cg-chart-header">
           <span class="cg-chart-title">HYG/SPX Relative Strength Z-Score</span>
           <div class="cg-chart-legend">
-            <span style="color:#1D9E75">Recovery &gt; 0σ</span>
-            <span style="color:#e05050">Stress &lt; −2σ</span>
+            <span style="color:#e05050">Stress &gt; +1σ</span>
+            <span style="color:#1D9E75">Risk-on &lt; −1σ</span>
           </div>
         </div>
         <canvas id="creditProxyZCanvas" style="width:100%;display:block"></canvas>
       </div>
 
       <div class="interp-grid ret-forward-grid">
-        <div class="interp-cell bear"><div class="interp-title bear">Credit Stress</div><div class="interp-text">HYG underperforms the S&amp;P strongly when credit risk is repriced. A move below −2σ marks widening stress and often warns before broad equity weakness.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Credit Recovery</div><div class="interp-text">After credit stress, HYG/SPX relative strength recovering above its mean signals risk appetite returning beneath the equity surface.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Forward After Recovery</div><div class="interp-text" id="creditForwardRecovery">Waiting for credit proxy data.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear">Forward After Stress</div><div class="interp-text" id="creditForwardStress">Waiting for credit proxy data.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Equity Stress Warning</div><div class="interp-text">When HYG/SPX relative strength turns positive and pushes above +1σ, HYG is outperforming equities defensively. That often appears around equity tops or early drawdowns.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Risk-On Unwind</div><div class="interp-text">When the defensive HYG/SPX spike rolls back below mean, equity pressure is often fading. Deep negative readings mean SPX is leading HYG in a risk-on tape.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward After Risk-On</div><div class="interp-text" id="creditForwardRecovery">Waiting for credit proxy data.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Forward After Stress Warning</div><div class="interp-text" id="creditForwardStress">Waiting for credit proxy data.</div></div>
       </div>
     </div>
 
@@ -3787,12 +3787,12 @@ function creditProxyEvents(rows) {
   rows.forEach((r, i) => {
     const prev = rows[i - 1];
     if(r.z == null) return;
-    if((r.z <= -2 || r.hyg_dd <= -8) && i - lastStress > 21) {
+    if((r.z >= 1 || r.hyg_dd <= -8) && i - lastStress > 21) {
       stress.push({ ...r, i });
       lastStress = i;
       wasStressed = true;
     }
-    if(wasStressed && prev && prev.z != null && prev.z < 0 && r.z >= 0 && i - lastRecovery > 21) {
+    if(wasStressed && prev && prev.z != null && prev.z > 0 && r.z <= 0 && i - lastRecovery > 21) {
       recovery.push({ ...r, i });
       lastRecovery = i;
       wasStressed = false;
@@ -3815,10 +3815,10 @@ function drawCreditProxyModel() {
   const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
   const z = last.z;
   const dd = last.hyg_dd;
-  const regime = z == null ? "WARMUP" : z <= -2 || dd <= -8 ? "CREDIT STRESS" : z >= 0 ? "RECOVERY / RISK-ON" : "NEUTRAL";
-  const regCol = regime.includes("STRESS") ? "#e05050" : regime.includes("RECOVERY") ? "#1D9E75" : "#EF9F27";
+  const regime = z == null ? "WARMUP" : z >= 1 || dd <= -8 ? "EQUITY STRESS WARNING" : z <= -1 ? "RISK-ON / SPX LEADERSHIP" : "NEUTRAL";
+  const regCol = regime.includes("STRESS") ? "#e05050" : regime.includes("RISK-ON") ? "#1D9E75" : "#EF9F27";
   set("creditRSVal", last.rs.toFixed(5), "#d8d8d8");
-  set("creditZVal", z == null ? "—" : (z >= 0 ? "+" : "") + z.toFixed(2) + "σ", z == null ? "#777" : z <= -2 ? "#e05050" : z >= 0 ? "#1D9E75" : "#EF9F27");
+  set("creditZVal", z == null ? "—" : (z >= 0 ? "+" : "") + z.toFixed(2) + "σ", z == null ? "#777" : z >= 1 ? "#e05050" : z <= -1 ? "#1D9E75" : "#EF9F27");
   set("creditDDVal", dd == null ? "—" : fmtPct(dd, 1), dd <= -8 ? "#e05050" : dd < -3 ? "#EF9F27" : "#1D9E75");
   set("creditRegimeVal", regime, regCol);
   drawCreditCompareChart(rows, events);
@@ -3870,9 +3870,9 @@ function drawCreditZChart(rows, events) {
   const toX = i => PAD.left + i / Math.max(1, valid.length - 1) * PW;
   const toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
-  [[0,"#777","0"],[-2,"#e05050","−2σ"],[1,"#1D9E75","+1σ"]].forEach(([v,col,lbl])=>{ const y=toY(v); ctx.strokeStyle=col+"66"; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=col; ctx.font="8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl,PAD.left+PW+5,y+3); });
+  [[0,"#777","0"],[1,"#e05050","+1σ"],[-1,"#1D9E75","−1σ"]].forEach(([v,col,lbl])=>{ const y=toY(v); ctx.strokeStyle=col+"66"; ctx.lineWidth=1; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle=col; ctx.font="8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl,PAD.left+PW+5,y+3); });
   const bw = Math.max(1.2, PW / valid.length - .4), zeroY = toY(0);
-  valid.forEach((r,i)=>{ const y=toY(r.z); ctx.fillStyle = r.z >= 0 ? "rgba(29,158,117,.65)" : "rgba(224,80,80,.65)"; if(r.z >= 0) ctx.fillRect(toX(i)-bw/2,y,bw,zeroY-y); else ctx.fillRect(toX(i)-bw/2,zeroY,bw,y-zeroY); });
+  valid.forEach((r,i)=>{ const y=toY(r.z); ctx.fillStyle = r.z >= 0 ? "rgba(224,80,80,.65)" : "rgba(29,158,117,.65)"; if(r.z >= 0) ctx.fillRect(toX(i)-bw/2,y,bw,zeroY-y); else ctx.fillRect(toX(i)-bw/2,zeroY,bw,y-zeroY); });
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
   [0,.25,.5,.75,1].map(p=>Math.round((valid.length-1)*p)).forEach(i=>{ const d=new Date(valid[i].date+"T12:00:00"); ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+13); });
 }
@@ -3896,8 +3896,8 @@ function renderCreditForwardStats(rows, events) {
   };
   const rec = document.getElementById("creditForwardRecovery");
   const stress = document.getElementById("creditForwardStress");
-  if(rec) rec.innerHTML = `<div class="ret-fwd-events">${events.recovery.length} historical recovery moves</div>${html(events.recovery)}`;
-  if(stress) stress.innerHTML = `<div class="ret-fwd-events">${events.stress.length} historical stress moves</div>${html(events.stress)}`;
+  if(rec) rec.innerHTML = `<div class="ret-fwd-events">${events.recovery.length} historical risk-on unwinds</div>${html(events.recovery)}`;
+  if(stress) stress.innerHTML = `<div class="ret-fwd-events">${events.stress.length} historical stress warnings</div>${html(events.stress)}`;
 }
 
 function drawPlaceholderChart(canvasId, h, label, lineColor, isBars=false, isRSI=false) {
