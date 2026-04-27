@@ -528,6 +528,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-vixsd',this)">VIX SD Level</div>
       <div class="nav-item sub" onclick="showTab('cg-vixrv',this)">VIX vs Realized Vol</div>
+      <div class="nav-item sub" onclick="showTab('cg-vixspike',this)">VIX Spike Model</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
@@ -1040,6 +1041,69 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- VIX SPIKE MODEL -->
+    <div class="panel cg-page" id="tab-cg-vixspike">
+      <div class="cg-header">
+        <div class="cg-title">VIX Spike Model</div>
+        <div class="cg-sub">Close-to-close daily VIX change ranked by percentile. Upper-tail spikes mark upside volatility overreactions; lower-tail drops mark downside volatility compression.</div>
+        <div class="hist-range" id="vixspikeRange">
+          <button class="hist-btn" onclick="setHistoryRange('vixspike','1Y',this)">1Y</button>
+          <button class="hist-btn active" onclick="setHistoryRange('vixspike','5Y',this)">5Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('vixspike','10Y',this)">10Y</button>
+          <button class="hist-btn" onclick="setHistoryRange('vixspike','20Y',this)">20Y</button>
+        </div>
+      </div>
+
+      <div class="filter-row" style="margin-bottom:.9rem">
+        <label>Percentile:</label>
+        <select id="vixSpikePct" onchange="drawVIXSpikeModel()">
+          <option value="90">90 / 10</option>
+          <option value="95" selected>95 / 5</option>
+          <option value="97.5">97.5 / 2.5</option>
+        </select>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">VIX Change</div><div class="signal-bar-val" id="vixSpikeChgVal" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Upper Tail</div><div class="signal-bar-val" id="vixSpikeUpperVal" style="font-size:14px;color:#e05050;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Lower Tail</div><div class="signal-bar-val" id="vixSpikeLowerVal" style="font-size:14px;color:#1D9E75;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Signal</div><div class="signal-bar-val" id="vixSpikeSignalVal" style="font-size:14px;color:#777;padding-top:4px">—</div></div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixSpikePriceTitle">S&amp;P 500 — 5Y Daily Log Chart</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span style="color:#e05050">● VIX spike</span>
+            <span style="color:#1D9E75">● VIX compression</span>
+          </div>
+        </div>
+        <canvas id="vixSpikePriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixSpikeBarsTitle">VIX Daily Change — 5Y Percentile Tails</span>
+          <div class="cg-chart-legend">
+            <span style="color:#e05050">Upper-tail overreaction</span>
+            <span style="color:#1D9E75">Lower-tail compression</span>
+            <span style="color:#777">0%</span>
+          </div>
+        </div>
+        <canvas id="vixSpikeBarsCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Upper-Tail Spike</div><div class="interp-text">A daily VIX jump above the selected percentile marks a volatility shock. It often appears near equity stress or forced hedging pressure.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Lower-Tail Compression</div><div class="interp-text">A daily VIX drop below the lower percentile marks a sharp volatility unwind. It can confirm relief, but after extended rallies it may also mean complacency.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Adaptive Threshold</div><div class="interp-text">Thresholds are recalculated on the selected history window, so 1Y reacts faster while 20Y uses a full-cycle distribution.</div></div>
+      </div>
+    </div>
+
     <!-- RETURN HISTOGRAM -->
     <div class="panel cg-page" id="tab-cg-rethist">
       <div class="cg-header">
@@ -1470,6 +1534,7 @@ function showTab(id, el) {
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
+  if(id === "cg-vixspike") setTimeout(drawVIXSpikeModel, 60);
 }
 
 // ═══════════════════════════════════════════════
@@ -1502,6 +1567,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-seasonality") renderSeasonality();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
+    if(activePanel && activePanel.id === "tab-cg-vixspike") drawVIXSpikeModel();
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
@@ -2207,6 +2273,7 @@ let spxrsiHistoryRange = "10Y";
 let spxemaHistoryRange = "20Y";
 let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
+let vixspikeHistoryRange = "5Y";
 
 function rangeYears(range) {
   return parseInt(String(range).replace("Y", ""), 10) || 10;
@@ -2292,6 +2359,12 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#vixrvRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawVIXRealizedVol();
+  }
+  if(chart === "vixspike") {
+    vixspikeHistoryRange = range;
+    document.querySelectorAll("#vixspikeRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawVIXSpikeModel();
   }
 }
 
@@ -2540,6 +2613,108 @@ function drawVIXRealizedVol() {
   if(sigEl) {
     sigEl.textContent = signal ? "FEAR PREMIUM" : "NORMAL";
     sigEl.style.color = signal ? "#EF9F27" : "#777";
+  }
+}
+
+function quantileSorted(sorted, q) {
+  if(!sorted.length) return NaN;
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  const next = sorted[base + 1];
+  return next === undefined ? sorted[base] : sorted[base] + rest * (next - sorted[base]);
+}
+
+function vixSpikeThresholds(rows, upperPct) {
+  const vals = rows.map(r => +r.chg_pct).filter(Number.isFinite).sort((a,b)=>a-b);
+  const up = quantileSorted(vals, upperPct / 100);
+  const low = quantileSorted(vals, (100 - upperPct) / 100);
+  return { up, low };
+}
+
+function drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr) {
+  if(!rows || rows.length < 20 || !domain || !Number.isFinite(upThr) || !Number.isFinite(lowThr)) {
+    emptyCanvas(canvasId, h, "VIX spike history unavailable - run screener.py");
+    return;
+  }
+  const c = mkCanvas(canvasId, h); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 70, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const vals = rows.map(r => +r.chg_pct).filter(Number.isFinite);
+  const absMax = Math.max(Math.abs(upThr), Math.abs(lowThr), ...vals.map(v=>Math.abs(v)));
+  const visualMax = Math.max(5, Math.ceil(Math.min(absMax, Math.max(Math.abs(upThr), Math.abs(lowThr)) * 3.0) / 5) * 5);
+  const vMin = -visualMax, vMax = visualMax;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
+  const clamp = v => Math.max(vMin, Math.min(vMax, v));
+  const zeroY = toY(0);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(224,80,80,.06)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(upThr) - PAD.top));
+  ctx.fillStyle="rgba(29,158,117,.055)"; ctx.fillRect(PAD.left, toY(lowThr), PW, Math.max(0, PAD.top + PH - toY(lowThr)));
+  ctx.strokeStyle="rgba(255,255,255,.07)"; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+  [lowThr,0,upThr].forEach(v=>{const y=toY(v);ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+PW,y);ctx.stroke();});
+  ctx.setLineDash([]);
+  const barW=Math.max(1, PW/rows.length-.35);
+  rows.forEach(r=>{
+    const raw=+r.chg_pct; if(!Number.isFinite(raw)) return;
+    const v=clamp(raw), x=toX(r), y=toY(v);
+    const isUp=raw>=upThr, isLow=raw<=lowThr;
+    ctx.fillStyle=isUp?"rgba(224,80,80,.82)":isLow?"rgba(29,158,117,.78)":raw>=0?"rgba(145,160,175,.42)":"rgba(120,120,120,.35)";
+    const minH=Math.max(1,Math.abs(zeroY-y));
+    if(raw>=0) ctx.fillRect(x-barW/2, zeroY-minH, barW, minH);
+    else ctx.fillRect(x-barW/2, zeroY, barW, minH);
+    if(Math.abs(raw)>visualMax){ctx.fillStyle=isUp?"#e05050":"#1D9E75";ctx.fillRect(x-barW/2, raw>0?PAD.top+2:PAD.top+PH-4, barW, 2);}
+  });
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [vMin, lowThr, 0, upThr, vMax].forEach(v=>ctx.fillText((v>0?"+":"")+v.toFixed(v===upThr||v===lowThr?1:0)+"%", PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#e05050"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText("Upper " + upThr.toFixed(1)+"%", PAD.left+PW+4, toY(upThr)+3);
+  ctx.fillStyle="#1D9E75"; ctx.fillText("Lower " + lowThr.toFixed(1)+"%", PAD.left+PW+4, toY(lowThr)+3);
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p=>{const ms=domain.startMs+(domain.endMs-domain.startMs)*p;const d=new Date(ms);ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toDateX(ms),H-PAD.bottom+12);});
+}
+
+function drawVIXSpikeModel() {
+  const md = window._marketData || {};
+  let allPriceRows = marketHistory("sp500_history_20y");
+  if(!allPriceRows.length) allPriceRows = marketHistory("sp500_history");
+  const rawRows = Array.isArray(md.vix_spike_history) ? md.vix_spike_history : [];
+  const validRows = rawRows.filter(r => r && r.date && Number.isFinite(+r.chg_pct));
+  const domain = dateDomainForRows([allPriceRows, validRows], vixspikeHistoryRange);
+  const priceRows = filterRowsByDateDomain(allPriceRows, domain);
+  const rows = filterRowsByDateDomain(validRows, domain);
+  const pctSel = +(document.getElementById("vixSpikePct")?.value || 95);
+  const { up: upThr, low: lowThr } = vixSpikeThresholds(rows, pctSel);
+  const zones = rows.filter(r=>+r.chg_pct>=upThr || +r.chg_pct<=lowThr).map(r=>{
+    const ms = rowDateMs(r);
+    return { startMs: ms - 43200000, endMs: ms + 43200000, color: +r.chg_pct >= upThr ? "rgba(224,80,80,.11)" : "rgba(29,158,117,.09)" };
+  });
+  if(priceRows.length < 2) emptyCanvas("vixSpikePriceCanvas", 230, `S&P 500 ${vixspikeHistoryRange} history unavailable - run screener.py`);
+  else drawHistoryLineLogByDate("vixSpikePriceCanvas", priceRows, 230, "S&P 500 Daily", "#d8d8d8", domain, zones);
+  drawVIXSpikeBars("vixSpikeBarsCanvas", rows, 280, domain, upThr, lowThr);
+
+  const priceTitle = document.getElementById("vixSpikePriceTitle");
+  if(priceTitle) priceTitle.textContent = `S&P 500 — ${vixspikeHistoryRange} Daily Log Chart`;
+  const barsTitle = document.getElementById("vixSpikeBarsTitle");
+  if(barsTitle) barsTitle.textContent = `VIX Daily Change — ${vixspikeHistoryRange} · ${pctSel}/${100-pctSel} Percentile Tails`;
+  const latest = validRows.length ? validRows[validRows.length - 1] : {};
+  const latestChg = +latest.chg_pct;
+  const chgEl = document.getElementById("vixSpikeChgVal");
+  const upEl = document.getElementById("vixSpikeUpperVal");
+  const lowEl = document.getElementById("vixSpikeLowerVal");
+  const sigEl = document.getElementById("vixSpikeSignalVal");
+  if(chgEl) {
+    chgEl.textContent = Number.isFinite(latestChg) ? (latestChg>=0?"+":"") + latestChg.toFixed(1) + "%" : "—";
+    chgEl.style.color = latestChg >= upThr ? "#e05050" : latestChg <= lowThr ? "#1D9E75" : "#d8d8d8";
+  }
+  if(upEl) upEl.textContent = Number.isFinite(upThr) ? "+" + upThr.toFixed(1) + "%" : "—";
+  if(lowEl) lowEl.textContent = Number.isFinite(lowThr) ? lowThr.toFixed(1) + "%" : "—";
+  if(sigEl) {
+    const txt = latestChg >= upThr ? "UPSIDE SPIKE" : latestChg <= lowThr ? "DOWNSIDE COMPRESSION" : "INSIDE RANGE";
+    sigEl.textContent = txt;
+    sigEl.style.color = latestChg >= upThr ? "#e05050" : latestChg <= lowThr ? "#1D9E75" : "#777";
   }
 }
 
