@@ -516,6 +516,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
+      <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Valuations</span><span class="nav-folder-arrow">›</span></div>
@@ -1262,6 +1263,53 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- MA DISTANCE -->
+    <div class="panel cg-page" id="tab-cg-madist">
+      <div class="cg-header">
+        <div class="cg-title">Distance From Moving Average — ETF Extension Model</div>
+        <div class="cg-sub">Daily distance from the selected moving average. The model compares current extension with the selected history window and marks unusually stretched or washed-out regimes.</div>
+      </div>
+
+      <div class="filter-row" style="margin-bottom:.9rem">
+        <label>Ticker</label>
+        <select id="maDistTicker" onchange="renderMADistance()"></select>
+        <label>Moving Avg</label>
+        <select id="maDistAvg" onchange="renderMADistance()"><option value="200" selected>200D</option><option value="50">50D</option></select>
+        <label>Range</label>
+        <select id="maDistRange" onchange="renderMADistance()"><option value="max">Max</option><option value="10">10Y</option><option value="5" selected>5Y</option><option value="3">3Y</option><option value="1">1Y</option></select>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Distance</div><div class="signal-bar-val" id="maDistNow" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="maDistZ" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Percentile</div><div class="signal-bar-val" id="maDistPctile" style="color:#777">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="maDistDesc">Run screener.py to load moving-average distance data.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="maDistTitle">Distance From MA</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Distance</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>Mean</span>
+            <span style="color:#1D9E75">+2σ</span>
+            <span style="color:#e05050">−2σ</span>
+          </div>
+        </div>
+        <canvas id="maDistCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Above +2σ</div><div class="interp-text">Price is unusually extended above its trend. Often trend-following strength, but watch for exhaustion when the move is vertical.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Below −2σ</div><div class="interp-text">Price is unusually stretched below its trend. Often stress or capitulation; forward response separates crash continuation from mean reversion.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward After +2σ</div><div class="interp-text" id="maDistForwardPos">Waiting for MA distance data.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Forward After −2σ</div><div class="interp-text" id="maDistForwardNeg">Waiting for MA distance data.</div></div>
+      </div>
+    </div>
+
     <!-- FORWARD P/E RATIO -->
     <div class="panel cg-page" id="tab-cg-forwardpe">
       <div class="cg-header">
@@ -1629,6 +1677,7 @@ function showTab(id, el) {
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
+  if(id === "cg-madist") setTimeout(renderMADistance, 60);
   if(id === "cg-forwardpe") setTimeout(drawForwardPEChart, 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
   if(id === "cg-goldsilver") setTimeout(drawGoldSilverRatio, 60);
@@ -1669,6 +1718,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
+    if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
     if(activePanel && activePanel.id === "tab-seasonality") renderSeasonality();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
@@ -1713,6 +1763,11 @@ function emptyCanvas(canvasId, h, msg) {
 function returnHistogramData() {
   const md = window._marketData || {};
   return md.return_histograms || {};
+}
+
+function maDistanceData() {
+  const md = window._marketData || {};
+  return md.ma_distance || {};
 }
 
 function seasonEscape(s) {
@@ -1760,6 +1815,27 @@ function ensureSeasonalityOptions() {
     if(keys.includes(prev)) sel.value = prev;
     else if(keys.includes("SPY")) sel.value = "SPY";
     else if(keys.includes("SOXX")) sel.value = "SOXX";
+    else if(keys.length) sel.value = keys[0];
+  }
+  return sel.value;
+}
+
+function ensureMADistanceOptions() {
+  const sel = document.getElementById("maDistTicker");
+  if(!sel) return null;
+  const data = maDistanceData();
+  const keys = Object.keys(data).sort((a,b)=>{
+    const ga=(data[a].group||"").localeCompare(data[b].group||"");
+    return ga || a.localeCompare(b);
+  });
+  const prev = sel.value || "SOXX";
+  const sig = keys.join("|");
+  if(sel.dataset.sig !== sig) {
+    sel.innerHTML = keys.map(k => `<option value="${seasonEscape(k)}">${seasonEscape(k)} — ${seasonEscape(data[k].name || k)}</option>`).join("");
+    sel.dataset.sig = sig;
+    if(keys.includes(prev)) sel.value = prev;
+    else if(keys.includes("SOXX")) sel.value = "SOXX";
+    else if(keys.includes("SPY")) sel.value = "SPY";
     else if(keys.length) sel.value = keys[0];
   }
   return sel.value;
@@ -2411,6 +2487,128 @@ function drawReturnSeriesChart(rows, mean, plus2, minus2, hoverIndex=null) {
   }
 }
 
+function percentileRank(vals, x) {
+  const clean = vals.filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!clean.length || !Number.isFinite(x)) return null;
+  let n = 0;
+  for(const v of clean) if(v <= x) n++; else break;
+  return n / clean.length * 100;
+}
+
+function renderMADistance() {
+  const ticker = ensureMADistanceOptions();
+  const data = maDistanceData();
+  const item = ticker ? data[ticker] : null;
+  if(!item) {
+    emptyCanvas("maDistCanvas", 360, "MA distance data unavailable - run screener.py");
+    return;
+  }
+  const ma = document.getElementById("maDistAvg")?.value || "200";
+  const key = ma === "50" ? "dist50" : "dist200";
+  const range = document.getElementById("maDistRange")?.value || "5";
+  const rawRows = (item.rows || []).filter(r => r.date && Number.isFinite(+r[key]));
+  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-madist", [rawRows], range === "max" ? "max" : range + "Y"));
+  const vals = rows.map(r => +r[key]).filter(Number.isFinite);
+  const stats = retStats(vals);
+  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  if(vals.length < 60 || stats.mean == null || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
+    emptyCanvas("maDistCanvas", 360, "Not enough MA distance observations");
+    set("maDistNow", "—"); set("maDistZ", "—"); set("maDistPctile", "—");
+    return;
+  }
+  const last = vals[vals.length - 1];
+  const z = (last - stats.mean) / stats.sigma;
+  const pct = percentileRank(vals, last);
+  const plus2 = stats.mean + 2 * stats.sigma;
+  const minus2 = stats.mean - 2 * stats.sigma;
+  const col = z >= 2 ? "#1D9E75" : z <= -2 ? "#e05050" : last >= 0 ? "#5DCAA5" : "#EF9F27";
+  set("maDistNow", fmtPct(last, 2), col);
+  set("maDistZ", (z >= 0 ? "+" : "") + z.toFixed(2) + "σ", col);
+  set("maDistPctile", pct == null ? "—" : pct.toFixed(0) + "th", pct >= 90 ? "#1D9E75" : pct <= 10 ? "#e05050" : "#777");
+  set("maDistDesc", `${ticker} · ${item.name || ticker} · ${rows[0].date} to ${rows[rows.length-1].date} · ${vals.length} observations · ${ma}D moving average`);
+  set("maDistTitle", `${ticker} Distance From ${ma}D Moving Average`);
+  renderMADistanceForwardStats(rows, key, plus2, minus2);
+  drawMADistanceChart(rows, key, stats.mean, plus2, minus2);
+}
+
+function renderMADistanceForwardStats(rows, key, plus2, minus2) {
+  const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126}];
+  const calc = threshold => {
+    const events = rows.map((r,i)=>({r,i})).filter(({r,i}) => Number.isFinite(+r[key]) && threshold(+r[key]) && i + 21 < rows.length);
+    return horizons.map(h => {
+      const rets = events.map(({r,i}) => {
+        const f = rows[i + h.days];
+        return f && r.close ? (+f.close / +r.close - 1) * 100 : null;
+      }).filter(Number.isFinite);
+      const avg = rets.length ? rets.reduce((a,b)=>a+b,0)/rets.length : null;
+      const win = rets.length ? rets.filter(v=>v>0).length / rets.length * 100 : null;
+      return { label:h.label, avg, win, n:rets.length };
+    });
+  };
+  const render = (id, title, events, color) => {
+    const el = document.getElementById(id); if(!el) return;
+    const n = Math.max(...events.map(e=>e.n), 0);
+    el.innerHTML = `<div class="ret-fwd-events">${n} historical moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
+      events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
+  };
+  render("maDistForwardPos", "+2σ", calc(v => v >= plus2), "#1D9E75");
+  render("maDistForwardNeg", "−2σ", calc(v => v <= minus2), "#e05050");
+}
+
+function drawMADistanceChart(rows, key, mean, plus2, minus2, hoverIndex=null) {
+  const c = mkCanvas("maDistCanvas", 360); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 20, right: 64, bottom: 34, left: 50 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const vals = rows.map(r => +r[key]);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  const abs = Math.max(5, Math.abs(Math.min(...vals, minus2)), Math.abs(Math.max(...vals, plus2)));
+  const min = -abs * 1.12, max = abs * 1.12;
+  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - min) / (max - min)) * PH;
+  ctx.strokeStyle="rgba(255,255,255,.05)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ const y=PAD.top+i/4*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  [[0,"#777","0"],[mean,"#EF9F27","Mean"],[plus2,"#1D9E75","+2σ"],[minus2,"#e05050","−2σ"],[mean+statsFromLines(mean,plus2),"#5DCAA5","+1σ"],[mean-statsFromLines(mean,plus2),"#f09595","−1σ"]].forEach(([v,color,label])=>{
+    const y=toY(v); ctx.strokeStyle=color; ctx.lineWidth=label==="0"?1.1:1; ctx.setLineDash(label==="0"?[]:[5,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
+    if(["+2σ","−2σ","Mean"].includes(label)){ ctx.fillStyle=color; ctx.font="8px sans-serif"; ctx.textAlign="left"; ctx.fillText(label, PAD.left+PW+6, y+3); }
+  });
+  ctx.beginPath();
+  vals.forEach((v,i)=>{ const x=toX(i), y=toY(v); i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.7; ctx.stroke();
+  vals.forEach((v,i)=>{
+    if(v < plus2 && v > minus2) return;
+    ctx.fillStyle = v >= plus2 ? "#1D9E75" : "#e05050";
+    ctx.beginPath(); ctx.arc(toX(i), toY(v), 2.2, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [minus2,0,plus2].forEach(v => ctx.fillText(v.toFixed(1)+"%", PAD.left-5, toY(v)+3));
+  ctx.textAlign="center"; ctx.fillStyle="#444"; ctx.font="8px sans-serif";
+  rows.forEach((r,i)=>{ if(r.date.slice(5,7)==="01" && (i===0 || r.date.slice(0,4)!==rows[i-1]?.date.slice(0,4))) ctx.fillText("'"+r.date.slice(2,4), toX(i), H-PAD.bottom+16); });
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r=rows[hoverIndex], v=+r[key], x=toX(hoverIndex), y=toY(v);
+    const dt=new Date(r.date+"T12:00:00");
+    const label=`${dt.toLocaleDateString("de-DE",{day:"2-digit",month:"short",year:"numeric"}).replace(".","")} · ${fmtPct(v,2)}`;
+    const col=v>=plus2?"#1D9E75":v<=minus2?"#e05050":"#d8d8d8";
+    ctx.strokeStyle=col; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(x,PAD.top); ctx.lineTo(x,PAD.top+PH); ctx.stroke();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,3.4,0,Math.PI*2); ctx.fill();
+    ctx.font="bold 10px sans-serif"; const boxW=ctx.measureText(label).width+16, boxH=22;
+    const bx=Math.max(PAD.left+2, Math.min(W-PAD.right-boxW-2, x-boxW/2));
+    const by=Math.max(PAD.top+4, Math.min(H-PAD.bottom-boxH-4, y-boxH-10));
+    ctx.fillStyle="rgba(8,8,8,.94)"; ctx.strokeStyle="#303030"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
+    ctx.fillStyle=col; ctx.textAlign="left"; ctx.fillText(label,bx+8,by+14);
+  }
+  const canvas=document.getElementById("maDistCanvas");
+  if(canvas){
+    canvas.onmousemove=e=>{ const rect=canvas.getBoundingClientRect(); const x=e.clientX-rect.left; if(x<PAD.left||x>PAD.left+PW){drawMADistanceChart(rows,key,mean,plus2,minus2,null);return;} const idx=Math.max(0,Math.min(rows.length-1,Math.round(((x-PAD.left)/PW)*(rows.length-1)))); drawMADistanceChart(rows,key,mean,plus2,minus2,idx); };
+    canvas.onmouseleave=()=>drawMADistanceChart(rows,key,mean,plus2,minus2,null);
+  }
+}
+
+function statsFromLines(mean, plus2) {
+  return (plus2 - mean) / 2;
+}
+
 function drawSPXMini(canvasId, chgId) {
   let hist = marketHistory("spy_history").slice(-252);
   let closes = hist.map(d => +d.close);
@@ -2734,6 +2932,7 @@ const cgRedraw = {
   "cg-putiv": () => drawPutIVOptions(),
   "cg-uotrades": () => renderUnusualOptionsTrades(),
   "cg-rethist": () => renderReturnHistogram(),
+  "cg-madist": () => renderMADistance(),
   "cg-forwardpe": () => drawForwardPEChart(),
   "cg-vix2": () => mirrorVIXCharts(),
   "cg-bt20": () => drawBT20Chart(),
