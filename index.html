@@ -135,6 +135,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .hist-btn{font-size:10px;padding:4px 10px;border:1px solid #202020;background:#101010;color:#8a8a8a;cursor:pointer;transition:all .1s}
 .hist-btn:hover{color:#e0e0e0;background:#151515}
 .hist-btn.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.cg-date-range{grid-column:2;grid-row:3;display:flex;gap:5px;align-items:center;justify-content:flex-end;margin-top:8px;white-space:nowrap}
+.cg-date-range label{font-size:8.5px;color:#666;text-transform:uppercase;letter-spacing:.06em}
+.cg-date-range input{width:116px;height:24px;border:1px solid #202020;background:#101010;color:#9a9a9a;font-size:10px;padding:2px 5px;outline:none;color-scheme:dark}
+.cg-date-range input:focus{border-color:#2f9a79;color:#e0e0e0}
+.cg-date-range button{height:24px;border:1px solid #202020;background:#101010;color:#777;font-size:9px;padding:0 8px;cursor:pointer}
+.cg-date-range button:hover{color:#e0e0e0;background:#151515}
 .sector-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:6px}
 .sec-card{background:#111;border:1px solid #1a1a1a;padding:9px 11px}
 .sec-name{font-size:11px;font-weight:600;color:#fff;margin-bottom:5px}
@@ -1823,7 +1829,9 @@ function renderReturnHistogram() {
     emptyCanvas("retSeriesCanvas", 170, "Return series unavailable - run screener.py");
     return;
   }
-  const rows = filteredReturnRows(item);
+  const rawRetRows = (item && item.returns || []).filter(r => r.date && Number.isFinite(+r.ret));
+  const retRange = document.getElementById("retHistRange")?.value || "max";
+  const rows = filterRowsByDateDomain(rawRetRows, ensureCGDateControls("cg-rethist", [rawRetRows], retRange === "max" ? "max" : retRange + "Y"));
   const vals = rows.map(r => +r.ret).filter(Number.isFinite);
   const stats = retStats(vals);
   if(vals.length < 12 || stats.mean == null) {
@@ -2013,7 +2021,8 @@ function alignHistoryByDate(primary, secondary) {
 }
 
 function drawSPYHYGCompare(canvasId, chgId) {
-  const rows = alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history")).slice(-252);
+  const rawRows = alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history"));
+  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-hyg", [rawRows, ((window._marketData || {}).hyg_nhnl_history || [])], "1Y"));
   if(rows.length < 20) {
     emptyCanvas(canvasId, 280, "S&P/HYG history unavailable - run screener.py");
     return;
@@ -2274,9 +2283,88 @@ let spxemaHistoryRange = "20Y";
 let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
 let vixspikeHistoryRange = "5Y";
+const cgDateRanges = {};
+
+const cgRedraw = {
+  "cg-hyg": () => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); },
+  "cg-spxrsi": () => drawSPXRSIReversal(),
+  "cg-spxema": () => drawSPXWeeklyEMA(),
+  "cg-vixsd": () => drawVIXSDSignal(),
+  "cg-vixrv": () => drawVIXRealizedVol(),
+  "cg-vixspike": () => drawVIXSpikeModel(),
+  "cg-rethist": () => renderReturnHistogram(),
+  "cg-forwardpe": () => drawForwardPEChart(),
+  "cg-vix2": () => mirrorVIXCharts(),
+  "cg-bt20": () => drawBT20Chart(),
+  "cg-bt50": () => drawBT50Chart(),
+  "cg-oil": () => drawOilCharts(),
+  "cg-goldsilver": () => drawGoldSilverRatio(),
+};
 
 function rangeYears(range) {
   return parseInt(String(range).replace("Y", ""), 10) || 10;
+}
+
+function allDateRows(rowGroups) {
+  return (rowGroups || []).flat().filter(r => r && r.date && Number.isFinite(rowDateMs(r)));
+}
+
+function minMaxDates(rowGroups) {
+  const rows = allDateRows(rowGroups);
+  if(!rows.length) return null;
+  const times = rows.map(rowDateMs);
+  const fmt = ms => new Date(ms).toISOString().slice(0, 10);
+  return { min: fmt(Math.min(...times)), max: fmt(Math.max(...times)) };
+}
+
+function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
+  const panel = document.getElementById("tab-" + chart);
+  const header = panel ? panel.querySelector(".cg-header") : null;
+  const bounds = minMaxDates(rowGroups);
+  if(!header || !bounds) return null;
+  let wrap = header.querySelector(".cg-date-range");
+  if(!wrap) {
+    wrap = document.createElement("div");
+    wrap.className = "cg-date-range";
+    wrap.innerHTML = `<label>From</label><input type="date" data-cg-date="start"><label>To</label><input type="date" data-cg-date="end"><button type="button" data-cg-max>Max</button>`;
+    header.appendChild(wrap);
+    const start = wrap.querySelector('[data-cg-date="start"]');
+    const end = wrap.querySelector('[data-cg-date="end"]');
+    const redraw = () => { cgDateRanges[chart] = { start: start.value, end: end.value }; (cgRedraw[chart] || (()=>{}))(); };
+    start.addEventListener("change", redraw);
+    end.addEventListener("change", redraw);
+    wrap.querySelector("[data-cg-max]").addEventListener("click", () => {
+      cgDateRanges[chart] = { start: bounds.min, end: bounds.max };
+      start.value = bounds.min;
+      end.value = bounds.max;
+      (cgRedraw[chart] || (()=>{}))();
+    });
+  }
+  const start = wrap.querySelector('[data-cg-date="start"]');
+  const end = wrap.querySelector('[data-cg-date="end"]');
+  [start, end].forEach(input => { input.min = bounds.min; input.max = bounds.max; });
+  if(!cgDateRanges[chart]) {
+    let startVal = bounds.min;
+    if(fallbackRange && fallbackRange !== "max") {
+      const d = new Date(bounds.max + "T12:00:00");
+      d.setFullYear(d.getFullYear() - rangeYears(fallbackRange));
+      startVal = d.toISOString().slice(0, 10);
+      if(startVal < bounds.min) startVal = bounds.min;
+    }
+    cgDateRanges[chart] = { start: startVal, end: bounds.max };
+  }
+  const range = cgDateRanges[chart];
+  if(range.start < bounds.min) range.start = bounds.min;
+  if(range.end > bounds.max) range.end = bounds.max;
+  if(range.start > range.end) range.start = bounds.min;
+  start.value = range.start;
+  end.value = range.end;
+  return { startMs: rowDateMs({ date: range.start }), endMs: rowDateMs({ date: range.end }) };
+}
+
+function filterRowsByCGDate(chart, rows, rowGroups, fallbackRange="max") {
+  const domain = ensureCGDateControls(chart, rowGroups || [rows], fallbackRange);
+  return filterRowsByDateDomain(rows || [], domain);
 }
 
 function cutoffDateForRows(rows, range) {
@@ -2338,30 +2426,35 @@ function formatSignalDate(dateStr) {
 function setHistoryRange(chart, range, btn) {
   if(chart === "spxrsi") {
     spxrsiHistoryRange = range;
+    delete cgDateRanges["cg-spxrsi"];
     document.querySelectorAll("#spxrsiRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawSPXRSIReversal();
   }
   if(chart === "spxema") {
     spxemaHistoryRange = range;
+    delete cgDateRanges["cg-spxema"];
     document.querySelectorAll("#spxemaRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawSPXWeeklyEMA();
   }
   if(chart === "vixsd") {
     vixsdHistoryRange = range;
+    delete cgDateRanges["cg-vixsd"];
     document.querySelectorAll("#vixsdRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawVIXSDSignal();
   }
   if(chart === "vixrv") {
     vixrvHistoryRange = range;
+    delete cgDateRanges["cg-vixrv"];
     document.querySelectorAll("#vixrvRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawVIXRealizedVol();
   }
   if(chart === "vixspike") {
     vixspikeHistoryRange = range;
+    delete cgDateRanges["cg-vixspike"];
     document.querySelectorAll("#vixspikeRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawVIXSpikeModel();
@@ -2458,7 +2551,7 @@ function drawVIXSDSignal() {
 
   const rawVix = Array.isArray(md.vix_sd_history) ? md.vix_sd_history : [];
   const validVixRows = rawVix.filter(r => r && r.date && Number.isFinite(+r.sd_clamped));
-  const domain = dateDomainForRows([allPriceRows, validVixRows], vixsdHistoryRange);
+  const domain = ensureCGDateControls("cg-vixsd", [allPriceRows, validVixRows], vixsdHistoryRange);
   const priceRows = filterRowsByDateDomain(allPriceRows, domain);
   const vixRows = filterRowsByDateDomain(validVixRows, domain);
 
@@ -2581,7 +2674,7 @@ function drawVIXRealizedVol() {
   if(!allPriceRows.length) allPriceRows = marketHistory("sp500_history");
   const rawRows = Array.isArray(md.vix_realized_vol_history) ? md.vix_realized_vol_history : [];
   const validRows = rawRows.filter(r => r && r.date && Number.isFinite(+r.vix) && Number.isFinite(+r.rv20));
-  const domain = dateDomainForRows([allPriceRows, validRows], vixrvHistoryRange);
+  const domain = ensureCGDateControls("cg-vixrv", [allPriceRows, validRows], vixrvHistoryRange);
   const priceRows = filterRowsByDateDomain(allPriceRows, domain);
   const rows = filterRowsByDateDomain(validRows, domain);
 
@@ -2682,7 +2775,7 @@ function drawVIXSpikeModel() {
   if(!allPriceRows.length) allPriceRows = marketHistory("sp500_history");
   const rawRows = Array.isArray(md.vix_spike_history) ? md.vix_spike_history : [];
   const validRows = rawRows.filter(r => r && r.date && Number.isFinite(+r.chg_pct));
-  const domain = dateDomainForRows([allPriceRows, validRows], vixspikeHistoryRange);
+  const domain = ensureCGDateControls("cg-vixspike", [allPriceRows, validRows], vixspikeHistoryRange);
   const priceRows = filterRowsByDateDomain(allPriceRows, domain);
   const rows = filterRowsByDateDomain(validRows, domain);
   const pctSel = +(document.getElementById("vixSpikePct")?.value || 95);
@@ -2723,10 +2816,11 @@ function drawSPXWeeklyEMA() {
   let rows = Array.isArray(md.sp500_ema_weekly_history) ? md.sp500_ema_weekly_history : [];
   if(!rows.length) rows = weeklyFromDaily(marketHistory("sp500_history"));
   rows = rows.filter(d => d && d.date >= "2006-01-01" && Number.isFinite(+d.close) && +d.close > 0);
-  rows = filterRowsByRange(rows, spxemaHistoryRange);
   let dailyRows = (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history"))
     .filter(d => d && d.date >= "2006-01-01" && Number.isFinite(+d.close) && +d.close > 0);
-  dailyRows = filterRowsByRange(dailyRows, spxemaHistoryRange);
+  const spxemaDomain = ensureCGDateControls("cg-spxema", [rows, dailyRows], spxemaHistoryRange);
+  rows = filterRowsByDateDomain(rows, spxemaDomain);
+  dailyRows = filterRowsByDateDomain(dailyRows, spxemaDomain);
   if(dailyRows.length < rows.length) {
     dailyRows = rows.map(r => ({ date: r.date, open: r.close, high: r.close, low: r.close, close: r.close }));
   }
@@ -2944,10 +3038,13 @@ function drawSPXRSIReversal() {
     ? (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history"))
     : marketHistory("spy_history");
   const dailyBase = dailyRaw.filter(d => d && d.date >= "2006-01-01");
-  const cutoff = cutoffDateForRows(dailyBase, spxrsiHistoryRange) || "2006-01-01";
-  const daily = dailyBase.filter(d => d.date >= cutoff);
-  const weeklyRows = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date >= cutoff) : [];
-  const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals.filter(s => s && s.confirm_date >= cutoff) : [];
+  const weeklyBase = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date >= "2006-01-01") : [];
+  const domain = ensureCGDateControls("cg-spxrsi", [dailyBase, weeklyBase], spxrsiHistoryRange);
+  const daily = filterRowsByDateDomain(dailyBase, domain);
+  const weeklyRows = filterRowsByDateDomain(weeklyBase, domain);
+  const startDate = domain ? new Date(domain.startMs).toISOString().slice(0,10) : "2006-01-01";
+  const endDate = domain ? new Date(domain.endMs).toISOString().slice(0,10) : "9999-12-31";
+  const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals.filter(s => s && s.confirm_date >= startDate && s.confirm_date <= endDate) : [];
   const status = md.sp500_rsi_status || {};
   if(!daily || daily.length < 200 || weeklyRows.length < 20) {
     emptyCanvas("spxrsiPriceCanvas", 240, `S&P 500 ${spxrsiHistoryRange} history unavailable - run screener.py`);
@@ -3180,7 +3277,8 @@ function updateHYGReadings() {
 }
 
 function drawHYGNhnlChart() {
-  const hist = ((window._marketData || {}).hyg_nhnl_history || []).filter(d => d && Number.isFinite(+d.scaled)).slice(-252);
+  const rawHist = ((window._marketData || {}).hyg_nhnl_history || []).filter(d => d && Number.isFinite(+d.scaled));
+  const hist = filterRowsByDateDomain(rawHist, ensureCGDateControls("cg-hyg", [rawHist, alignHistoryByDate(marketHistory("spy_history"), marketHistory("hyg_history"))], "1Y"));
   if(hist.length < 5) {
     emptyCanvas("hygNHNLCanvas", 160, "High Yield NH-NL unavailable - run screener.py");
     return;
@@ -3454,8 +3552,11 @@ function drawBT20BreadthChart(rows, signals) {
 
 function drawBT20Chart() {
   const md = window._marketData || {};
-  const priceRows = (marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history")).filter(d => d.date >= "2016-01-01");
-  const breadthRows = Array.isArray(md.bt20_history) ? md.bt20_history.filter(d => d && d.date >= "2016-01-01") : [];
+  const rawPriceRows = (marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history")).filter(d => d.date >= "2016-01-01");
+  const rawBreadthRows = Array.isArray(md.bt20_history) ? md.bt20_history.filter(d => d && d.date >= "2016-01-01") : [];
+  const domain = ensureCGDateControls("cg-bt20", [rawPriceRows, rawBreadthRows], "10Y");
+  const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
+  const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
   const signals = Array.isArray(md.bt20_signals) ? md.bt20_signals : [];
   if(priceRows.length > 100) {
     drawHistoryLineLog("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", []);
@@ -3524,7 +3625,7 @@ function drawBT50Chart() {
   const rawPriceRows = Array.isArray(md.bt50_sp500_history) ? md.bt50_sp500_history : [];
   const rawBreadthRows = Array.isArray(md.bt50_history) ? md.bt50_history : [];
   const signals = Array.isArray(md.bt50_signals) ? md.bt50_signals : [];
-  const domain = commonDateDomainForRows([rawPriceRows, rawBreadthRows], "20Y");
+  const domain = ensureCGDateControls("cg-bt50", [rawPriceRows, rawBreadthRows], "20Y");
   const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
   const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
   if(priceRows.length > 100) {
@@ -3623,7 +3724,8 @@ function drawOilSpreadChart(rows) {
 
 function drawOilCharts() {
   const md = window._marketData || {};
-  const rows = Array.isArray(md.oil_history) ? md.oil_history.filter(r=>r && r.date >= "2016-01-01") : [];
+  const rawRows = Array.isArray(md.oil_history) ? md.oil_history.filter(r=>r && r.date >= "2016-01-01") : [];
+  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-oil", [rawRows], "max"));
   drawOilPriceChart(rows);
   drawOilSpreadChart(rows);
   updateOilReadings();
@@ -3649,7 +3751,8 @@ function updateOilReadings() {
 
 function drawForwardPEChart() {
   const md = window._marketData || {};
-  const rows = Array.isArray(md.forward_pe_history) ? md.forward_pe_history.filter(r=>Number.isFinite(+r.pe)) : [];
+  const rawRows = Array.isArray(md.forward_pe_history) ? md.forward_pe_history.filter(r=>Number.isFinite(+r.pe)) : [];
+  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-forwardpe", [rawRows], "max"));
   const st = md.forward_pe_status || {};
   const fmtX = v => Number.isFinite(+v) ? (+v).toFixed(1) + "x" : "—";
   const rangeText = pack => pack && Number.isFinite(+pack.min) && Number.isFinite(+pack.max) ? fmtX(pack.min) + "–" + fmtX(pack.max) : "—";
@@ -3807,7 +3910,8 @@ function drawGoldSilverRatio() {
   }
   const [zoneTxt, zoneCol] = zoneMap[lastStats.status] || zoneMap.unavailable;
   if(regimeEl){ regimeEl.textContent = zoneTxt; regimeEl.style.color = zoneCol; }
-  const displayRows = isRolling ? rows.filter(r => r.date >= "2004-01-01") : rows;
+  const baseDisplayRows = isRolling ? rows.filter(r => r.date >= "2004-01-01") : rows;
+  const displayRows = filterRowsByDateDomain(baseDisplayRows, ensureCGDateControls("cg-goldsilver", [baseDisplayRows], "max"));
   const c = mkCanvas("goldSilverCanvas", 360); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 70, bottom: 30, left: 46 };
