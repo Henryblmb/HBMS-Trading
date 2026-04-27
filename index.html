@@ -3405,15 +3405,15 @@ function drawRSIChart(canvasId, hist, rsi, h, zones) {
 
 function drawSPXRSIReversal() {
   const md = window._marketData || {};
-  const dailyRaw = (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history")).length
-    ? (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history"))
+  const dailyRaw = (marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y")).length
+    ? (marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y"))
     : marketHistory("spy_history");
-  const dailyBase = dailyRaw.filter(d => d && d.date >= "2006-01-01");
-  const weeklyBase = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date >= "2006-01-01") : [];
+  const dailyBase = dailyRaw.filter(d => d && d.date >= "1994-01-01");
+  const weeklyBase = Array.isArray(md.sp500_rsi_weekly) ? md.sp500_rsi_weekly.filter(d => d && d.date >= "1994-01-01") : [];
   const domain = ensureCGDateControls("cg-spxrsi", [dailyBase, weeklyBase], spxrsiHistoryRange);
   const daily = filterRowsByDateDomain(dailyBase, domain);
   const weeklyRows = filterRowsByDateDomain(weeklyBase, domain);
-  const startDate = domain ? new Date(domain.startMs).toISOString().slice(0,10) : "2006-01-01";
+  const startDate = domain ? new Date(domain.startMs).toISOString().slice(0,10) : "1994-01-01";
   const endDate = domain ? new Date(domain.endMs).toISOString().slice(0,10) : "9999-12-31";
   const signals = Array.isArray(md.sp500_rsi_signals) ? md.sp500_rsi_signals.filter(s => s && s.confirm_date >= startDate && s.confirm_date <= endDate) : [];
   const status = md.sp500_rsi_status || {};
