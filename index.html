@@ -4326,7 +4326,7 @@ function drawGoldSilverRatio() {
   drawSeries(r => r.mean + 3*r.sigma, "#a855f7", 1, [2,4], .82);
   drawSeries(r => r.mean + 2*r.sigma, "#e05050", 1, [6,4], .78);
   drawSeries(r => r.mean + r.sigma, "#EF9F27", 1, [4,4], .7);
-  drawSeries(r => r.mean, "#d8d8d8", 1.25, [], .72);
+  drawSeries(r => r.mean, "#EF9F27", 1.25, [], .72);
   drawSeries(r => r.mean - r.sigma, "#5DCAA5", 1, [4,4], .7);
   drawSeries(r => r.mean - 2*r.sigma, "#1D9E75", 1, [6,4], .78);
   drawSeries(r => r.mean - 3*r.sigma, "#a855f7", 1, [2,4], .82);
@@ -4341,7 +4341,7 @@ function drawGoldSilverRatio() {
   });
   if(bandRows.length) {
     const last = bandRows[bandRows.length-1];
-    const labels = isRolling ? [["+4σ", last.mean + 4*last.sigma, "#38bdf8"], ["+3σ", last.mean + 3*last.sigma, "#a855f7"], ["+2σ", last.mean + 2*last.sigma, "#e05050"], ["+1σ", last.mean + last.sigma, "#EF9F27"], ["Mean", last.mean, "#d8d8d8"], ["−1σ", last.mean - last.sigma, "#5DCAA5"], ["−2σ", last.mean - 2*last.sigma, "#1D9E75"], ["−3σ", last.mean - 3*last.sigma, "#a855f7"], ["−4σ", last.mean - 4*last.sigma, "#38bdf8"]] : [["+3σ", last.mean + 3*last.sigma, "#a855f7"], ["+2σ", last.mean + 2*last.sigma, "#e05050"], ["+1σ", last.mean + last.sigma, "#EF9F27"], ["Mean", last.mean, "#d8d8d8"], ["−1σ", last.mean - last.sigma, "#5DCAA5"], ["−2σ", last.mean - 2*last.sigma, "#1D9E75"], ["−3σ", last.mean - 3*last.sigma, "#a855f7"]];
+    const labels = isRolling ? [["+4σ", last.mean + 4*last.sigma, "#38bdf8"], ["+3σ", last.mean + 3*last.sigma, "#a855f7"], ["+2σ", last.mean + 2*last.sigma, "#e05050"], ["+1σ", last.mean + last.sigma, "#EF9F27"], ["Mean", last.mean, "#EF9F27"], ["−1σ", last.mean - last.sigma, "#5DCAA5"], ["−2σ", last.mean - 2*last.sigma, "#1D9E75"], ["−3σ", last.mean - 3*last.sigma, "#a855f7"], ["−4σ", last.mean - 4*last.sigma, "#38bdf8"]] : [["+3σ", last.mean + 3*last.sigma, "#a855f7"], ["+2σ", last.mean + 2*last.sigma, "#e05050"], ["+1σ", last.mean + last.sigma, "#EF9F27"], ["Mean", last.mean, "#EF9F27"], ["−1σ", last.mean - last.sigma, "#5DCAA5"], ["−2σ", last.mean - 2*last.sigma, "#1D9E75"], ["−3σ", last.mean - 3*last.sigma, "#a855f7"]];
     labels.forEach(([lbl,v,col])=>{
       ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, toY(v)+3);
     });
