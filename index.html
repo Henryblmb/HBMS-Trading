@@ -4188,30 +4188,37 @@ function drawOilSpreadChart(rows) {
   const data=valid.map(r=>spreadVal(r));
   const absVals=data.map(v=>Math.abs(v)).sort((a,b)=>a-b);
   const q=(p)=>absVals[Math.max(0,Math.min(absVals.length-1,Math.floor((absVals.length-1)*p)))]||0;
-  const visualAbs=Math.max(1.2, Math.min(Math.max(...absVals), q(0.95)*1.25));
-  const vMin=-visualAbs*1.08,vMax=visualAbs*1.08;
-  const clamp=v=>Math.max(vMin,Math.min(vMax,v));
+  const maxAbs=Math.max(1.2, ...absVals) * 1.08;
+  const focus=Math.max(0.35, Math.min(1.25, q(0.75) || 0.55));
+  const scale=v=>Math.sign(v)*Math.log1p(Math.abs(v)/focus)/Math.log1p(maxAbs/focus);
+  const invScale=s=>Math.sign(s)*focus*(Math.exp(Math.abs(s)*Math.log1p(maxAbs/focus))-1);
   const toX=i=>PAD.left+(i/(valid.length-1))*PW;
-  const toY=v=>PAD.top+PH-((v-vMin)/(vMax-vMin))*PH;
+  const toY=v=>PAD.top+PH-((scale(v)+1)/2)*PH;
   const z=toY(0);
 
   ctx.fillStyle="rgba(29,158,117,0.07)";ctx.fillRect(PAD.left,PAD.top,PW,z-PAD.top);
   ctx.fillStyle="rgba(212,80,80,0.07)";ctx.fillRect(PAD.left,z,PW,PH-(z-PAD.top));
+  ctx.strokeStyle="rgba(255,255,255,0.045)";ctx.lineWidth=1;ctx.setLineDash([2,5]);
+  [-3,-2,-1,1,2,3].filter(v=>Math.abs(v)<maxAbs).forEach(v=>{const y=toY(v);ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+PW,y);ctx.stroke();});
   ctx.strokeStyle="rgba(255,255,255,0.08)";ctx.lineWidth=1;ctx.setLineDash([3,4]);
   ctx.beginPath();ctx.moveTo(PAD.left,z);ctx.lineTo(PAD.left+PW,z);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle="#444";ctx.font="8px sans-serif";ctx.textAlign="right";ctx.fillText("0",PAD.left-4,z+3);
 
   const bw=Math.max(1,PW/valid.length-0.4);
-  data.forEach((v,i)=>{const x=toX(i),cv=clamp(v),y=toY(cv),clipped=Math.abs(v)>visualAbs;ctx.fillStyle=v>=0?(clipped?"rgba(29,158,117,0.95)":"rgba(29,158,117,0.75)"):(clipped?"rgba(212,80,80,0.95)":"rgba(212,80,80,0.75)");
+  data.forEach((v,i)=>{const x=toX(i),y=toY(v);ctx.fillStyle=v>=0?"rgba(29,158,117,0.75)":"rgba(212,80,80,0.75)";
     const h=Math.abs(z-y), minH=v===0?0:Math.max(1.25,h);
     if(v>=0)ctx.fillRect(x-bw/2,z-minH,bw,minH);else ctx.fillRect(x-bw/2,z,bw,minH);
-    if(clipped){ctx.fillStyle=v>=0?"#1D9E75":"#e05050";ctx.fillRect(x-bw/2,v>=0?PAD.top+2:PAD.top+PH-4,bw,2);}
   });
 
-  [["Contango","#1D9E75",vMax*0.7],["Backwardation","#e05050",vMin*0.7]].forEach(([lbl,col,v])=>{
+  [["Contango","#1D9E75",invScale(.7)],["Backwardation","#e05050",invScale(-.7)]].forEach(([lbl,col,v])=>{
     ctx.fillStyle=col;ctx.font="8px sans-serif";ctx.textAlign="left";ctx.fillText(lbl,PAD.left+PW+3,toY(v)+3);});
   ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
-  [[vMin,"≤"+vMin.toFixed(1)],[0,"0"],[vMax,"≥"+vMax.toFixed(1)]].forEach(([v,lbl])=>ctx.fillText(lbl,PAD.left-5,toY(v)+3));
+  const minV=Math.min(...data), maxV=Math.max(...data);
+  const ticks=[minV,-3,-2,-1,0,1,2,3,maxV]
+    .filter((v,i,a)=>Number.isFinite(v)&&Math.abs(v)<=maxAbs&&a.findIndex(x=>Math.abs(x-v)<0.08)===i)
+    .sort((a,b)=>a-b);
+  ticks.forEach(v=>ctx.fillText((Math.abs(v)===0?"0":v.toFixed(Math.abs(v)>=10?0:1)),PAD.left-5,toY(v)+3));
+  ctx.fillStyle="#666";ctx.font="8px sans-serif";ctx.textAlign="left";ctx.fillText("compressed scale",PAD.left+PW+3,PAD.top+10);
   ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
   [0,.2,.4,.6,.8,1].map(p=>Math.round((valid.length-1)*p)).forEach(i=>{const r=valid[i];if(!r)return;const d=new Date(r.date+"T12:00:00");ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+14);});
 }
