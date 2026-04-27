@@ -4606,7 +4606,7 @@ function renderHeatmap(){
     return`<div class="heat-cell" style="background:${bg}"><div class="heat-name">${s.sector}</div><div class="heat-chg ${v>=0?"pos":"neg"}">${v!=null?(v>=0?"+":"")+v.toFixed(2)+"%":"—"}</div><div class="heat-sub">${vsStr}</div></div>`;
   }).join("");
 }
-const SECTOR_COLORS={"Tech":"#60a5fa","Healthcare":"#a78bfa","Real Estate":"#fb923c","Energy":"#facc15","Consumer Staples":"#4ade80","Gold":"#fde047","Finance":"#22d3ee","Software":"#c084fc","Industrial":"#f97316"};
+const SECTOR_COLORS={"Tech":"#60a5fa","Healthcare":"#a78bfa","Real Estate":"#fb923c","Energy":"#facc15","Consumer Staples":"#4ade80","Gold":"#fde047","Silver":"#cbd5e1","Finance":"#22d3ee","Software":"#c084fc","Industrial":"#f97316"};
 const Q_COL={leading:"#1D9E75",weakening:"#EF9F27",lagging:"#e05050",improving:"#60a5fa"};
 function drawRRG(canvasId,wrapId,getXY,subtitle){
   const canvas=document.getElementById(canvasId);if(!canvas)return;
