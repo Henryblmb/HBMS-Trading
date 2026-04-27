@@ -1194,8 +1194,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="season-grid-wrap">
         <table class="rs-table">
-          <thead><tr><th>Score</th><th>Ticker</th><th>Type</th><th>Setup</th><th>Strike / Exp</th><th>When</th><th>DTE</th><th>Vol</th><th>OI</th><th>Vol/OI</th><th>Premium</th><th>IV</th></tr></thead>
-          <tbody id="uoBody"><tr><td colspan="12" style="text-align:center;color:#333;padding:2rem">Run screener.py</td></tr></tbody>
+          <thead><tr><th>Score</th><th>Ticker</th><th>Type</th><th>Setup</th><th>Strike / Exp</th><th>When</th><th>Side</th><th>DTE</th><th>Vol</th><th>OI</th><th>Vol/OI</th><th>Premium</th><th>IV</th></tr></thead>
+          <tbody id="uoBody"><tr><td colspan="13" style="text-align:center;color:#333;padding:2rem">Run screener.py</td></tr></tbody>
         </table>
       </div>
 
@@ -2016,6 +2016,18 @@ function fmtTradeTime(value) {
   return `${date} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
 }
 
+function fmtOptionSide(row) {
+  const side = String(row.side || "unknown").toLowerCase();
+  const last = Number.isFinite(+row.last) ? (+row.last).toFixed(2) : "—";
+  const bid = Number.isFinite(+row.bid) ? (+row.bid).toFixed(2) : "—";
+  const ask = Number.isFinite(+row.ask) ? (+row.ask).toFixed(2) : "—";
+  const title = `last ${last} · bid ${bid} · ask ${ask}`;
+  if(side === "ask") return { text:"Ask", color:"#1D9E75", title };
+  if(side === "bid") return { text:"Bid", color:"#e05050", title };
+  if(side === "mid") return { text:"Mid", color:"#EF9F27", title };
+  return { text:"—", color:"#777", title };
+}
+
 function renderUnusualOptionsTrades() {
   const data = unusualOptionsData();
   const rows = Array.isArray(data.rows) ? data.rows : [];
@@ -2038,7 +2050,7 @@ function renderUnusualOptionsTrades() {
   const body = document.getElementById("uoBody");
   if(!body) return;
   if(!filtered.length) {
-    body.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#333;padding:2rem">${rows.length ? "No contracts match selected filters" : "Run screener.py"}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="13" style="text-align:center;color:#333;padding:2rem">${rows.length ? "No contracts match selected filters" : "Run screener.py"}</td></tr>`;
     return;
   }
   body.innerHTML = filtered.map(r => {
@@ -2049,6 +2061,7 @@ function renderUnusualOptionsTrades() {
     const strike = fmtOptionStrike(r.strike);
     const exp = fmtOptionExpiry(r.exp_date);
     const when = fmtTradeTime(r.trade_time || r.date);
+    const side = fmtOptionSide(r);
     return `<tr title="${seasonEscape(r.contract || "")}">
       <td style="color:${scoreCol};font-weight:700">${score.toFixed(0)}</td>
       <td style="font-weight:700;color:#fff">${seasonEscape(r.symbol)}</td>
@@ -2056,6 +2069,7 @@ function renderUnusualOptionsTrades() {
       <td style="color:${(r.setup || "").includes("short") || (r.setup || "").includes("OTM") ? "#EF9F27" : "#777"};font-size:10px">${seasonEscape(r.setup || "flow")}</td>
       <td style="color:#aaa">${strike} <span style="color:#555">${exp}</span></td>
       <td style="color:#777;white-space:nowrap">${seasonEscape(when)}</td>
+      <td title="${seasonEscape(side.title)}" style="color:${side.color};font-weight:700">${side.text}</td>
       <td style="color:#777">${r.dte ?? "—"}</td>
       <td style="color:#d8d8d8">${(+r.volume || 0).toLocaleString("en-US")}</td>
       <td style="color:#777">${(+r.open_interest || 0).toLocaleString("en-US")}</td>
