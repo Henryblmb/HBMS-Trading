@@ -2313,7 +2313,7 @@ def cl1_cl2_curve_payload(sp500_hist=None):
     }
 
 
-def dividend_adjusted_history(symbol, years=25, period="max", limit=260):
+def dividend_adjusted_history(symbol, years=25, period="max", limit=None):
     hist, source = history_df(symbol, years=years, period=period)
     if hist is None or hist.empty or "Close" not in hist.columns:
         return []
@@ -2371,7 +2371,8 @@ def dividend_adjusted_history(symbol, years=25, period="max", limit=260):
     out = hist.copy()
     out["Close"] = wealth
     rows = []
-    for idx, row in out.tail(limit).iterrows():
+    source_rows = out.tail(limit) if limit else out
+    for idx, row in source_rows.iterrows():
         close = row.get("Close")
         if pd.isna(close):
             continue
