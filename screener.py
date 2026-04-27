@@ -920,6 +920,27 @@ def process_stock(stock):
         in_gp_ytd, fib_ytd = is_in_golden_pocket(price, hi_ytd, lo_ytd)
         e10, e20, e50 = last_ema(close_d, 10), last_ema(close_d, 20), last_ema(close_d, 50)
         e100, e200 = last_ema(close_d, 100), last_ema(close_d, 200)
+        ma_ext = {}
+        live_close = close_d.copy()
+        live_close.iloc[-1] = price
+        for ma_len in (50, 200):
+            if len(live_close) >= ma_len + 40:
+                ma = live_close.rolling(ma_len).mean()
+                dist = ((live_close / ma) - 1) * 100
+                vals = dist.dropna().astype(float)
+                if len(vals) >= 60:
+                    cur = float(vals.iloc[-1])
+                    mean = float(vals.mean())
+                    sigma = float(vals.std(ddof=1))
+                    pctile = float((vals <= cur).sum() / len(vals) * 100)
+                    ma_ext[str(ma_len)] = {
+                        "dist": round(cur, 4),
+                        "z": round((cur - mean) / sigma, 4) if sigma > 0 else None,
+                        "pctile": round(pctile, 2),
+                        "mean": round(mean, 4),
+                        "sigma": round(sigma, 4) if sigma > 0 else None,
+                        "obs": int(len(vals)),
+                    }
         return {
             "ticker": t, "name": n, "group": g,
             "price": round(price, 4), "chg": chg_pct,
@@ -935,6 +956,7 @@ def process_stock(stock):
             "above_50":  bool(e50 and price > e50),
             "above_100": bool(e100 and price > e100),
             "above_200": bool(e200 and price > e200),
+            "ma_ext": ma_ext,
             "source": source,
         }
     except Exception as e:
