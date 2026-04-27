@@ -1594,16 +1594,30 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
         return []
     end = datetime.date.today()
     start = end - datetime.timedelta(days=lookback_days)
-    rows = EODHD.options_eod(
+    short_rows = []
+    for offset in (0, 3000):
+        short_rows.extend(EODHD.options_eod(
+            symbol,
+            start,
+            end,
+            exp_from=start,
+            exp_to=end + datetime.timedelta(days=90),
+            limit=1000,
+            offset=offset,
+            compact=True,
+            option_type=None,
+        ))
+    long_rows = EODHD.options_eod(
         symbol,
         start,
         end,
-        exp_from=start,
+        exp_from=end + datetime.timedelta(days=91),
         exp_to=end + datetime.timedelta(days=365),
         limit=1000,
         compact=True,
         option_type=None,
     )
+    rows = short_rows + long_rows
     parsed = []
     for row in rows:
         date = str(row.get("tradetime", ""))[:10]
@@ -1654,7 +1668,15 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
     for r in parsed:
         if r["date"] != latest:
             continue
-        if r["volume"] < 500 or r["premium"] < 250000:
+        dte = r["dte"]
+        moneyness = r["moneyness"]
+        abs_money = abs(moneyness) if moneyness is not None else 0
+        short_dated = dte is not None and dte <= 45
+        very_short = dte is not None and dte <= 14
+        far_otm = abs_money >= 0.15
+        otm = abs_money >= 0.05
+        lotto = short_dated and otm and r["price"] is not None and r["price"] <= 2.5
+        if r["volume"] < 500:
             continue
         key = (r["type"], _dte_bucket(r["dte"]), _moneyness_bucket(r["moneyness"]))
         base = [v for v in buckets.get(key, []) if v is not None and v >= 0]
@@ -1667,22 +1689,59 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
             (z is not None and z >= 2.5 and r["volume"] >= 750)
             or vol_oi >= 2.0
             or pct >= 500
+            or (short_dated and otm and r["volume"] >= 1200 and r["premium"] >= 100000)
+            or (far_otm and r["volume"] >= 1500 and vol_oi >= 0.75)
         )
         if not truly_unusual:
             continue
         score = 0
         if z is not None:
-            score += min(40, max(0, z) * 10)
-        score += min(30, max(0, np.log10(max(r["premium"], 1) / 250000)) * 18)
-        score += min(25, vol_oi * 7)
+            score += min(35, max(0, z) * 7)
+        score += min(22, max(0, np.log10(max(r["premium"], 1) / 150000)) * 12)
+        score += min(30, vol_oi * 8)
+        score += min(14, max(0, np.log10(max(r["volume"], 1) / 500)) * 10)
         if pct >= 500:
             score += 12
-        if r["dte"] is not None and r["dte"] <= 45:
+        if very_short:
+            score += 18
+        elif short_dated:
+            score += 14
+        elif dte is not None and dte <= 90:
             score += 8
+        elif dte is not None and dte > 180:
+            score -= 18
+        if far_otm:
+            score += 16 if r["premium"] >= 100000 else 10
+        elif otm:
+            score += 8
+        if short_dated and otm:
+            score += 16
+        if lotto and r["volume"] >= 1500:
+            score += 10
         if r["volume"] >= 5000:
             score += 8
+        if r["premium"] < 150000 and not (short_dated and otm and r["volume"] >= 1500):
+            continue
         if score < 55:
             continue
+        tags = []
+        if very_short:
+            tags.append("very short")
+        elif short_dated:
+            tags.append("short dated")
+        elif dte is not None and dte > 180:
+            tags.append("LEAPS")
+        if far_otm:
+            tags.append("far OTM")
+        elif otm:
+            tags.append("OTM")
+        if vol_oi >= 2:
+            tags.append("Vol/OI")
+        if z is not None and z >= 3:
+            tags.append("volume z")
+        if lotto:
+            tags.append("lotto")
+        setup = " / ".join(tags[:3]) if tags else "premium flow"
         out.append({
             "date": r["date"],
             "symbol": symbol,
@@ -1701,6 +1760,7 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
             "delta": round(r["delta"], 3) if r["delta"] is not None else None,
             "volume_z": round(z, 2) if z is not None else None,
             "volume_pctchange": round(pct, 1) if pct else None,
+            "setup": setup,
             "score": round(score, 1),
         })
     return out
@@ -1725,18 +1785,29 @@ def unusual_options_trades_payload(symbols=None, top_n=100):
         for future in as_completed(futures):
             rows.extend(future.result())
     rows.sort(key=lambda r: (r.get("score") or 0, r.get("premium") or 0, r.get("volume") or 0), reverse=True)
+    top_rows = []
+    leaps_count = 0
+    for row in rows:
+        is_leap = (row.get("dte") or 0) > 180
+        if is_leap and leaps_count >= max(8, top_n // 4):
+            continue
+        top_rows.append(row)
+        if is_leap:
+            leaps_count += 1
+        if len(top_rows) >= top_n:
+            break
     latest = max((r.get("date") for r in rows if r.get("date")), default=None)
     return {
         "source": "eodhd:options_eod",
         "universe": symbols,
         "lookback_days": 45,
         "latest_date": latest,
-        "rows": rows[:top_n],
+        "rows": top_rows,
         "status": {
             "status": "ok" if rows else "empty",
             "symbols": len(symbols),
             "matches": len(rows),
-            "returned": min(len(rows), top_n),
+            "returned": len(top_rows),
         },
     }
 
