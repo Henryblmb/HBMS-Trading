@@ -296,7 +296,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .ret-fwd-row{font-size:10px;color:#888;padding:3px 0;border-top:1px solid rgba(255,255,255,.04)}
 .ret-fwd-row b{font-size:11px;font-weight:600;text-align:right}
 .ret-fwd-row em{font-style:normal;text-align:right;color:#777}
-.ma-sigma-toggle{margin-left:10px;border:0;background:transparent;color:#f1f1f1;font:inherit;font-size:9.5px;font-weight:600;cursor:pointer;padding:0;text-transform:none;letter-spacing:.02em}
+.ma-forward-title{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
+.ma-sigma-toggle{margin-left:auto;border:0;background:transparent;color:#f1f1f1;font:inherit;font-size:9.5px;font-weight:600;cursor:pointer;padding:0;text-transform:none;letter-spacing:.02em;text-align:right}
 .ma-sigma-toggle:hover{color:#fff;text-decoration:underline;text-underline-offset:2px}
 .interp-title{font-size:9.5px;font-weight:600;margin-bottom:3px;letter-spacing:.03em}
 .interp-title.bull{color:#1D9E75}
@@ -1309,7 +1310,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bull"><div class="interp-title bull">Above +2σ</div><div class="interp-text">Price is unusually extended above its trend. Often trend-following strength, but watch for exhaustion when the move is vertical.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Below −2σ</div><div class="interp-text">Price is unusually stretched below its trend. Often stress or capitulation; forward response separates crash continuation from mean reversion.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull" id="maDistForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maDistForwardPos">Waiting for MA distance data.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear"><span id="maDistForwardNegTitle">Forward After −2σ</span><button class="ma-sigma-toggle" id="maDistSigmaToggle" onclick="toggleMADistSigma(event)">Backtest 2σ</button></div><div class="interp-text" id="maDistForwardNeg">Waiting for MA distance data.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear ma-forward-title"><span id="maDistForwardNegTitle">Forward After −2σ</span><button class="ma-sigma-toggle" id="maDistSigmaToggle" onclick="toggleMADistSigma(event)">Backtest 2σ</button></div><div class="interp-text" id="maDistForwardNeg">Waiting for MA distance data.</div></div>
       </div>
     </div>
 
