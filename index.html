@@ -1111,6 +1111,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Upper-Tail Spike</div><div class="interp-text">A daily VIX jump above the selected percentile marks a volatility shock. It often appears near equity stress or forced hedging pressure.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Lower-Tail Compression</div><div class="interp-text">A daily VIX drop below the lower percentile marks a sharp volatility unwind. It can confirm relief, but after extended rallies it may also mean complacency.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Adaptive Threshold</div><div class="interp-text">Thresholds are recalculated on the selected history window, so 1Y reacts faster while 20Y uses a full-cycle distribution.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Bearish Threshold Forward</div><div class="interp-text" id="vixSpikeBearForward">Waiting for VIX spike data.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Bullish Threshold Forward</div><div class="interp-text" id="vixSpikeBullForward">Waiting for VIX compression data.</div></div>
       </div>
     </div>
 
@@ -2775,6 +2777,56 @@ function drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr) {
   [0,.2,.4,.6,.8,1].forEach(p=>{const ms=domain.startMs+(domain.endMs-domain.startMs)*p;const d=new Date(ms);ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toDateX(ms),H-PAD.bottom+12);});
 }
 
+function vixSpikeForwardSummary(priceRows, spikeRows, predicate) {
+  const px = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
+  const events = (spikeRows || []).filter(r => r && r.date && predicate(+r.chg_pct));
+  const horizons = [
+    { label: "1M", months: 1 },
+    { label: "3M", months: 3 },
+    { label: "6M", months: 6 },
+    { label: "12M", months: 12 },
+  ];
+  const rows = horizons.map(h => {
+    const rets = [];
+    events.forEach(ev => {
+      const startIdx = firstIndexOnOrAfter(px, ev.date);
+      const targetDate = addMonthsToDate(ev.date, h.months);
+      if(!px[startIdx] || targetDate > px[px.length - 1].date) return;
+      const endIdx = firstIndexOnOrAfter(px, targetDate);
+      const start = px[startIdx], end = px[endIdx];
+      if(!start || !end || !Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
+      rets.push(((+end.close / +start.close) - 1) * 100);
+    });
+    const avg = rets.length ? rets.reduce((a,b)=>a+b,0) / rets.length : null;
+    const win = rets.length ? rets.filter(v => v > 0).length / rets.length * 100 : null;
+    return { ...h, avg, win, count: rets.length };
+  });
+  return { events: events.length, rows };
+}
+
+function renderVIXSpikeForwardStats(priceRows, spikeRows, upThr, lowThr, pctSel) {
+  const fmt = v => v == null ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+  const pctFmt = v => Number.isInteger(v) ? String(v) : String(+v.toFixed(3));
+  const html = (summary, thresholdText) => `
+    <div class="ret-fwd-events">${summary.events} events · ${thresholdText}</div>
+    <div class="ret-fwd-head"><span>Time</span><span>Avg</span><span>Plus</span></div>
+    ${summary.rows.map(r => {
+      const col = r.avg == null ? "#777" : r.avg >= 0 ? "#5DCAA5" : "#e05050";
+      return `<div class="ret-fwd-row"><span>${r.label}</span><b style="color:${col}">${fmt(r.avg)}</b><em>${r.win == null ? "—" : r.win.toFixed(0) + "%"} · ${r.count || 0}</em></div>`;
+    }).join("")}
+  `;
+  const bearEl = document.getElementById("vixSpikeBearForward");
+  const bullEl = document.getElementById("vixSpikeBullForward");
+  if(bearEl) bearEl.innerHTML = html(
+    vixSpikeForwardSummary(priceRows, spikeRows, v => Number.isFinite(v) && v >= upThr),
+    `VIX ≥ +${upThr.toFixed(1)}% (${pctFmt(pctSel)})`
+  );
+  if(bullEl) bullEl.innerHTML = html(
+    vixSpikeForwardSummary(priceRows, spikeRows, v => Number.isFinite(v) && v <= lowThr),
+    `VIX ≤ ${lowThr.toFixed(1)}% (${pctFmt(100 - pctSel)})`
+  );
+}
+
 function drawVIXSpikeModel() {
   const md = window._marketData || {};
   let allPriceRows = marketHistory("sp500_history_20y");
@@ -2794,6 +2846,7 @@ function drawVIXSpikeModel() {
   if(priceRows.length < 2) emptyCanvas("vixSpikePriceCanvas", 230, `S&P 500 ${vixspikeHistoryRange} history unavailable - run screener.py`);
   else drawHistoryLineLogByDate("vixSpikePriceCanvas", priceRows, 230, "S&P 500 Daily", "#d8d8d8", domain, zones, sharedXPad);
   drawVIXSpikeBars("vixSpikeBarsCanvas", rows, 280, domain, upThr, lowThr);
+  renderVIXSpikeForwardStats(priceRows, rows, upThr, lowThr, pctSel);
 
   const priceTitle = document.getElementById("vixSpikePriceTitle");
   if(priceTitle) priceTitle.textContent = `S&P 500 — ${vixspikeHistoryRange} Daily Log Chart`;
