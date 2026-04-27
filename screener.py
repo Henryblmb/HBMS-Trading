@@ -993,10 +993,12 @@ def process_ma_stock_history(stock):
         for dt, row in frame.iterrows():
             d50 = row.get("dist50")
             d200 = row.get("dist200")
+            close_val = close.get(dt)
             rows.append([
                 str(dt.date()),
                 round(float(d50), 2) if pd.notna(d50) else None,
                 round(float(d200), 2) if pd.notna(d200) else None,
+                round(float(close_val), 4) if pd.notna(close_val) else None,
             ])
         return {"ticker": t, "name": n, "rows": rows, "source": source}
     except Exception as e:
