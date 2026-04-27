@@ -540,6 +540,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Options Data</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-putiv',this)">Put Implied Volatility</div>
+      <div class="nav-item sub" onclick="showTab('cg-uotrades',this)">Unusual Options Trades</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
@@ -1163,6 +1164,46 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- UNUSUAL OPTIONS TRADES -->
+    <div class="panel cg-page" id="tab-cg-uotrades">
+      <div class="cg-header">
+        <div class="cg-title">Unusual Options Trades — Top 100 US Stocks</div>
+        <div class="cg-sub">End-of-day EODHD options scan for genuinely unusual contracts: high premium, strong volume/open-interest pressure, and volume that stands out versus similar option buckets.</div>
+      </div>
+
+      <div class="filter-row" style="margin-bottom:.9rem">
+        <label>Type</label>
+        <select id="uoType" onchange="renderUnusualOptionsTrades()"><option value="all">All</option><option value="call">Calls</option><option value="put">Puts</option></select>
+        <label>Min Score</label>
+        <select id="uoScore" onchange="renderUnusualOptionsTrades()"><option value="55">55</option><option value="70" selected>70</option><option value="85">85</option></select>
+        <label>Min Premium</label>
+        <select id="uoPremium" onchange="renderUnusualOptionsTrades()"><option value="250000">$250k</option><option value="500000" selected>$500k</option><option value="1000000">$1M</option></select>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Matches</div><div class="signal-bar-val" id="uoMatches" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Top Score</div><div class="signal-bar-val" id="uoTopScore" style="color:#EF9F27">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Latest Date</div><div class="signal-bar-val" id="uoDate" style="font-size:14px;color:#777;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="uoDesc">Run screener.py to load unusual options trades.</div>
+      </div>
+
+      <div class="season-grid-wrap">
+        <table class="rs-table">
+          <thead><tr><th>Score</th><th>Ticker</th><th>Type</th><th>Strike / Exp</th><th>DTE</th><th>Vol</th><th>OI</th><th>Vol/OI</th><th>Premium</th><th>Z</th><th>IV</th></tr></thead>
+          <tbody id="uoBody"><tr><td colspan="11" style="text-align:center;color:#333;padding:2rem">Run screener.py</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="interp-grid" style="margin-top:.9rem">
+        <div class="interp-cell bear"><div class="interp-title bear">Call / Put Pressure</div><div class="interp-text">Calls can mark upside speculation or short-covering pressure; puts can mark hedging demand or bearish positioning.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Unusual Filter</div><div class="interp-text">Contracts need meaningful premium and either high volume versus open interest, a strong historical volume z-score, or a major volume percent jump.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Score</div><div class="interp-text">Score combines historical volume anomaly, premium size, Vol/OI pressure, short-dated urgency and absolute contract volume.</div></div>
+      </div>
+    </div>
+
     <!-- RETURN HISTOGRAM -->
     <div class="panel cg-page" id="tab-cg-rethist">
       <div class="cg-header">
@@ -1595,6 +1636,7 @@ function showTab(id, el) {
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
   if(id === "cg-vixspike") setTimeout(drawVIXSpikeModel, 60);
   if(id === "cg-putiv") setTimeout(drawPutIVOptions, 60);
+  if(id === "cg-uotrades") setTimeout(renderUnusualOptionsTrades, 60);
 }
 
 // ═══════════════════════════════════════════════
@@ -1629,6 +1671,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
     if(activePanel && activePanel.id === "tab-cg-vixspike") drawVIXSpikeModel();
     if(activePanel && activePanel.id === "tab-cg-putiv") drawPutIVOptions();
+    if(activePanel && activePanel.id === "tab-cg-uotrades") renderUnusualOptionsTrades();
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
@@ -1932,6 +1975,63 @@ function putIvStaticStats(rows) {
     };
   };
   return { mean, sigma, rows: rows.map(enrich) };
+}
+
+function unusualOptionsData() {
+  const md = window._marketData || {};
+  return md.unusual_options_trades || {};
+}
+
+function fmtCompactUsd(v) {
+  if(!Number.isFinite(+v)) return "—";
+  const n = +v;
+  if(Math.abs(n) >= 1000000) return "$" + (n / 1000000).toFixed(n >= 10000000 ? 1 : 2) + "M";
+  if(Math.abs(n) >= 1000) return "$" + (n / 1000).toFixed(0) + "k";
+  return "$" + n.toFixed(0);
+}
+
+function renderUnusualOptionsTrades() {
+  const data = unusualOptionsData();
+  const rows = Array.isArray(data.rows) ? data.rows : [];
+  const type = document.getElementById("uoType")?.value || "all";
+  const minScore = +(document.getElementById("uoScore")?.value || 70);
+  const minPremium = +(document.getElementById("uoPremium")?.value || 500000);
+  let filtered = rows.filter(r => (type === "all" || r.type === type) && (+r.score || 0) >= minScore && (+r.premium || 0) >= minPremium);
+  filtered = filtered.slice().sort((a,b)=>(+b.score||0)-(+a.score||0) || (+b.premium||0)-(+a.premium||0)).slice(0, 100);
+  const set = (id, txt, color) => { const el=document.getElementById(id); if(el){ el.textContent=txt; if(color) el.style.color=color; } };
+  set("uoMatches", String(filtered.length), "#d8d8d8");
+  set("uoTopScore", filtered.length ? (+filtered[0].score).toFixed(0) : "—", filtered.length ? "#EF9F27" : "#777");
+  set("uoDate", data.latest_date || "—", "#777");
+  const desc = document.getElementById("uoDesc");
+  if(desc) desc.textContent = rows.length ? `${data.status?.symbols || 100} symbols scanned · ${rows.length} unusual contracts retained · showing ${filtered.length}` : "Run screener.py to load unusual options trades.";
+  const body = document.getElementById("uoBody");
+  if(!body) return;
+  if(!filtered.length) {
+    body.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#333;padding:2rem">${rows.length ? "No contracts match selected filters" : "Run screener.py"}</td></tr>`;
+    return;
+  }
+  body.innerHTML = filtered.map(r => {
+    const sideCol = r.type === "call" ? "#1D9E75" : "#e05050";
+    const score = +r.score || 0;
+    const scoreCol = score >= 90 ? "#ff6b6b" : score >= 75 ? "#EF9F27" : "#d8d8d8";
+    const z = Number.isFinite(+r.volume_z) ? (+r.volume_z).toFixed(1) + "σ" : "—";
+    const volOi = Number.isFinite(+r.vol_oi) ? (+r.vol_oi).toFixed(2) : "—";
+    const strike = r.strike != null ? "$" + (+r.strike).toLocaleString("en-US", { maximumFractionDigits:2 }) : "—";
+    const exp = r.exp_date ? r.exp_date.slice(2) : "—";
+    return `<tr title="${seasonEscape(r.contract || "")}">
+      <td style="color:${scoreCol};font-weight:700">${score.toFixed(0)}</td>
+      <td style="font-weight:700;color:#fff">${seasonEscape(r.symbol)}</td>
+      <td style="color:${sideCol};font-weight:700;text-transform:uppercase">${seasonEscape(r.type)}</td>
+      <td style="color:#aaa">${strike} <span style="color:#555">${exp}</span></td>
+      <td style="color:#777">${r.dte ?? "—"}</td>
+      <td style="color:#d8d8d8">${(+r.volume || 0).toLocaleString("en-US")}</td>
+      <td style="color:#777">${(+r.open_interest || 0).toLocaleString("en-US")}</td>
+      <td style="color:${(+r.vol_oi || 0) >= 2 ? "#EF9F27" : "#777"}">${volOi}</td>
+      <td style="color:#d8d8d8;font-weight:600">${fmtCompactUsd(r.premium)}</td>
+      <td style="color:${(+r.volume_z || 0) >= 3 ? "#EF9F27" : "#777"}">${z}</td>
+      <td style="color:#777">${r.iv != null ? (+r.iv).toFixed(1)+"%" : "—"}</td>
+    </tr>`;
+  }).join("");
 }
 
 function drawPutIVOptions() {
@@ -2581,6 +2681,7 @@ const cgRedraw = {
   "cg-vixrv": () => drawVIXRealizedVol(),
   "cg-vixspike": () => drawVIXSpikeModel(),
   "cg-putiv": () => drawPutIVOptions(),
+  "cg-uotrades": () => renderUnusualOptionsTrades(),
   "cg-rethist": () => renderReturnHistogram(),
   "cg-forwardpe": () => drawForwardPEChart(),
   "cg-vix2": () => mirrorVIXCharts(),
