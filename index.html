@@ -1278,7 +1278,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <label>Moving Avg</label>
         <select id="maDistAvg" onchange="renderMADistance()"><option value="200" selected>200D</option><option value="50">50D</option></select>
         <label>Range</label>
-        <select id="maDistRange" onchange="renderMADistance()"><option value="max">Max</option><option value="10">10Y</option><option value="5" selected>5Y</option><option value="3">3Y</option><option value="1">1Y</option></select>
+        <select id="maDistRange" onchange="setMADistanceRange()"><option value="max">Max</option><option value="10">10Y</option><option value="5" selected>5Y</option><option value="3">3Y</option><option value="1">1Y</option></select>
       </div>
 
       <div class="signal-bar">
@@ -2540,6 +2540,11 @@ function renderMADistance() {
 function toggleMADistSigma(e) {
   if(e) e.preventDefault();
   maDistBacktestSigmaLevel = maDistBacktestSigmaLevel === 2 ? 3 : 2;
+  renderMADistance();
+}
+
+function setMADistanceRange() {
+  delete cgDateRanges["cg-madist"];
   renderMADistance();
 }
 
