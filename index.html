@@ -1940,10 +1940,10 @@ function drawPutIVOptions() {
   drawPutIVChart(rows);
 }
 
-function drawPutIVChart(rows) {
+function drawPutIVChart(rows, hoverIndex=null) {
   const c = mkCanvas("putIvCanvas", 360); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 18, right: 62, bottom: 30, left: 46 };
+  const PAD = { top: 18, right: 62, bottom: 42, left: 46 };
   const PW = W - PAD.left - PAD.right;
   const topH = Math.floor((H - PAD.top - PAD.bottom) * 0.68);
   const gap = 22;
@@ -1990,9 +1990,83 @@ function drawPutIVChart(rows) {
   });
   ctx.fillStyle="#666"; ctx.textAlign="right"; ctx.font="10px sans-serif";
   [min, (min+max)/2, max].forEach(v=>{ ctx.fillText(v.toFixed(0)+"%", PAD.left-7, toY(v)+3); });
+  const dateTicks = [];
+  const seenMonths = new Set();
+  rows.forEach((r,i) => {
+    const key = r.date.slice(0, 7);
+    if(!seenMonths.has(key)) {
+      seenMonths.add(key);
+      dateTicks.push({ i, date: r.date });
+    }
+  });
+  const maxTicks = W < 900 ? 7 : 10;
+  const step = Math.max(1, Math.ceil(dateTicks.length / maxTicks));
+  ctx.strokeStyle="rgba(255,255,255,.06)";
+  ctx.fillStyle="#666";
+  ctx.font="9px sans-serif";
   ctx.textAlign="center";
-  const first = rows[0].date.slice(2,7), last = rows[rows.length-1].date.slice(2,7);
-  ctx.fillText(first, PAD.left, H-10); ctx.fillText(last, PAD.left+PW, H-10);
+  dateTicks.forEach((tick, n) => {
+    if(n % step !== 0 && n !== dateTicks.length - 1) return;
+    const x = toX(tick.i);
+    const d = new Date(tick.date + "T12:00:00");
+    const label = d.toLocaleDateString("de-DE", { month:"short", year:"2-digit" }).replace(".", "");
+    ctx.beginPath(); ctx.moveTo(x, H - PAD.bottom + 4); ctx.lineTo(x, H - PAD.bottom + 10); ctx.stroke();
+    ctx.fillText(label, x, H - 18);
+  });
+  ctx.fillStyle="#444"; ctx.font="8px sans-serif";
+  ctx.fillText(`${rows[0].date}  →  ${rows[rows.length-1].date}`, PAD.left + PW / 2, H - 6);
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex];
+    const z = +r.z;
+    const iv = +r.iv;
+    const x = toX(hoverIndex);
+    const cappedZ = Number.isFinite(z) ? Math.max(zMin, Math.min(zMax, z)) : 0;
+    const barY = zY(cappedZ);
+    const ivY = Number.isFinite(iv) ? toY(iv) : barY;
+    const abs = Math.abs(z);
+    const col = abs >= 4 ? "#ff6b6b" : abs >= 3 ? "#e05050" : abs >= 2 ? "#EF9F27" : "#8a8a8a";
+    const d = new Date(r.date + "T12:00:00");
+    const dateLabel = d.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "");
+    const lines = [
+      dateLabel,
+      `Put IV ${Number.isFinite(iv) ? iv.toFixed(1) + "%" : "—"} · Z ${Number.isFinite(z) ? z.toFixed(2) + "σ" : "—"}`,
+      `${r.contracts || 0} contracts`
+    ];
+    ctx.strokeStyle = col; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, botY + botH); ctx.stroke();
+    if(Number.isFinite(iv)) { ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x, ivY, 3.2, 0, Math.PI * 2); ctx.fill(); }
+    ctx.font = "bold 10px sans-serif";
+    const boxW = Math.max(...lines.map(line => ctx.measureText(line).width)) + 18;
+    const boxH = 46;
+    let bx = Math.max(PAD.left + 2, Math.min(W - PAD.right - boxW - 2, x - boxW / 2));
+    let by = Math.max(PAD.top + 4, Math.min(botY + botH - boxH - 4, Math.min(ivY, barY) - boxH - 10));
+    ctx.fillStyle = "rgba(8,8,8,.94)";
+    ctx.strokeStyle = "#303030";
+    ctx.lineWidth = 1;
+    ctx.fillRect(bx, by, boxW, boxH);
+    ctx.strokeRect(bx, by, boxW, boxH);
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#d8d8d8"; ctx.fillText(lines[0], bx + 9, by + 14);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = col; ctx.fillText(lines[1], bx + 9, by + 29);
+    ctx.fillStyle = "#777"; ctx.fillText(lines[2], bx + 9, by + 41);
+  }
+
+  const canvas = document.getElementById("putIvCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if(x < PAD.left || x > PAD.left + PW || y < botY - 8 || y > botY + botH + 12 || !rows.length) {
+        drawPutIVChart(rows, null);
+        return;
+      }
+      const idx = Math.max(0, Math.min(rows.length - 1, Math.round(((x - PAD.left) / PW) * (rows.length - 1))));
+      drawPutIVChart(rows, idx);
+    };
+    canvas.onmouseleave = () => drawPutIVChart(rows, null);
+  }
 }
 
 function renderReturnHistogram() {
