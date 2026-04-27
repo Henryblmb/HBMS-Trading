@@ -2376,10 +2376,38 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=
   const vals = rows.map(r => +r[key]);
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
   const scaleVals = [...vals, plus2, minus2, minus3].filter(Number.isFinite);
-  const abs = Math.max(5, ...scaleVals.map(v => Math.abs(v)));
+  const quantile = (arr, q) => {
+    const a = arr.filter(Number.isFinite).slice().sort((x, y) => x - y);
+    if(!a.length) return null;
+    const pos = (a.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return a[lo] + (a[hi] - a[lo]) * (pos - lo);
+  };
+  const sigma = Math.abs(statsFromLines(mean, plus2));
+  const qLow = quantile(vals, .02), qHigh = quantile(vals, .98);
+  const lastVal = vals[vals.length - 1];
+  const focusAbs = Math.max(
+    5,
+    Math.abs(mean) + sigma * 3.2,
+    Math.abs(qLow ?? 0),
+    Math.abs(qHigh ?? 0),
+    Math.abs(lastVal || 0) * 1.08
+  );
+  const rawAbs = Math.max(5, ...scaleVals.map(v => Math.abs(v)));
+  const shouldCompress = rawAbs > focusAbs * 1.35;
+  const compress = v => {
+    if(!shouldCompress || !Number.isFinite(v)) return v;
+    const av = Math.abs(v);
+    if(av <= focusAbs) return v;
+    const extra = Math.log1p((av - focusAbs) / focusAbs) * focusAbs * .42;
+    return Math.sign(v) * (focusAbs + extra);
+  };
+  const abs = Math.max(5, ...scaleVals.map(v => Math.abs(compress(v))));
   const min = -abs * 1.12, max = abs * 1.12;
   const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
-  const toY = v => PAD.top + PH - ((v - min) / (max - min)) * PH;
+  const toY = v => {
+    const cv = compress(v);
+    return PAD.top + PH - ((cv - min) / (max - min)) * PH;
+  };
   ctx.strokeStyle="rgba(255,255,255,.05)"; ctx.lineWidth=1;
   for(let i=0;i<=4;i++){ const y=PAD.top+i/4*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
   [[0,"#777","0"],[mean,"#EF9F27","Mean"],[plus2,"#1D9E75","+2σ"],[minus2,"#e05050","−2σ"],[minus3,"#a855f7","−3σ"],[mean+statsFromLines(mean,plus2),"#5DCAA5","+1σ"],[mean-statsFromLines(mean,plus2),"#f09595","−1σ"]].forEach(([v,color,label])=>{
