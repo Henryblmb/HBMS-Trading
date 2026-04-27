@@ -1178,6 +1178,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <select id="uoScore" onchange="renderUnusualOptionsTrades()"><option value="55">55</option><option value="70" selected>70</option><option value="85">85</option></select>
         <label>Min Premium</label>
         <select id="uoPremium" onchange="renderUnusualOptionsTrades()"><option value="250000">$250k</option><option value="500000" selected>$500k</option><option value="1000000">$1M</option></select>
+        <label>DTE</label>
+        <select id="uoDte" onchange="renderUnusualOptionsTrades()"><option value="all">All</option><option value="45">≤45</option><option value="90">≤90</option><option value="180">≤180</option><option value="leaps">LEAPS</option></select>
       </div>
 
       <div class="signal-bar">
@@ -1192,15 +1194,15 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="season-grid-wrap">
         <table class="rs-table">
-          <thead><tr><th>Score</th><th>Ticker</th><th>Type</th><th>Strike / Exp</th><th>DTE</th><th>Vol</th><th>OI</th><th>Vol/OI</th><th>Premium</th><th>Z</th><th>IV</th></tr></thead>
-          <tbody id="uoBody"><tr><td colspan="11" style="text-align:center;color:#333;padding:2rem">Run screener.py</td></tr></tbody>
+          <thead><tr><th>Score</th><th>Ticker</th><th>Type</th><th>Setup</th><th>Strike / Exp</th><th>DTE</th><th>Vol</th><th>OI</th><th>Vol/OI</th><th>Premium</th><th>Z</th><th>IV</th></tr></thead>
+          <tbody id="uoBody"><tr><td colspan="12" style="text-align:center;color:#333;padding:2rem">Run screener.py</td></tr></tbody>
         </table>
       </div>
 
       <div class="interp-grid" style="margin-top:.9rem">
         <div class="interp-cell bear"><div class="interp-title bear">Call / Put Pressure</div><div class="interp-text">Calls can mark upside speculation or short-covering pressure; puts can mark hedging demand or bearish positioning.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Unusual Filter</div><div class="interp-text">Contracts need meaningful premium and either high volume versus open interest, a strong historical volume z-score, or a major volume percent jump.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Score</div><div class="interp-text">Score combines historical volume anomaly, premium size, Vol/OI pressure, short-dated urgency and absolute contract volume.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Unusual Filter</div><div class="interp-text">Contracts need meaningful premium or risky short-dated OTM size, plus Vol/OI pressure, strong historical volume z-score, or a major volume jump.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Score</div><div class="interp-text">Score now prioritizes short-dated OTM, far OTM, high Vol/OI and volume anomaly. LEAPS are allowed but penalized and capped in the returned list.</div></div>
       </div>
     </div>
 
@@ -2009,7 +2011,12 @@ function renderUnusualOptionsTrades() {
   const type = document.getElementById("uoType")?.value || "all";
   const minScore = +(document.getElementById("uoScore")?.value || 70);
   const minPremium = +(document.getElementById("uoPremium")?.value || 500000);
-  let filtered = rows.filter(r => (type === "all" || r.type === type) && (+r.score || 0) >= minScore && (+r.premium || 0) >= minPremium);
+  const dteFilter = document.getElementById("uoDte")?.value || "all";
+  let filtered = rows.filter(r => {
+    const dte = +r.dte;
+    const dteOk = dteFilter === "all" || (dteFilter === "leaps" ? dte > 180 : Number.isFinite(dte) && dte <= +dteFilter);
+    return (type === "all" || r.type === type) && dteOk && (+r.score || 0) >= minScore && (+r.premium || 0) >= minPremium;
+  });
   filtered = filtered.slice().sort((a,b)=>(+b.score||0)-(+a.score||0) || (+b.premium||0)-(+a.premium||0)).slice(0, 100);
   const set = (id, txt, color) => { const el=document.getElementById(id); if(el){ el.textContent=txt; if(color) el.style.color=color; } };
   set("uoMatches", String(filtered.length), "#d8d8d8");
@@ -2020,7 +2027,7 @@ function renderUnusualOptionsTrades() {
   const body = document.getElementById("uoBody");
   if(!body) return;
   if(!filtered.length) {
-    body.innerHTML = `<tr><td colspan="11" style="text-align:center;color:#333;padding:2rem">${rows.length ? "No contracts match selected filters" : "Run screener.py"}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="12" style="text-align:center;color:#333;padding:2rem">${rows.length ? "No contracts match selected filters" : "Run screener.py"}</td></tr>`;
     return;
   }
   body.innerHTML = filtered.map(r => {
@@ -2035,6 +2042,7 @@ function renderUnusualOptionsTrades() {
       <td style="color:${scoreCol};font-weight:700">${score.toFixed(0)}</td>
       <td style="font-weight:700;color:#fff">${seasonEscape(r.symbol)}</td>
       <td style="color:${sideCol};font-weight:700;text-transform:uppercase">${seasonEscape(r.type)}</td>
+      <td style="color:${(r.setup || "").includes("short") || (r.setup || "").includes("OTM") ? "#EF9F27" : "#777"};font-size:10px">${seasonEscape(r.setup || "flow")}</td>
       <td style="color:#aaa">${strike} <span style="color:#555">${exp}</span></td>
       <td style="color:#777">${r.dte ?? "—"}</td>
       <td style="color:#d8d8d8">${(+r.volume || 0).toLocaleString("en-US")}</td>
