@@ -293,6 +293,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 #vixSpikePct{width:54px}
 .signal-inline-control select:hover,.signal-inline-control select:focus{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .signal-inline-controls+.signal-range-controls{margin-left:24px}
+.signal-inline-control input{border:0;border-radius:0;background:transparent!important;box-shadow:none;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;outline:none}
+.signal-inline-control input::placeholder{color:#777}
+.signal-inline-control input:hover,.signal-inline-control input:focus{color:#fff;text-decoration:underline;text-underline-offset:3px}
+#maStockSearch{width:220px}
+.ma-stock-table{width:100%;border-collapse:collapse;font-size:10px}
+.ma-stock-table th{font-size:8.5px;color:#555;text-align:left;text-transform:uppercase;letter-spacing:.07em;font-weight:600;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.ma-stock-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.045);color:#888}
+.ma-stock-table tr{cursor:pointer}
+.ma-stock-table tr:hover td{background:rgba(255,255,255,.025);color:#d8d8d8}
+.ma-stock-table .ticker{color:#eee;font-weight:700}
+.ma-stock-table .name{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#666}
 
 /* SPX mini chart strip */
 .spx-strip{background:#0d0d0d;border:1px solid #1a1a1a;margin-bottom:.8rem;position:relative}
@@ -545,6 +556,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance</div>
+      <div class="nav-item sub" onclick="showTab('cg-madist-stocks',this)">MA Distance Stocks</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Valuations</span><span class="nav-folder-arrow">›</span></div>
@@ -1278,6 +1290,58 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- MA DISTANCE STOCKS -->
+    <div class="panel cg-page" id="tab-cg-madist-stocks">
+      <div class="cg-header">
+        <div class="cg-title">MA Distance Stocks — S&amp;P 500 Extension Model</div>
+        <div class="cg-sub">Current S&amp;P 500 stock distance from the selected moving average. Z-score and percentile are calculated from each stock's own recent distance history, so stretched and washed-out names can be compared across sectors.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Distance</div><div class="signal-bar-val" id="maStockNow" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="maStockZ" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Percentile</div><div class="signal-bar-val" id="maStockPctile" style="color:#777">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="maStockDesc">Search S&amp;P 500 stocks by ticker or name.</div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Search</label>
+            <input id="maStockSearch" list="maStockOptions" placeholder="Ticker or name" oninput="renderMAStockDistance()">
+            <datalist id="maStockOptions"></datalist>
+          </div>
+          <div class="signal-inline-control">
+            <label>Moving Avg</label>
+            <select id="maStockAvg" onchange="renderMAStockDistance()"><option value="200" selected>200D</option><option value="50">50D</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="maStockBoardTitle">S&amp;P 500 MA Distance Ranking</span>
+          <div class="cg-chart-legend">
+            <span style="color:#1D9E75">Extended +2σ</span>
+            <span style="color:#e05050">Washed out −2σ</span>
+            <span style="color:#a855f7">Extreme −3σ</span>
+          </div>
+        </div>
+        <div style="padding:0 12px 10px;overflow:auto">
+          <table class="ma-stock-table">
+            <thead><tr><th>Ticker</th><th>Name</th><th>Sector</th><th>Price</th><th>Distance</th><th>Z</th><th>Percentile</th><th>52W Pos.</th></tr></thead>
+            <tbody id="maStockRows"><tr><td colspan="8">Waiting for screener data.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Extended Upside</div><div class="interp-text">Stocks above +2σ are unusually stretched above their own trend. This can mark strong momentum, but also short-term exhaustion after fast vertical moves.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Washed Out</div><div class="interp-text">Stocks below −2σ are unusually stretched below trend. −3σ names are the deepest current dislocations in the S&amp;P 500 universe.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Search First</div><div class="interp-text">Type a ticker or stock name to pin one stock in the top readings. The ranking table still shows the most extreme current names for the selected moving average.</div></div>
+      </div>
+    </div>
+
     <!-- FORWARD P/E RATIO -->
     <div class="panel cg-page" id="tab-cg-forwardpe">
       <div class="cg-header">
@@ -1647,6 +1711,7 @@ function showTab(id, el) {
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
+  if(id === "cg-madist-stocks") setTimeout(renderMAStockDistance, 60);
   if(id === "cg-forwardpe") setTimeout(drawForwardPEChart, 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
   if(id === "cg-goldsilver") setTimeout(drawGoldSilverRatio, 60);
@@ -1686,6 +1751,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
+    if(activePanel && activePanel.id === "tab-cg-madist-stocks") renderMAStockDistance();
     if(activePanel && activePanel.id === "tab-seasonality") renderSeasonality();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
@@ -2158,6 +2224,81 @@ function renderMADistance() {
   drawMADistanceChart(rows, key, stats.mean, plus2, minus2, minus3);
 }
 
+function maStockUniverse() {
+  return (allStocks || []).filter(s => s && s.group === "SP500" && s.ma_ext && (s.ma_ext["50"] || s.ma_ext["200"]));
+}
+
+function ensureMAStockOptions(stocks) {
+  const dl = document.getElementById("maStockOptions");
+  if(!dl) return;
+  const sig = stocks.map(s => s.ticker).join("|");
+  if(dl.dataset.sig === sig) return;
+  dl.innerHTML = stocks
+    .slice()
+    .sort((a,b)=>a.ticker.localeCompare(b.ticker))
+    .map(s => `<option value="${seasonEscape(s.ticker)}">${seasonEscape(s.name || s.ticker)}</option>`)
+    .join("");
+  dl.dataset.sig = sig;
+}
+
+function maStockMetric(stock, ma) {
+  const m = stock && stock.ma_ext ? stock.ma_ext[String(ma)] : null;
+  if(!m || !Number.isFinite(+m.dist)) return null;
+  const z = Number.isFinite(+m.z) ? +m.z : null;
+  const pct = Number.isFinite(+m.pctile) ? +m.pctile : null;
+  const pos52 = stock.hi52 > stock.lo52 ? ((+stock.price - +stock.lo52) / (+stock.hi52 - +stock.lo52)) * 100 : null;
+  return { dist:+m.dist, z, pct, obs:+m.obs || 0, pos52 };
+}
+
+function renderMAStockDistance() {
+  const ma = document.getElementById("maStockAvg")?.value || "200";
+  const input = document.getElementById("maStockSearch");
+  const query = (input?.value || "").trim().toUpperCase();
+  const stocks = maStockUniverse().filter(s => maStockMetric(s, ma));
+  ensureMAStockOptions(stocks);
+  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  const match = query
+    ? stocks.find(s => s.ticker.toUpperCase() === query) || stocks.find(s => (s.name || "").toUpperCase().includes(query) || s.ticker.toUpperCase().includes(query))
+    : stocks.slice().sort((a,b)=>Math.abs(maStockMetric(b,ma).z || 0)-Math.abs(maStockMetric(a,ma).z || 0))[0];
+  const metric = match ? maStockMetric(match, ma) : null;
+  if(metric) {
+    const col = metric.z >= 2 ? "#1D9E75" : metric.z <= -3 ? "#a855f7" : metric.z <= -2 ? "#e05050" : metric.dist >= 0 ? "#5DCAA5" : "#EF9F27";
+    set("maStockNow", fmtPct(metric.dist, 2), col);
+    set("maStockZ", metric.z == null ? "—" : (metric.z >= 0 ? "+" : "") + metric.z.toFixed(2) + "σ", col);
+    set("maStockPctile", metric.pct == null ? "—" : metric.pct.toFixed(0) + "th", metric.pct >= 90 ? "#1D9E75" : metric.pct <= 10 ? "#e05050" : "#777");
+  } else {
+    set("maStockNow", "—"); set("maStockZ", "—"); set("maStockPctile", "—");
+  }
+  const title = document.getElementById("maStockBoardTitle");
+  if(title) title.textContent = `S&P 500 Stock Distance From ${ma}D Moving Average`;
+  const filtered = stocks
+    .filter(s => !query || s.ticker.toUpperCase().includes(query) || (s.name || "").toUpperCase().includes(query))
+    .sort((a,b)=>Math.abs(maStockMetric(b,ma).z || 0)-Math.abs(maStockMetric(a,ma).z || 0))
+    .slice(0, 80);
+  const body = document.getElementById("maStockRows");
+  if(!body) return;
+  if(!filtered.length) {
+    body.innerHTML = `<tr><td colspan="8">No S&P 500 stocks match the search.</td></tr>`;
+    return;
+  }
+  body.innerHTML = filtered.map(s => {
+    const m = maStockMetric(s, ma);
+    const zCol = m.z >= 2 ? "#1D9E75" : m.z <= -3 ? "#a855f7" : m.z <= -2 ? "#e05050" : "#888";
+    const distCol = m.dist >= 0 ? "#5DCAA5" : "#e05050";
+    const posTxt = m.pos52 == null ? "—" : Math.max(0, Math.min(100, m.pos52)).toFixed(0) + "%";
+    return `<tr onclick="document.getElementById('maStockSearch').value='${seasonEscape(s.ticker)}';renderMAStockDistance()">
+      <td class="ticker">${seasonEscape(s.ticker)}</td>
+      <td class="name">${seasonEscape(s.name || s.ticker)}</td>
+      <td>${seasonEscape(s.group || "SP500")}</td>
+      <td>$${(+s.price || 0).toLocaleString("en-US",{maximumFractionDigits:2})}</td>
+      <td style="color:${distCol};font-weight:600">${fmtPct(m.dist,2)}</td>
+      <td style="color:${zCol};font-weight:700">${m.z == null ? "—" : (m.z >= 0 ? "+" : "") + m.z.toFixed(2) + "σ"}</td>
+      <td>${m.pct == null ? "—" : m.pct.toFixed(0) + "th"}</td>
+      <td>${posTxt}</td>
+    </tr>`;
+  }).join("");
+}
+
 function toggleMADistSigma(e) {
   if(e) e.preventDefault();
   maDistBacktestSigmaLevel = maDistBacktestSigmaLevel === 2 ? 3 : 2;
@@ -2609,6 +2750,7 @@ const cgRedraw = {
   "cg-vixspike": () => drawVIXSpikeModel(),
   "cg-rethist": () => renderReturnHistogram(),
   "cg-madist": () => renderMADistance(),
+  "cg-madist-stocks": () => renderMAStockDistance(),
   "cg-forwardpe": () => drawForwardPEChart(),
   "cg-vix2": () => mirrorVIXCharts(),
   "cg-bt20": () => drawBT20Chart(),
