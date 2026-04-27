@@ -1689,11 +1689,11 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
             continue
         dte = r["dte"]
         moneyness = r["moneyness"]
-        abs_money = abs(moneyness) if moneyness is not None else 0
+        otm_amount = abs(moneyness) if moneyness is not None and moneyness < 0 else 0
         short_dated = dte is not None and dte <= 45
         very_short = dte is not None and dte <= 14
-        far_otm = abs_money >= 0.15
-        otm = abs_money >= 0.05
+        far_otm = otm_amount >= 0.15
+        otm = otm_amount >= 0.05
         lotto = short_dated and otm and r["price"] is not None and r["price"] <= 2.5
         if r["volume"] < 500:
             continue
