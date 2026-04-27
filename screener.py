@@ -73,6 +73,31 @@ RETURN_HISTOGRAM_SYMBOLS = [
     {"t": "XRT", "n": "Retail ETF", "g": "Industry ETF"},
 ]
 
+OPTIONS_PUT_IV_SYMBOLS = [
+    {"t": "DIA", "n": "Dow Jones ETF", "g": "Index ETF"},
+    {"t": "IWM", "n": "Russell 2000 ETF", "g": "Index ETF"},
+    {"t": "QQQ", "n": "Nasdaq 100 ETF", "g": "Index ETF"},
+    {"t": "SPY", "n": "S&P 500 ETF", "g": "Index ETF"},
+    {"t": "IGV", "n": "Expanded Tech-Software ETF", "g": "Industry ETF"},
+    {"t": "IYR", "n": "US Real Estate ETF", "g": "Industry ETF"},
+    {"t": "KRE", "n": "Regional Banking ETF", "g": "Industry ETF"},
+    {"t": "OIH", "n": "Oil Services ETF", "g": "Industry ETF"},
+    {"t": "XBI", "n": "Biotech ETF", "g": "Industry ETF"},
+    {"t": "XME", "n": "Metals & Mining ETF", "g": "Industry ETF"},
+    {"t": "XRT", "n": "Retail ETF", "g": "Industry ETF"},
+    {"t": "XLB", "n": "Materials Select Sector", "g": "Sector ETF"},
+    {"t": "XLC", "n": "Communication Services", "g": "Sector ETF"},
+    {"t": "XLE", "n": "Energy Select Sector", "g": "Sector ETF"},
+    {"t": "XLF", "n": "Financials Select Sector", "g": "Sector ETF"},
+    {"t": "XLI", "n": "Industrials Select Sector", "g": "Sector ETF"},
+    {"t": "XLK", "n": "Technology Select Sector", "g": "Sector ETF"},
+    {"t": "XLP", "n": "Consumer Staples", "g": "Sector ETF"},
+    {"t": "XLU", "n": "Utilities Select Sector", "g": "Sector ETF"},
+    {"t": "XLV", "n": "Health Care Select Sector", "g": "Sector ETF"},
+    {"t": "XLY", "n": "Consumer Discretionary", "g": "Sector ETF"},
+    {"t": "SOXX", "n": "iShares Semiconductor ETF", "g": "Semiconductors"},
+]
+
 
 class PolygonClient:
     BASE = "https://api.polygon.io"
@@ -345,6 +370,34 @@ class EODHDClient:
             return df, f"eodhd_commodity:{code}"
         except Exception:
             return None, "none"
+
+    def options_eod(self, symbol, start_date, end_date, exp_from=None, exp_to=None, limit=1000):
+        if not self.enabled:
+            return []
+        try:
+            url = f"{self.BASE}/mp/unicornbay/options/eod"
+            params = {
+                "api_token": self.api_key,
+                "filter[underlying_symbol]": symbol,
+                "filter[type]": "put",
+                "filter[tradetime_from]": str(start_date),
+                "filter[tradetime_to]": str(end_date),
+                "page[limit]": str(limit),
+            }
+            if exp_from:
+                params["filter[exp_date_from]"] = str(exp_from)
+            if exp_to:
+                params["filter[exp_date_to]"] = str(exp_to)
+            r = self.session.get(url, params=params, timeout=45)
+            if r.status_code >= 400:
+                return []
+            payload = r.json()
+            rows = payload.get("data") if isinstance(payload, dict) else payload
+            if not isinstance(rows, list):
+                return []
+            return [row.get("attributes", row) for row in rows if isinstance(row, dict)]
+        except Exception:
+            return []
 
 
 EODHD = EODHDClient(EODHD_API_KEY)
@@ -1274,6 +1327,134 @@ def return_histogram_payload(symbols=None, years=25):
             }
         except Exception as e:
             print(f"  Return histogram {symbol}: {e}")
+    return payload
+
+
+def _safe_float(value):
+    try:
+        if value is None:
+            return None
+        val = float(value)
+        if not np.isfinite(val):
+            return None
+        return val
+    except Exception:
+        return None
+
+
+def put_iv_rows_for_symbol(symbol, months=3, rolling_window=20):
+    if not EODHD.enabled:
+        return [], {"status": "missing_api_key"}
+    end = datetime.date.today()
+    start = end - datetime.timedelta(days=int(months * 31))
+    buckets = {}
+    rows = EODHD.options_eod(
+        symbol,
+        start,
+        end,
+        exp_from=start + datetime.timedelta(days=14),
+        exp_to=end + datetime.timedelta(days=120),
+        limit=1000,
+    )
+    for row in rows:
+        if str(row.get("type", "")).lower() != "put":
+            continue
+        date = str(row.get("tradetime", ""))[:10]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            continue
+        dte = _safe_float(row.get("dte"))
+        moneyness = _safe_float(row.get("moneyness"))
+        vol = _safe_float(row.get("volatility"))
+        if vol is None or vol <= 0:
+            continue
+        if dte is not None and not (14 <= dte <= 120):
+            continue
+        if moneyness is not None and not (-0.35 <= moneyness <= 0.10):
+            continue
+        iv_pct = vol * 100 if vol <= 3 else vol
+        if not (1 <= iv_pct <= 300):
+            continue
+        oi = _safe_float(row.get("open_interest")) or 0
+        volume = _safe_float(row.get("volume")) or 0
+        weight = max(1.0, oi, volume)
+        bucket = buckets.setdefault(date, {"w": 0.0, "ivw": 0.0, "contracts": 0})
+        bucket["w"] += weight
+        bucket["ivw"] += iv_pct * weight
+        bucket["contracts"] += 1
+
+    daily = []
+    for date, bucket in sorted(buckets.items()):
+        if bucket["w"] <= 0:
+            continue
+        daily.append({
+            "date": date,
+            "iv": bucket["ivw"] / bucket["w"],
+            "contracts": int(bucket["contracts"]),
+        })
+    if len(daily) < 5:
+        return [], {"status": "insufficient_data", "observations": len(daily)}
+
+    ivs = pd.Series([r["iv"] for r in daily], dtype="float64")
+    min_periods = min(5, rolling_window)
+    means = ivs.rolling(rolling_window, min_periods=min_periods).mean()
+    sigmas = ivs.rolling(rolling_window, min_periods=min_periods).std(ddof=1)
+    out = []
+    for i, row in enumerate(daily):
+        mean = means.iloc[i]
+        sigma = sigmas.iloc[i]
+        z = None
+        if pd.notna(mean) and pd.notna(sigma) and sigma > 0:
+            z = (row["iv"] - float(mean)) / float(sigma)
+        abs_z = abs(z) if z is not None else 0
+        sd_level = 4 if abs_z >= 4 else 3 if abs_z >= 3 else 2 if abs_z >= 2 else 0
+        out.append({
+            "date": row["date"],
+            "iv": round(float(row["iv"]), 4),
+            "mean": round(float(mean), 4) if pd.notna(mean) else None,
+            "upper2": round(float(mean + 2 * sigma), 4) if pd.notna(mean) and pd.notna(sigma) else None,
+            "lower2": round(float(mean - 2 * sigma), 4) if pd.notna(mean) and pd.notna(sigma) else None,
+            "upper3": round(float(mean + 3 * sigma), 4) if pd.notna(mean) and pd.notna(sigma) else None,
+            "lower3": round(float(mean - 3 * sigma), 4) if pd.notna(mean) and pd.notna(sigma) else None,
+            "upper4": round(float(mean + 4 * sigma), 4) if pd.notna(mean) and pd.notna(sigma) else None,
+            "lower4": round(float(mean - 4 * sigma), 4) if pd.notna(mean) and pd.notna(sigma) else None,
+            "z": round(float(z), 4) if z is not None else None,
+            "sd": sd_level,
+            "contracts": row["contracts"],
+        })
+    current = next((r for r in reversed(out) if r.get("z") is not None), out[-1] if out else {})
+    return out, {
+        "status": "ok",
+        "observations": len(out),
+        "rolling_window": rolling_window,
+        "current": current,
+    }
+
+
+def options_put_iv_payload(symbols=None):
+    payload = {}
+    for meta in symbols or OPTIONS_PUT_IV_SYMBOLS:
+        symbol = meta["t"]
+        try:
+            rows, status = put_iv_rows_for_symbol(symbol)
+            payload[symbol] = {
+                "ticker": symbol,
+                "name": meta.get("n", symbol),
+                "group": meta.get("g", "ETF"),
+                "source": "eodhd:options_eod",
+                "rows": rows,
+                "status": status,
+            }
+            print(f"  Put IV {symbol}: {len(rows)} days | status: {status.get('status')}")
+        except Exception as e:
+            payload[symbol] = {
+                "ticker": symbol,
+                "name": meta.get("n", symbol),
+                "group": meta.get("g", "ETF"),
+                "source": "eodhd:options_eod",
+                "rows": [],
+                "status": {"status": "error", "message": str(e)[:120]},
+            }
+            print(f"  Put IV {symbol}: {e}")
     return payload
 
 
@@ -2367,6 +2548,7 @@ def fetch_market_indicators():
         "forward_pe_history": [],
         "forward_pe_status": {},
         "return_histograms": {},
+        "options_put_iv": {},
         "pc_total_history": [],
         "pc_equity_history": [],
     }
@@ -2409,6 +2591,7 @@ def fetch_market_indicators():
         result["hyg_price"] = hyg_price_history[-1]["close"]
     result["hyg_nhnl_history"], result["hyg_nhnl_current"] = high_yield_nhnl_history()
     result["return_histograms"] = return_histogram_payload()
+    result["options_put_iv"] = options_put_iv_payload()
     print(f"  S&P/EODHD history: {len(result['sp500_history'])} days ({sp500_source})")
     print(f"  S&P weekly EMA history: {len(result['sp500_ema_weekly_history'])} weeks ({sp500_ema_source})")
     print(f"  S&P 20Y weekly history: {len(result['bt50_sp500_history'])} weeks ({sp500_20y_source})")
@@ -2424,6 +2607,7 @@ def fetch_market_indicators():
     print(f"  HYG total-return history: {len(result['hyg_history'])} days")
     print(f"  HYG NH-NL history: {len(result['hyg_nhnl_history'])} days")
     print(f"  Return histograms: {len(result['return_histograms'])} symbols")
+    print(f"  Options put IV: {len(result['options_put_iv'])} symbols")
 
     # ── VIX 30D ──────────────────────────────────────────────────
     try:
