@@ -1661,6 +1661,7 @@ let allStocks=[], allTrending=[], allSectors=[], breadthData={};
 let currentTF = "1d";
 let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
+let dataGenerated = "";
 let maDistBacktestSigmaLevel = 2;
 let maStockHistoryByTicker = null;
 let maStockHistoryPromise = null;
@@ -1754,6 +1755,7 @@ async function loadData() {
     allSectors  = json.sectors  || [];
     breadthData = json.breadth  || {};
     window._marketData = json.market || {};
+    dataGenerated = json.generated || "";
     document.getElementById("stockCount").textContent = "Stocks - " + (json.total || allStocks.length || "—");
     document.getElementById("lastUpd").textContent = "Updated: " + (json.generated || "—");
     filterGP(); filterOS(); filterTrend(); renderSectors();
@@ -2261,10 +2263,29 @@ function ensureMAStockOptions(stocks) {
 function maStockMetric(stock, ma) {
   const m = stock && stock.ma_ext ? stock.ma_ext[String(ma)] : null;
   if(!m || !Number.isFinite(+m.dist)) return null;
-  const z = Number.isFinite(+m.z) ? +m.z : null;
-  const pct = Number.isFinite(+m.pctile) ? +m.pctile : null;
+  const hist = maStockHistoryByTicker ? maStockHistoryByTicker.get(String(stock.ticker).toUpperCase()) : null;
+  const histIdx = ma === "50" ? 1 : 2;
+  let histVals = hist ? (hist.rows || []).map(r => +r[histIdx]).filter(Number.isFinite) : [];
+  const dist = +m.dist;
+  if(histVals.length && Number.isFinite(dist)) {
+    const lastRow = (hist.rows || []).slice().reverse().find(r => Number.isFinite(+r[histIdx]));
+    const liveDate = dataGenerated ? dataGenerated.slice(0, 10) : "";
+    if(liveDate && lastRow && liveDate > lastRow[0]) histVals = histVals.concat(dist);
+    else histVals = histVals.slice(0, -1).concat(dist);
+  }
+  let z = Number.isFinite(+m.z) ? +m.z : null;
+  let pct = Number.isFinite(+m.pctile) ? +m.pctile : null;
+  let obs = +m.obs || 0;
+  if(histVals.length >= 60) {
+    const stats = retStats(histVals);
+    if(stats.mean != null && Number.isFinite(stats.sigma) && stats.sigma > 0) {
+      z = (dist - stats.mean) / stats.sigma;
+      pct = percentileRank(histVals, dist);
+      obs = histVals.length;
+    }
+  }
   const pos52 = stock.hi52 > stock.lo52 ? ((+stock.price - +stock.lo52) / (+stock.hi52 - +stock.lo52)) * 100 : null;
-  return { dist:+m.dist, z, pct, obs:+m.obs || 0, pos52 };
+  return { dist:+m.dist, z, pct, obs, pos52 };
 }
 
 function loadMAStockHistory() {
@@ -2295,6 +2316,9 @@ function renderMAStockDistance() {
   const ma = document.getElementById("maStockAvg")?.value || "200";
   const input = document.getElementById("maStockSearch");
   const query = (input?.value || "").trim().toUpperCase();
+  if(!maStockHistoryByTicker && !maStockHistoryPromise) {
+    loadMAStockHistory().then(() => renderMAStockDistance()).catch(() => {});
+  }
   const stocks = maStockUniverse().filter(s => maStockMetric(s, ma));
   ensureMAStockOptions(stocks);
   const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
@@ -2362,6 +2386,16 @@ function renderMAStockHistoryChart(stock, ma) {
     dist50: r[1],
     dist200: r[2],
   })).filter(r => r.date && Number.isFinite(+r[key]));
+  const liveMetric = stock?.ma_ext?.[String(ma)];
+  const liveDist = liveMetric && Number.isFinite(+liveMetric.dist) ? +liveMetric.dist : null;
+  const liveDate = dataGenerated ? dataGenerated.slice(0, 10) : "";
+  if(liveDist != null && rows.length) {
+    if(liveDate && liveDate > rows[rows.length - 1].date) {
+      rows.push({ date: liveDate, [key]: liveDist });
+    } else {
+      rows[rows.length - 1] = { ...rows[rows.length - 1], [key]: liveDist };
+    }
+  }
   const vals = rows.map(r => +r[key]).filter(Number.isFinite);
   const stats = retStats(vals);
   if(vals.length < 60 || stats.mean == null || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
