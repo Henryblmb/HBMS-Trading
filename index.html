@@ -2220,7 +2220,7 @@ function renderMADistance() {
   }
   const ma = document.getElementById("maDistAvg")?.value || "200";
   const key = ma === "50" ? "dist50" : "dist200";
-  const rawRows = (item.rows || []).filter(r => r.date && Number.isFinite(+r[key]));
+  const rawRows = (item.rows || []).filter(r => r.date && r[key] != null && Number.isFinite(+r[key]));
   const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-madist", [rawRows], maDistHistoryRange));
   const vals = rows.map(r => +r[key]).filter(Number.isFinite);
   const stats = retStats(vals);
@@ -2400,7 +2400,7 @@ function renderMAStockHistoryChart(stock, ma) {
     date: r[0],
     dist50: r[1],
     dist200: r[2],
-  })).filter(r => r.date && Number.isFinite(+r[key]));
+  })).filter(r => r.date && r[key] != null && Number.isFinite(+r[key]));
   const liveMetric = stock?.ma_ext?.[String(ma)];
   const liveDist = liveMetric && Number.isFinite(+liveMetric.dist) ? +liveMetric.dist : null;
   const liveDate = dataGenerated ? dataGenerated.slice(0, 10) : "";
