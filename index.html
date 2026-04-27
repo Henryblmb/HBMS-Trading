@@ -1125,7 +1125,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-putiv">
       <div class="cg-header">
         <div class="cg-title">Put Implied Volatility — ETF/Sector Options</div>
-        <div class="cg-sub">Daily weighted put IV from EODHD options data. The model compares current put IV with its rolling mean and marks unusual 2σ, 3σ and 4σ deviations.</div>
+        <div class="cg-sub">Daily weighted put IV from EODHD options data. The model compares current put IV with a static mean and sigma from the selected date range, marking unusual 2σ, 3σ and 4σ deviations.</div>
       </div>
 
       <div class="filter-row" style="margin-bottom:.9rem">
@@ -1145,10 +1145,10 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="putIvTitle">Put IV vs Rolling Sigma Bands</span>
+          <span class="cg-chart-title" id="putIvTitle">Put IV vs Static Sigma Bands</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Put IV</span>
-            <span><span class="cg-leg-line" style="background:#5892d4"></span>Rolling mean</span>
+            <span><span class="cg-leg-line" style="background:#5892d4"></span>Static mean</span>
             <span style="color:#EF9F27">±2σ</span>
             <span style="color:#e05050">±3σ / ±4σ</span>
           </div>
@@ -1908,6 +1908,32 @@ function putIvSignalLabel(z) {
   return { text: abs >= 2 ? `${dir} ${level}` : level, color };
 }
 
+function putIvStaticStats(rows) {
+  const vals = (rows || []).map(r => +r.iv).filter(Number.isFinite);
+  if(!vals.length) return null;
+  const mean = vals.reduce((a,b)=>a+b,0) / vals.length;
+  const variance = vals.length > 1 ? vals.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / (vals.length - 1) : 0;
+  const sigma = Math.sqrt(variance);
+  const enrich = r => {
+    const iv = +r.iv;
+    const z = Number.isFinite(iv) && sigma > 0 ? (iv - mean) / sigma : null;
+    const abs = Math.abs(z || 0);
+    return {
+      ...r,
+      mean,
+      upper2: mean + 2 * sigma,
+      lower2: mean - 2 * sigma,
+      upper3: mean + 3 * sigma,
+      lower3: mean - 3 * sigma,
+      upper4: mean + 4 * sigma,
+      lower4: mean - 4 * sigma,
+      z: z == null ? null : z,
+      sd: abs >= 4 ? 4 : abs >= 3 ? 3 : abs >= 2 ? 2 : 0,
+    };
+  };
+  return { mean, sigma, rows: rows.map(enrich) };
+}
+
 function drawPutIVOptions() {
   const ticker = ensurePutIVOptions();
   const data = optionsPutIVData();
@@ -1927,17 +1953,19 @@ function drawPutIVOptions() {
     if(desc) desc.textContent = `${ticker} · ${item.name || ticker} · ${rows.length} observations in selected range`;
     return;
   }
-  const last = [...rows].reverse().find(r => Number.isFinite(+r.z)) || rows[rows.length - 1];
+  const staticStats = putIvStaticStats(rows);
+  const staticRows = staticStats?.rows || rows;
+  const last = [...staticRows].reverse().find(r => Number.isFinite(+r.z)) || staticRows[staticRows.length - 1];
   const z = +last.z;
   const label = putIvSignalLabel(z);
   const set = (id, txt, color) => { const el=document.getElementById(id); if(el){ el.textContent=txt; if(color) el.style.color=color; } };
   set("putIvCurrent", Number.isFinite(+last.iv) ? (+last.iv).toFixed(1) + "%" : "—", "#d8d8d8");
   set("putIvZ", Number.isFinite(z) ? z.toFixed(2) + "σ" : "—", label.color);
   set("putIvSigma", label.text, label.color);
-  set("putIvTitle", `${ticker} Put IV vs Rolling Sigma Bands`);
+  set("putIvTitle", `${ticker} Put IV vs Static Sigma Bands`);
   const desc = document.getElementById("putIvDesc");
-  if(desc) desc.textContent = `${ticker} · ${item.name || ticker} · ${rows[0].date} to ${rows[rows.length-1].date} · ${rows.length} observations · ${item.status?.rolling_window || 20}-observation rolling window`;
-  drawPutIVChart(rows);
+  if(desc) desc.textContent = `${ticker} · ${item.name || ticker} · ${rows[0].date} to ${rows[rows.length-1].date} · ${rows.length} observations · static mean ${staticStats.mean.toFixed(1)}% · σ ${staticStats.sigma.toFixed(1)}%`;
+  drawPutIVChart(staticRows);
 }
 
 function drawPutIVChart(rows, hoverIndex=null) {
@@ -1962,6 +1990,11 @@ function drawPutIVChart(rows, hoverIndex=null) {
   const zY = v => botY + botH - ((v - zMin) / (zMax - zMin)) * botH;
   ctx.strokeStyle="rgba(255,255,255,.05)"; ctx.lineWidth=1; ctx.font="10px sans-serif";
   for(let i=0;i<=4;i++){ const y=PAD.top+i/4*topH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.fillStyle="rgba(239,159,39,.055)";
+  ctx.fillRect(PAD.left, toY(rows[0].upper2), PW, Math.max(0, toY(rows[0].lower2) - toY(rows[0].upper2)));
+  ctx.fillStyle="rgba(224,80,80,.035)";
+  ctx.fillRect(PAD.left, toY(rows[0].upper3), PW, Math.max(0, toY(rows[0].upper2) - toY(rows[0].upper3)));
+  ctx.fillRect(PAD.left, toY(rows[0].lower2), PW, Math.max(0, toY(rows[0].lower3) - toY(rows[0].lower2)));
   [2,3,4,-2,-3,-4].forEach(z => {
     const y = zY(z);
     ctx.strokeStyle = Math.abs(z) >= 3 ? "rgba(224,80,80,.35)" : "rgba(239,159,39,.35)";
@@ -1975,10 +2008,16 @@ function drawPutIVChart(rows, hoverIndex=null) {
     rows.forEach((r,i)=>{ const v=+r[key]; if(!Number.isFinite(v)) return; const x=toX(i), y=toY(v); if(!started){ctx.moveTo(x,y); started=true;} else ctx.lineTo(x,y); });
     ctx.stroke(); ctx.setLineDash([]);
   };
-  drawLine("upper4","rgba(224,80,80,.30)",1,[2,4]); drawLine("lower4","rgba(224,80,80,.30)",1,[2,4]);
-  drawLine("upper3","rgba(224,80,80,.42)",1,[4,4]); drawLine("lower3","rgba(224,80,80,.42)",1,[4,4]);
-  drawLine("upper2","rgba(239,159,39,.50)",1,[6,4]); drawLine("lower2","rgba(239,159,39,.50)",1,[6,4]);
-  drawLine("mean","#5892d4",1.4); drawLine("iv","#d8d8d8",2);
+  const drawH = (v, color, width=1, dash=null) => {
+    const y = toY(v);
+    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke(); ctx.setLineDash([]);
+  };
+  drawH(rows[0].upper4,"rgba(224,80,80,.30)",1,[2,4]); drawH(rows[0].lower4,"rgba(224,80,80,.30)",1,[2,4]);
+  drawH(rows[0].upper3,"rgba(224,80,80,.42)",1,[4,4]); drawH(rows[0].lower3,"rgba(224,80,80,.42)",1,[4,4]);
+  drawH(rows[0].upper2,"rgba(239,159,39,.50)",1,[6,4]); drawH(rows[0].lower2,"rgba(239,159,39,.50)",1,[6,4]);
+  drawH(rows[0].mean,"#5892d4",1.4);
+  drawLine("iv","#d8d8d8",2);
   rows.forEach((r,i)=>{
     const z=+r.z; if(!Number.isFinite(z)) return;
     const x=toX(i), y0=zY(0), y=zY(Math.max(zMin, Math.min(zMax, z)));
