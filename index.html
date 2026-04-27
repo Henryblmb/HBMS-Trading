@@ -1267,7 +1267,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-madist">
       <div class="cg-header">
         <div class="cg-title">Distance From Moving Average — ETF Extension Model</div>
-        <div class="cg-sub">Daily distance from the selected moving average. The model compares current extension with the selected history window and marks unusually stretched or washed-out regimes.</div>
+        <div class="cg-sub">Daily distance from the selected moving average. The model compares current extension with the selected history window and marks unusually stretched or washed-out regimes, capped to one signal per month per side.</div>
       </div>
 
       <div class="filter-row" style="margin-bottom:.9rem">
@@ -2525,7 +2525,7 @@ function renderMADistance() {
   set("maDistNow", fmtPct(last, 2), col);
   set("maDistZ", (z >= 0 ? "+" : "") + z.toFixed(2) + "σ", col);
   set("maDistPctile", pct == null ? "—" : pct.toFixed(0) + "th", pct >= 90 ? "#1D9E75" : pct <= 10 ? "#e05050" : "#777");
-  set("maDistDesc", `${ticker} · ${item.name || ticker} · ${rows[0].date} to ${rows[rows.length-1].date} · ${vals.length} observations · ${ma}D moving average`);
+  set("maDistDesc", `${ticker} · ${item.name || ticker} · ${rows[0].date} to ${rows[rows.length-1].date} · ${vals.length} observations · ${ma}D moving average · signals capped monthly`);
   set("maDistTitle", `${ticker} Distance From ${ma}D Moving Average`);
   renderMADistanceForwardStats(rows, key, plus2, minus2);
   drawMADistanceChart(rows, key, stats.mean, plus2, minus2);
@@ -2533,8 +2533,8 @@ function renderMADistance() {
 
 function renderMADistanceForwardStats(rows, key, plus2, minus2) {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126}];
-  const calc = threshold => {
-    const events = rows.map((r,i)=>({r,i})).filter(({r,i}) => Number.isFinite(+r[key]) && threshold(+r[key]) && i + 21 < rows.length);
+  const calc = side => {
+    const events = maDistanceMonthlyEvents(rows, key, plus2, minus2, side).filter(({i}) => i + 21 < rows.length);
     return horizons.map(h => {
       const rets = events.map(({r,i}) => {
         const f = rows[i + h.days];
@@ -2548,11 +2548,25 @@ function renderMADistanceForwardStats(rows, key, plus2, minus2) {
   const render = (id, title, events, color) => {
     const el = document.getElementById(id); if(!el) return;
     const n = Math.max(...events.map(e=>e.n), 0);
-    el.innerHTML = `<div class="ret-fwd-events">${n} historical moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
+    el.innerHTML = `<div class="ret-fwd-events">${n} monthly-capped moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
       events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
   };
-  render("maDistForwardPos", "+2σ", calc(v => v >= plus2), "#1D9E75");
-  render("maDistForwardNeg", "−2σ", calc(v => v <= minus2), "#e05050");
+  render("maDistForwardPos", "+2σ", calc("pos"), "#1D9E75");
+  render("maDistForwardNeg", "−2σ", calc("neg"), "#e05050");
+}
+
+function maDistanceMonthlyEvents(rows, key, plus2, minus2, side) {
+  const byMonth = new Map();
+  rows.forEach((r, i) => {
+    const v = +r[key];
+    if(!r.date || !Number.isFinite(v)) return;
+    if(side === "pos" && v < plus2) return;
+    if(side === "neg" && v > minus2) return;
+    const month = r.date.slice(0, 7);
+    const prev = byMonth.get(month);
+    if(!prev || (side === "pos" ? v > prev.v : v < prev.v)) byMonth.set(month, { r, i, v });
+  });
+  return [...byMonth.values()].sort((a,b)=>a.i-b.i);
 }
 
 function drawMADistanceChart(rows, key, mean, plus2, minus2, hoverIndex=null) {
@@ -2576,10 +2590,13 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, hoverIndex=null) {
   ctx.beginPath();
   vals.forEach((v,i)=>{ const x=toX(i), y=toY(v); i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); });
   ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.7; ctx.stroke();
-  vals.forEach((v,i)=>{
-    if(v < plus2 && v > minus2) return;
-    ctx.fillStyle = v >= plus2 ? "#1D9E75" : "#e05050";
-    ctx.beginPath(); ctx.arc(toX(i), toY(v), 2.2, 0, Math.PI*2); ctx.fill();
+  const monthlyMarks = [
+    ...maDistanceMonthlyEvents(rows, key, plus2, minus2, "pos").map(e => ({...e, col:"#1D9E75"})),
+    ...maDistanceMonthlyEvents(rows, key, plus2, minus2, "neg").map(e => ({...e, col:"#e05050"})),
+  ].sort((a,b)=>a.i-b.i);
+  monthlyMarks.forEach(({i, v, col})=>{
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(toX(i), toY(v), 2.8, 0, Math.PI*2); ctx.fill();
   });
   ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [minus2,0,plus2].forEach(v => ctx.fillText(v.toFixed(1)+"%", PAD.left-5, toY(v)+3));
