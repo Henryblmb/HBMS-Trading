@@ -1641,6 +1641,17 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
             midpoint = (bid + ask) / 2
         price = midpoint if midpoint and midpoint > 0 else (last if last and last > 0 else None)
         premium = vol * price * 100 if price else 0
+        side = "unknown"
+        side_conf = None
+        if last is not None and bid is not None and ask is not None and ask > bid:
+            pos = (last - bid) / (ask - bid)
+            side_conf = max(0.0, min(1.0, pos))
+            if pos >= 0.70:
+                side = "ask"
+            elif pos <= 0.30:
+                side = "bid"
+            else:
+                side = "mid"
         parsed.append({
             "date": date,
             "trade_time": raw_trade_time,
@@ -1655,6 +1666,11 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
             "open_interest": oi,
             "vol_oi": (vol / oi) if oi > 0 else (vol if vol >= 1000 else None),
             "price": price,
+            "last": last,
+            "bid": bid,
+            "ask": ask,
+            "side": side,
+            "side_conf": side_conf,
             "premium": premium,
             "iv": (_safe_float(row.get("volatility")) or 0) * 100,
             "delta": _safe_float(row.get("delta")),
@@ -1759,6 +1775,11 @@ def unusual_options_for_symbol(symbol, lookback_days=45):
             "open_interest": int(r["open_interest"]),
             "vol_oi": round(vol_oi, 2) if vol_oi else None,
             "price": round(r["price"], 2) if r["price"] is not None else None,
+            "last": round(r["last"], 2) if r.get("last") is not None else None,
+            "bid": round(r["bid"], 2) if r.get("bid") is not None else None,
+            "ask": round(r["ask"], 2) if r.get("ask") is not None else None,
+            "side": r.get("side") or "unknown",
+            "side_conf": round(r["side_conf"], 2) if r.get("side_conf") is not None else None,
             "premium": int(r["premium"]),
             "iv": round(r["iv"], 2) if r["iv"] else None,
             "delta": round(r["delta"], 3) if r["delta"] is not None else None,
