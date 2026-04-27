@@ -2620,7 +2620,7 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=
   ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.7; ctx.stroke();
   const monthlyMarks = [
     ...maDistanceMonthlyEvents(rows, key, plus2, minus2, "pos").map(e => ({...e, col:"#1D9E75"})),
-    ...maDistanceMonthlyEvents(rows, key, plus2, minus2, "neg").map(e => ({...e, col:"#e05050"})),
+    ...maDistanceMonthlyEvents(rows, key, plus2, minus2, "neg").map(e => ({...e, col:e.v <= minus3 ? "#a855f7" : "#e05050"})),
   ].sort((a,b)=>a.i-b.i);
   monthlyMarks.forEach(({i, v, col})=>{
     ctx.fillStyle = col;
