@@ -335,6 +335,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .ma-forward-title{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
 .ma-sigma-toggle{margin-left:auto;border:0;background:transparent;color:#f1f1f1;font:inherit;font-size:9.5px;font-weight:600;cursor:pointer;padding:0;text-transform:none;letter-spacing:.02em;text-align:right}
 .ma-sigma-toggle:hover{color:#fff;text-decoration:underline;text-underline-offset:2px}
+.ma-sigma-pick{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:9.5px;text-transform:none;letter-spacing:.02em}
+.ma-sigma-pick span{color:#555}
+.ma-sigma-pick button{border:0;background:transparent;color:#888;font:inherit;font-weight:600;padding:0;cursor:pointer}
+.ma-sigma-pick button.active{color:#fff;text-decoration:underline;text-underline-offset:2px}
+.ma-sigma-pick button:hover{color:#fff;text-decoration:underline;text-underline-offset:2px}
 .interp-title{font-size:9.5px;font-weight:600;margin-bottom:3px;letter-spacing:.03em}
 .interp-title.bull{color:#1D9E75}
 .interp-title.bear{color:#e05050}
@@ -1307,13 +1312,21 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="signal-bar-desc" id="maStockDesc">Search S&amp;P 500 stocks by ticker or name.</div>
         <div class="signal-inline-controls">
           <div class="signal-inline-control">
-            <label>Search</label>
+            <label>Ticker</label>
             <input id="maStockSearch" list="maStockOptions" placeholder="Ticker or name" oninput="renderMAStockDistance()">
             <datalist id="maStockOptions"></datalist>
           </div>
           <div class="signal-inline-control">
             <label>Moving Avg</label>
             <select id="maStockAvg" onchange="renderMAStockDistance()"><option value="200" selected>200D</option><option value="50">50D</option></select>
+          </div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="maStockRange">
+            <button class="hist-btn" onclick="setMAStockDistanceRange('1Y',this)">1Y</button>
+            <button class="hist-btn active" onclick="setMAStockDistanceRange('5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setMAStockDistanceRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setMAStockDistanceRange('20Y',this)">20Y</button>
           </div>
         </div>
       </div>
@@ -1353,7 +1366,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bull"><div class="interp-title bull">Extended Upside</div><div class="interp-text">Stocks above +2σ are unusually stretched above their own trend. This can mark strong momentum, but also short-term exhaustion after fast vertical moves.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Washed Out</div><div class="interp-text">Stocks below −2σ are unusually stretched below trend. −3σ names are the deepest current dislocations in the S&amp;P 500 universe.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull" id="maStockForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maStockForwardPos">Click a stock to load forward performance.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear" id="maStockForwardNegTitle">Forward After −2σ</div><div class="interp-text" id="maStockForwardNeg">Click a stock to load forward performance.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear ma-forward-title"><span id="maStockForwardNegTitle">Forward After −2σ</span><div class="ma-sigma-pick"><span>Backtest</span><button id="maStockSigma1" onclick="setMAStockBacktestSigma(1)">1σ</button><button id="maStockSigma2" class="active" onclick="setMAStockBacktestSigma(2)">2σ</button><button id="maStockSigma3" onclick="setMAStockBacktestSigma(3)">3σ</button></div></div><div class="interp-text" id="maStockForwardNeg">Click a stock to load forward performance.</div></div>
       </div>
     </div>
 
@@ -1665,6 +1678,8 @@ let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
 let dataGenerated = "";
 let maDistBacktestSigmaLevel = 2;
+let maStockHistoryRange = "5Y";
+let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
 let maStockStatsPromise = null;
 let maStockHistoryCache = new Map();
@@ -2417,22 +2432,28 @@ function renderMAStockHistoryChart(stock, ma) {
       rows[rows.length - 1] = { ...rows[rows.length - 1], [key]: liveDist, close: liveClose ?? rows[rows.length - 1].close };
     }
   }
-  const vals = rows.map(r => +r[key]).filter(Number.isFinite);
+  const displayRows = filterRowsByDateDomain(rows, ensureCGDateControls("cg-madist-stocks", [rows], maStockHistoryRange));
+  const vals = displayRows.map(r => +r[key]).filter(Number.isFinite);
   const stats = retStats(vals);
   if(vals.length < 60 || stats.mean == null || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
     emptyCanvas("maStockChartCanvas", 360, stock ? "Not enough stock MA distance history" : "Search or click a stock to show its MA distance history");
     renderMAStockForwardStats(null, null, null, null, "Not enough stock MA distance history");
     return;
   }
-  renderMAStockForwardStats(rows, key, stats.mean, stats.sigma);
-  drawMADistanceChart(rows, key, stats.mean, stats.mean + 2 * stats.sigma, stats.mean - 2 * stats.sigma, stats.mean - 3 * stats.sigma, null, "maStockChartCanvas");
+  renderMAStockForwardStats(displayRows, key, stats.mean, stats.sigma);
+  drawMADistanceChart(displayRows, key, stats.mean, stats.mean + 2 * stats.sigma, stats.mean - 2 * stats.sigma, stats.mean - 3 * stats.sigma, null, "maStockChartCanvas");
 }
 
 function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
+  const sigmaLevel = maStockBacktestSigmaLevel || 2;
   const posTitle = document.getElementById("maStockForwardPosTitle");
   const negTitle = document.getElementById("maStockForwardNegTitle");
-  if(posTitle) posTitle.textContent = "Forward After +2σ";
-  if(negTitle) negTitle.textContent = "Forward After −2σ";
+  if(posTitle) posTitle.textContent = `Forward After +${sigmaLevel}σ`;
+  if(negTitle) negTitle.textContent = `Forward After −${sigmaLevel}σ`;
+  [1,2,3].forEach(level => {
+    const btn = document.getElementById(`maStockSigma${level}`);
+    if(btn) btn.classList.toggle("active", level === sigmaLevel);
+  });
   const renderEmpty = txt => {
     ["maStockForwardPos","maStockForwardNeg"].forEach(id => {
       const el = document.getElementById(id);
@@ -2443,7 +2464,7 @@ function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
     renderEmpty(message);
     return;
   }
-  const plus = mean + 2 * sigma, minus = mean - 2 * sigma;
+  const plus = mean + sigmaLevel * sigma, minus = mean - sigmaLevel * sigma;
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
   const calc = side => {
     const events = maDistanceMonthlyEvents(rows, key, plus, minus, side).filter(({i}) => i + 21 < rows.length);
@@ -2465,6 +2486,19 @@ function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
   };
   render("maStockForwardPos", calc("pos"));
   render("maStockForwardNeg", calc("neg"));
+}
+
+function setMAStockBacktestSigma(level) {
+  maStockBacktestSigmaLevel = level || 2;
+  renderMAStockDistance();
+}
+
+function setMAStockDistanceRange(range, btn) {
+  maStockHistoryRange = range || maStockHistoryRange;
+  delete cgDateRanges["cg-madist-stocks"];
+  document.querySelectorAll("#maStockRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  renderMAStockDistance();
 }
 
 function toggleMADistSigma(e) {
