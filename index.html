@@ -2392,11 +2392,11 @@ function renderMAStockHistoryChart(stock, ma) {
   const tickerKey = String(stock.ticker).toUpperCase();
   const cached = maStockHistoryCache.get(tickerKey);
   if(!cached) {
-    emptyCanvas("maStockChartCanvas", 360, `Loading ${tickerKey} 20Y MA distance history...`);
+    emptyCanvas("maStockChartCanvas", 360, `Loading ${tickerKey} full MA distance history...`);
     renderMAStockForwardStats(null, null, null, null, `Loading ${tickerKey} history...`);
     loadMAStockHistory(tickerKey).then(() => renderMAStockDistance()).catch(() => {
-      emptyCanvas("maStockChartCanvas", 360, "20Y stock MA distance history unavailable");
-      renderMAStockForwardStats(null, null, null, null, "20Y stock MA distance history unavailable");
+      emptyCanvas("maStockChartCanvas", 360, "Full stock MA distance history unavailable");
+      renderMAStockForwardStats(null, null, null, null, "Full stock MA distance history unavailable");
     });
     return;
   }
