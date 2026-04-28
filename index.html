@@ -1327,7 +1327,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="signal-range-controls" data-cg-date-host>
           <div class="hist-range" id="maStockRange">
             <button class="hist-btn" onclick="setMAStockDistanceRange('1Y',this)">1Y</button>
-            <button class="hist-btn active" onclick="setMAStockDistanceRange('5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setMAStockDistanceRange('5Y',this)">5Y</button>
             <button class="hist-btn" onclick="setMAStockDistanceRange('10Y',this)">10Y</button>
             <button class="hist-btn" onclick="setMAStockDistanceRange('20Y',this)">20Y</button>
           </div>
@@ -1681,7 +1681,7 @@ let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
 let dataGenerated = "";
 let maDistBacktestSigmaLevel = 2;
-let maStockHistoryRange = "5Y";
+let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
 let maStockStatsPromise = null;
@@ -2300,7 +2300,9 @@ function ensureMAStockOptions(stocks) {
 function maStockMetric(stock, ma) {
   const m = stock && stock.ma_ext ? stock.ma_ext[String(ma)] : null;
   if(!m || !Number.isFinite(+m.dist)) return null;
-  const s20 = maStockStatsByTicker ? maStockStatsByTicker.get(String(stock.ticker).toUpperCase())?.[String(ma)] : null;
+  const rangeKey = maStockHistoryRange || "max";
+  const statRoot = maStockStatsByTicker ? maStockStatsByTicker.get(String(stock.ticker).toUpperCase())?.[String(ma)] : null;
+  const s20 = statRoot ? (statRoot[rangeKey] || statRoot.max || statRoot) : null;
   const z = s20 && Number.isFinite(+s20.z) ? +s20.z : (Number.isFinite(+m.z) ? +m.z : null);
   const pct = s20 && Number.isFinite(+s20.pctile) ? +s20.pctile : (Number.isFinite(+m.pctile) ? +m.pctile : null);
   const obs = s20 && Number.isFinite(+s20.obs) ? +s20.obs : (+m.obs || 0);
@@ -3054,6 +3056,7 @@ function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
       cgDateRanges[chart] = { start: latestBounds.min, end: latestBounds.max };
       start.value = latestBounds.min;
       end.value = latestBounds.max;
+      if(chart === "cg-madist-stocks") maStockHistoryRange = "max";
       host.querySelectorAll(".hist-range .hist-btn").forEach(b => b.classList.remove("active"));
       wrap.querySelector("[data-cg-max]")?.classList.add("active");
       (cgRedraw[chart] || (()=>{}))();
