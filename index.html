@@ -313,7 +313,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 
 /* Chart wrapper */
 .cg-chart-box{background:#0d0d0d;border:1px solid #1a1a1a;margin-bottom:.7rem}
-.chart-watermark{position:absolute;left:14px;bottom:10px;z-index:3;pointer-events:none;font-size:10px;font-weight:800;letter-spacing:.08em;color:rgba(255,255,255,.34);text-shadow:0 1px 3px rgba(0,0,0,.85);text-transform:none}
+.has-chart-watermark{padding-bottom:18px}
+.chart-watermark{position:absolute;left:14px;bottom:4px;z-index:3;pointer-events:none;font-size:10px;font-weight:800;letter-spacing:.08em;color:rgba(255,255,255,.48);text-shadow:0 1px 3px rgba(0,0,0,.9);text-transform:none}
 .cg-chart-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px 0}
 .cg-chart-title{font-size:9px;color:#333;text-transform:uppercase;letter-spacing:.1em}
 .cg-chart-legend{display:flex;gap:10px;font-size:8.5px;color:#333}
@@ -1712,6 +1713,7 @@ function installChartWatermarks() {
     if(!parent || parent.querySelector(":scope > .chart-watermark")) return;
     const style = window.getComputedStyle(parent);
     if(style.position === "static") parent.style.position = "relative";
+    parent.classList.add("has-chart-watermark");
     const mark = document.createElement("div");
     mark.className = "chart-watermark";
     mark.textContent = "@HBMStrategies";
