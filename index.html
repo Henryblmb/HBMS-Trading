@@ -281,6 +281,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .signal-range-controls .cg-date-range input:focus,.signal-bar>.cg-date-range input:focus{border:0;color:#fff;text-decoration:underline;text-underline-offset:3px}
 .signal-range-controls .cg-date-range button,.signal-bar>.cg-date-range button{height:auto;border:0;background:transparent;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;cursor:pointer}
 .signal-range-controls .cg-date-range button:hover,.signal-bar>.cg-date-range button:hover{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
+.signal-range-controls .cg-date-range button.active,.signal-bar>.cg-date-range button.active{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:3px}
 .signal-inline-controls{display:flex;align-items:center;gap:18px;margin-left:auto}
 .signal-inline-control{display:flex;align-items:center;gap:7px;white-space:nowrap}
 .signal-inline-control label{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.07em}
@@ -3020,7 +3021,15 @@ function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
     host.appendChild(wrap);
     const start = wrap.querySelector('[data-cg-date="start"]');
     const end = wrap.querySelector('[data-cg-date="end"]');
-    const redraw = () => { cgDateRanges[chart] = { start: start.value, end: end.value }; (cgRedraw[chart] || (()=>{}))(); };
+    const clearRangeActive = () => {
+      host.querySelectorAll(".hist-range .hist-btn").forEach(b => b.classList.remove("active"));
+      wrap.querySelector("[data-cg-max]")?.classList.remove("active");
+    };
+    const redraw = () => {
+      clearRangeActive();
+      cgDateRanges[chart] = { start: start.value, end: end.value };
+      (cgRedraw[chart] || (()=>{}))();
+    };
     start.addEventListener("change", redraw);
     end.addEventListener("change", redraw);
     wrap.querySelector("[data-cg-max]").addEventListener("click", () => {
@@ -3028,6 +3037,8 @@ function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
       cgDateRanges[chart] = { start: latestBounds.min, end: latestBounds.max };
       start.value = latestBounds.min;
       end.value = latestBounds.max;
+      host.querySelectorAll(".hist-range .hist-btn").forEach(b => b.classList.remove("active"));
+      wrap.querySelector("[data-cg-max]")?.classList.add("active");
       (cgRedraw[chart] || (()=>{}))();
     });
   }
@@ -3051,6 +3062,10 @@ function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
   if(range.start > range.end) range.start = bounds.min;
   start.value = range.start;
   end.value = range.end;
+  const maxBtn = wrap.querySelector("[data-cg-max]");
+  const isMaxRange = range.start === bounds.min && range.end === bounds.max;
+  if(maxBtn) maxBtn.classList.toggle("active", isMaxRange);
+  if(isMaxRange) host.querySelectorAll(".hist-range .hist-btn").forEach(b => b.classList.remove("active"));
   return { startMs: rowDateMs({ date: range.start }), endMs: rowDateMs({ date: range.end }) };
 }
 
