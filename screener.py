@@ -974,11 +974,11 @@ def process_ma_stock_history(stock):
                 eod_symbols.append(f"{t.replace('.', '-')}.US")
             hist_d, source = EODHD.eod_history(
                 eod_symbols,
-                years=20,
-                start_date=datetime.date.today() - datetime.timedelta(days=20 * 370 + 10),
+                years=80,
+                start_date=datetime.date(1900, 1, 1),
             )
         if hist_d is None or len(hist_d) < 260:
-            hist_d, source = history_df(t, years=20, period="20y")
+            hist_d, source = history_df(t, years=80, period="max")
         if hist_d is None or len(hist_d) < 260:
             return None
         close = hist_d.dropna(subset=["Close"])["Close"].astype(float)
@@ -2965,7 +2965,7 @@ def run_once(upload=True, include_insider=True):
 
     trending_results = run_parallel("[2/5] Trending Assets", assets, process_trending, "asset")
     stock_results = run_parallel("[3/5] Stocks (S&P 500, DAX, HSI)", universe, process_stock, "stock")
-    ma_stock_history = run_parallel("[3b/5] MA Distance Stock History (20Y S&P 500)", sp500, process_ma_stock_history, "ma_history")
+    ma_stock_history = run_parallel("[3b/5] MA Distance Stock History (Full S&P 500)", sp500, process_ma_stock_history, "ma_history")
 
     print("\n[4/5] Market Breadth...")
     breadth = calc_breadth(stock_results)
@@ -3020,7 +3020,7 @@ def run_once(upload=True, include_insider=True):
     print(f"\nSaved: data.json ({len(data_json) // 1024} KB)")
     ma_stats = clean_nans({
         "generated": output["generated"],
-        "years": 20,
+        "years": "max",
         "stocks": ma_stock_history_stats(ma_stock_history, stock_results, output["generated"]),
     })
     ma_stats_json = json.dumps(ma_stats, ensure_ascii=False, separators=(",", ":"))
