@@ -1014,40 +1014,57 @@ def ma_stock_history_stats(history_items, stock_results, generated):
     live = {str(s.get("ticker", "")).upper(): s for s in stock_results if s.get("ticker")}
     stats_items = []
     gen_date = str(generated or "")[:10]
+    windows = {
+        "max": None,
+        "20Y": 20,
+        "10Y": 10,
+        "5Y": 5,
+        "1Y": 1,
+    }
     for item in history_items:
         ticker = str(item.get("ticker", "")).upper()
         stock = live.get(ticker, {})
         ma_out = {}
         for ma_len, idx in (("50", 1), ("200", 2)):
-            vals = [
-                float(r[idx])
-                for r in item.get("rows", [])
-                if len(r) > idx and r[idx] is not None and np.isfinite(float(r[idx]))
-            ]
+            dated_vals = []
+            for r in item.get("rows", []):
+                if len(r) > idx and r[idx] is not None and np.isfinite(float(r[idx])):
+                    dated_vals.append((str(r[0]), float(r[idx])))
             live_dist = ((stock.get("ma_ext") or {}).get(ma_len) or {}).get("dist")
-            if vals and live_dist is not None and np.isfinite(float(live_dist)):
+            if dated_vals and live_dist is not None and np.isfinite(float(live_dist)):
                 last_row = next(
                     (r for r in reversed(item.get("rows", [])) if len(r) > idx and r[idx] is not None),
                     None,
                 )
                 live_dist = float(live_dist)
                 if gen_date and last_row and gen_date > str(last_row[0]):
-                    vals.append(live_dist)
+                    dated_vals.append((gen_date, live_dist))
                 else:
-                    vals = vals[:-1] + [live_dist]
-            if len(vals) >= 60:
-                arr = pd.Series(vals, dtype=float).dropna()
-                sigma = float(arr.std(ddof=1))
-                if sigma > 0 and live_dist is not None and np.isfinite(float(live_dist)):
-                    mean = float(arr.mean())
-                    pctile = float((arr <= float(live_dist)).sum() / len(arr) * 100)
-                    ma_out[ma_len] = {
-                        "mean": round(mean, 4),
-                        "sigma": round(sigma, 4),
-                        "z": round((float(live_dist) - mean) / sigma, 4),
-                        "pctile": round(pctile, 2),
-                        "obs": int(len(arr)),
-                    }
+                    dated_vals = dated_vals[:-1] + [(str(last_row[0]), live_dist)]
+            ma_stats = {}
+            end_date = dated_vals[-1][0] if dated_vals else None
+            for label, years in windows.items():
+                vals = dated_vals
+                if years and end_date:
+                    cutoff = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+                    cutoff = cutoff.replace(year=cutoff.year - years)
+                    vals = [(d, v) for d, v in dated_vals if d >= str(cutoff)]
+                clean_vals = [v for _, v in vals]
+                if len(clean_vals) >= 60:
+                    arr = pd.Series(clean_vals, dtype=float).dropna()
+                    sigma = float(arr.std(ddof=1))
+                    if sigma > 0 and live_dist is not None and np.isfinite(float(live_dist)):
+                        mean = float(arr.mean())
+                        pctile = float((arr <= float(live_dist)).sum() / len(arr) * 100)
+                        ma_stats[label] = {
+                            "mean": round(mean, 4),
+                            "sigma": round(sigma, 4),
+                            "z": round((float(live_dist) - mean) / sigma, 4),
+                            "pctile": round(pctile, 2),
+                            "obs": int(len(arr)),
+                        }
+            if ma_stats:
+                ma_out[ma_len] = ma_stats
         stats_items.append({"ticker": ticker, "name": item.get("name") or ticker, "ma": ma_out})
     return stats_items
 
