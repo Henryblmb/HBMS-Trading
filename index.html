@@ -292,6 +292,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 #retHistTicker{width:220px}
 #retHistBins{width:28px}
 #vixSpikePct{width:54px}
+#rollRetSearch{width:160px}
 .signal-inline-control select:hover,.signal-inline-control select:focus{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .signal-inline-controls+.signal-range-controls{margin-left:24px}
 .signal-inline-control input{border:0;border-radius:0;background:transparent!important;box-shadow:none;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;outline:none}
@@ -568,7 +569,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
-      <div class="nav-item sub" onclick="showTab('cg-rollret',this)">SPY Rolling Returns</div>
+      <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
       <div class="nav-item sub" onclick="showTab('cg-madist-stocks',this)">MA Distance Stocks</div>
@@ -982,11 +983,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
-    <!-- SPY ROLLING RETURNS -->
+    <!-- ROLLING RETURNS -->
     <div class="panel cg-page" id="tab-cg-rollret">
       <div class="cg-header">
-        <div class="cg-title">SPY Rolling Returns — 20D Momentum Bands</div>
-        <div class="cg-sub">Twenty-trading-day S&amp;P 500 returns measured against the selected-history mean and selectable sigma bands. Upper-band thrusts mark persistent momentum pressure; lower-band breaks mark short-term stress or washout.</div>
+        <div class="cg-title">Rolling Returns — 20D Momentum Bands</div>
+        <div class="cg-sub">Twenty-trading-day returns measured against the selected-history mean and selectable sigma bands. Upper-band thrusts mark persistent momentum pressure; lower-band breaks mark short-term stress or washout.</div>
       </div>
 
       <div class="signal-bar">
@@ -1010,6 +1011,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-bar-val" id="rollRetSignal" style="font-size:14px;color:#777;padding-top:4px">—</div>
         </div>
         <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Ticker</label>
+            <input id="rollRetSearch" list="rollRetOptions" value="SPY" placeholder="Ticker or name" oninput="drawRollingReturnModel()">
+            <datalist id="rollRetOptions"></datalist>
+          </div>
           <div class="signal-inline-control">
             <label>Sigma</label>
             <select id="rollRetSigmaSelect" onchange="setRollingReturnSigma(this.value)">
@@ -1041,9 +1047,9 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="rollRetTitle">S&amp;P 500 + 20D Rolling Returns</span>
+          <span class="cg-chart-title" id="rollRetTitle">20D Rolling Returns</span>
           <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span><span id="rollRetPriceLegend">Price</span></span>
             <span><span class="cg-leg-line" style="background:#cfd6dc"></span>20D return</span>
             <span id="rollRetUpperLegend" style="color:#1D9E75">Upper 2.0σ</span>
             <span id="rollRetLowerLegend" style="color:#e05050">Lower 2.0σ</span>
@@ -2326,16 +2332,75 @@ function drawReturnSeriesChart(rows, mean, plus2, minus2, hoverIndex=null) {
   }
 }
 
-function rollingReturnBaseHistory() {
-  const candidates = [
-    marketHistory("sp500_history_rsi"),
-    marketHistory("sp500_history_20y"),
-    marketHistory("sp500_history"),
-    marketHistory("spy_history")
-  ];
-  const rows = (candidates.find(arr => arr && arr.length > 260) || candidates.find(arr => arr && arr.length) || [])
-    .filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0)
+function rollingReturnUniverse() {
+  const etfs = Object.entries(maDistanceData()).map(([ticker, item]) => ({
+    ticker: String(ticker).toUpperCase(),
+    name: item?.name || ticker,
+    type: "ETF",
+    source: "etf",
+    item
+  }));
+  const seen = new Set(etfs.map(x => x.ticker));
+  const stocks = maStockUniverse()
+    .filter(s => s && s.ticker && !seen.has(String(s.ticker).toUpperCase()))
+    .map(s => ({
+      ticker: String(s.ticker).toUpperCase(),
+      name: s.name || s.ticker,
+      type: "Stock",
+      source: "stock",
+      item: s
+    }));
+  return [...etfs, ...stocks].sort((a,b) => a.ticker.localeCompare(b.ticker));
+}
+
+function ensureRollingReturnOptions(universe) {
+  const dl = document.getElementById("rollRetOptions");
+  const input = document.getElementById("rollRetSearch");
+  if(!dl) return;
+  const sig = universe.map(u => u.ticker).join("|");
+  if(dl.dataset.sig !== sig) {
+    dl.innerHTML = universe.map(u => `<option value="${seasonEscape(u.ticker)}">${seasonEscape(u.name || u.ticker)} · ${u.type}</option>`).join("");
+    dl.dataset.sig = sig;
+  }
+  if(input && !input.value && universe.some(u => u.ticker === "SPY")) input.value = "SPY";
+}
+
+function resolveRollingReturnSelection() {
+  const universe = rollingReturnUniverse();
+  ensureRollingReturnOptions(universe);
+  const input = document.getElementById("rollRetSearch");
+  const query = (input?.value || "SPY").trim().toUpperCase();
+  return universe.find(u => u.ticker === query)
+    || universe.find(u => (u.name || "").toUpperCase().includes(query) || u.ticker.includes(query))
+    || universe.find(u => u.ticker === "SPY")
+    || universe[0]
+    || null;
+}
+
+function rollingReturnBaseHistory(selection) {
+  if(!selection) return [];
+  if(selection.source === "etf") {
+    return (selection.item?.rows || [])
+      .map(r => ({ date: r.date, close: +r.close }))
+      .filter(r => r.date && Number.isFinite(r.close) && r.close > 0)
+      .sort((a,b) => rowDateMs(a) - rowDateMs(b));
+  }
+  const tickerKey = selection.ticker;
+  const cached = maStockHistoryCache.get(tickerKey);
+  if(!cached) {
+    loadMAStockHistory(tickerKey).then(() => drawRollingReturnModel()).catch(() => {});
+    return null;
+  }
+  const rows = (cached.rows || [])
+    .map(r => ({ date: r[0], close: +r[3] }))
+    .filter(r => r.date && Number.isFinite(r.close) && r.close > 0)
     .sort((a,b) => rowDateMs(a) - rowDateMs(b));
+  const liveDate = dataGenerated ? dataGenerated.slice(0, 10) : "";
+  const liveClose = Number.isFinite(+selection.item?.price) ? +selection.item.price : null;
+  if(rows.length && liveDate && liveClose && liveDate >= rows[rows.length - 1].date) {
+    if(liveDate > rows[rows.length - 1].date) rows.push({ date: liveDate, close: liveClose });
+    else rows[rows.length - 1] = { ...rows[rows.length - 1], close: liveClose };
+  }
   return rows;
 }
 
@@ -2394,14 +2459,28 @@ function renderRollingReturnForward(rows, upper, lower, sideFilter="both") {
 }
 
 function drawRollingReturnModel() {
-  const rawRows = rollingReturnRows(rollingReturnBaseHistory(), 20);
+  const selection = resolveRollingReturnSelection();
+  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  if(!selection) {
+    emptyCanvas("rollRetCanvas", 420, "Rolling return universe unavailable - run screener.py");
+    set("rollRetNow", "—"); set("rollRetUpper", "—"); set("rollRetLower", "—"); set("rollRetSignal", "—");
+    return;
+  }
+  const baseHistory = rollingReturnBaseHistory(selection);
+  if(baseHistory === null) {
+    emptyCanvas("rollRetCanvas", 420, `Loading ${selection.ticker} full price history...`);
+    set("rollRetNow", "—"); set("rollRetUpper", "—"); set("rollRetLower", "—"); set("rollRetSignal", "LOADING");
+    set("rollRetTitle", `${selection.ticker} 20D Rolling Returns`);
+    set("rollRetPriceLegend", selection.ticker);
+    return;
+  }
+  const rawRows = rollingReturnRows(baseHistory, 20);
   const domain = ensureCGDateControls("cg-rollret", [rawRows], rollRetHistoryRange);
   const rows = filterRowsByDateDomain(rawRows, domain);
   const vals = rows.map(r => +r.ret20).filter(Number.isFinite);
   const stats = retStats(vals);
-  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
   if(rows.length < 80 || !Number.isFinite(stats.mean) || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
-    emptyCanvas("rollRetCanvas", 420, "Not enough S&P 500 rolling return history");
+    emptyCanvas("rollRetCanvas", 420, `Not enough ${selection.ticker} rolling return history`);
     set("rollRetNow", "—"); set("rollRetUpper", "—"); set("rollRetLower", "—"); set("rollRetSignal", "—");
     return;
   }
@@ -2418,7 +2497,8 @@ function drawRollingReturnModel() {
   set("rollRetUpper", fmtPct(upper, 2), "#1D9E75");
   set("rollRetLower", fmtPct(lower, 2), "#e05050");
   set("rollRetSignal", signal, col);
-  set("rollRetTitle", `S&P 500 + 20D Rolling Returns · ${rows[0].date} to ${rows[rows.length - 1].date} · ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ bands`);
+  set("rollRetTitle", `${selection.ticker} 20D Rolling Returns · ${rows[0].date} to ${rows[rows.length - 1].date} · ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ bands`);
+  set("rollRetPriceLegend", selection.ticker);
   set("rollRetUpperLegend", `Upper ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ`);
   set("rollRetLowerLegend", `Lower ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ`);
   set("rollRetSignalLegend", side === "both" ? "Bullish + bearish windows" : side === "bullish" ? "Bullish windows" : "Bearish windows");
@@ -2509,8 +2589,9 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null, sideF
   });
 
   const last = rows[rows.length - 1];
+  const priceLabel = document.getElementById("rollRetPriceLegend")?.textContent || "Price";
   ctx.fillStyle = "#d8d8d8"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("S&P", PAD.left + PW + 6, toPriceY(+last.close) + 3);
+  ctx.fillText(priceLabel.slice(0, 8), PAD.left + PW + 6, toPriceY(+last.close) + 3);
   ctx.fillStyle = sideFilter !== "bearish" && last.ret20 >= upper ? "#1D9E75" : sideFilter !== "bullish" && last.ret20 <= lower ? "#e05050" : "#cfd6dc";
   ctx.fillText("20D", PAD.left + PW + 6, toRetY(+last.ret20) + 3);
 
