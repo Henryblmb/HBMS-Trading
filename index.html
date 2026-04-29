@@ -1014,12 +1014,10 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
             <label>Sigma</label>
             <select id="rollRetSigmaSelect" onchange="setRollingReturnSigma(this.value)">
               <option value="1.5">1.5σ</option>
-              <option value="1.75" selected>1.75σ</option>
-              <option value="2">2.0σ</option>
-              <option value="2.25">2.25σ</option>
+              <option value="2" selected>2.0σ</option>
               <option value="2.5">2.5σ</option>
-              <option value="2.75">2.75σ</option>
               <option value="3">3.0σ</option>
+              <option value="3.5">3.5σ</option>
             </select>
           </div>
           <div class="signal-inline-control">
@@ -1047,8 +1045,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span><span class="cg-leg-line" style="background:#cfd6dc"></span>20D return</span>
-            <span id="rollRetUpperLegend" style="color:#1D9E75">Upper 1.75σ</span>
-            <span id="rollRetLowerLegend" style="color:#e05050">Lower 1.75σ</span>
+            <span id="rollRetUpperLegend" style="color:#1D9E75">Upper 2.0σ</span>
+            <span id="rollRetLowerLegend" style="color:#e05050">Lower 2.0σ</span>
             <span id="rollRetSignalLegend" style="color:rgba(29,158,117,.55)">Signal window</span>
           </div>
         </div>
@@ -1769,7 +1767,7 @@ let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
 let dataGenerated = "";
 let maDistBacktestSigmaLevel = 2;
-let rollRetSigmaLevel = 1.75;
+let rollRetSigmaLevel = 2;
 let rollRetSignalSide = "both";
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
@@ -2407,7 +2405,7 @@ function drawRollingReturnModel() {
     set("rollRetNow", "—"); set("rollRetUpper", "—"); set("rollRetLower", "—"); set("rollRetSignal", "—");
     return;
   }
-  const sigmaLevel = rollRetSigmaLevel || 1.75;
+  const sigmaLevel = rollRetSigmaLevel || 2;
   const side = rollRetSignalSide || "both";
   const upper = stats.mean + sigmaLevel * stats.sigma;
   const lower = stats.mean - sigmaLevel * stats.sigma;
@@ -2861,14 +2859,9 @@ function setReturnHistogramRange(range, btn) {
 }
 
 function updateRollingReturnControlState() {
-  const sigma = +(rollRetSigmaLevel || 1.75);
+  const sigma = +(rollRetSigmaLevel || 2);
   const sigmaSelect = document.getElementById("rollRetSigmaSelect");
   if(sigmaSelect) sigmaSelect.value = String(sigma);
-  const sigmaKey = sigma === 1.5 ? "15" : sigma === 2 ? "20" : "175";
-  ["15","175","20"].forEach(key => {
-    const btn = document.getElementById("rollRetSigma" + key);
-    if(btn) btn.classList.toggle("active", key === sigmaKey);
-  });
   ["Both","Bullish","Bearish"].forEach(name => {
     const btn = document.getElementById("rollRetSide" + name);
     if(btn) btn.classList.toggle("active", name.toLowerCase() === (rollRetSignalSide || "both"));
@@ -2876,7 +2869,7 @@ function updateRollingReturnControlState() {
 }
 
 function setRollingReturnSigma(level) {
-  rollRetSigmaLevel = Number.isFinite(+level) ? +level : 1.75;
+  rollRetSigmaLevel = Number.isFinite(+level) ? +level : 2;
   drawRollingReturnModel();
 }
 
