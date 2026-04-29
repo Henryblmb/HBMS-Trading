@@ -3721,6 +3721,18 @@ function ensureCGDateControls(chart, rowGroups, fallbackRange="max") {
   return { startMs: rowDateMs({ date: range.start }), endMs: rowDateMs({ date: range.end }) };
 }
 
+function ensureCGCommonDateControls(chart, rowGroups, fallbackRange="max") {
+  const groups = (rowGroups || []).filter(group => Array.isArray(group) && group.some(r => r && r.date && Number.isFinite(rowDateMs(r))));
+  if(!groups.length) return null;
+  const timesByGroup = groups.map(group => group.map(rowDateMs).filter(Number.isFinite));
+  const fmt = ms => new Date(ms).toISOString().slice(0, 10);
+  const minMs = Math.max(...timesByGroup.map(times => Math.min(...times)));
+  const maxMs = Math.min(...timesByGroup.map(times => Math.max(...times)));
+  if(!Number.isFinite(minMs) || !Number.isFinite(maxMs) || minMs > maxMs) return null;
+  const domainSeed = [{ date: fmt(minMs) }, { date: fmt(maxMs) }];
+  return ensureCGDateControls(chart, [domainSeed], fallbackRange);
+}
+
 function filterRowsByCGDate(chart, rows, rowGroups, fallbackRange="max") {
   const domain = ensureCGDateControls(chart, rowGroups || [rows], fallbackRange);
   return filterRowsByDateDomain(rows || [], domain);
@@ -5014,17 +5026,18 @@ function drawMABreadthPrice(priceRows, breadthRows, key, domain, threshold=maBre
   });
 }
 
-function drawMABreadthPctChart(rows, key, threshold=maBreadthThresholdPct) {
+function drawMABreadthPctChart(rows, key, domain, threshold=maBreadthThresholdPct) {
   const c = mkCanvas("maBreadthCanvas", 260); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 48, bottom: 34, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
   const valid = (rows || []).filter(r => Number.isFinite(+r[`pct_${key}`]));
-  if(valid.length < 40) {
+  if(!domain || valid.length < 40) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center"; ctx.fillText("Breadth analyzer history unavailable - run screener.py", W/2, H/2); return;
   }
-  const toX = i => PAD.left + (i / Math.max(1, valid.length - 1)) * PW;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
   const toY = v => PAD.top + PH - (v / 100) * PH;
   const upper = 100 - threshold;
   ctx.fillStyle="rgba(29,158,117,.08)"; ctx.fillRect(PAD.left, PAD.top, PW, toY(upper) - PAD.top);
@@ -5036,20 +5049,22 @@ function drawMABreadthPctChart(rows, key, threshold=maBreadthThresholdPct) {
   });
   ctx.setLineDash([]);
   ctx.beginPath();
-  valid.forEach((r,i)=>i ? ctx.lineTo(toX(i), toY(+r[`pct_${key}`])) : ctx.moveTo(toX(i), toY(+r[`pct_${key}`])));
+  valid.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r[`pct_${key}`])) : ctx.moveTo(toX(r), toY(+r[`pct_${key}`])));
   ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.6; ctx.stroke();
-  const dotEvery = Math.max(1, Math.floor(valid.length / 180));
-  valid.forEach((r,i)=>{
-    if(i % dotEvery) return;
-    const pct = +r[`pct_${key}`];
-    if(pct < upper && pct > threshold) return;
-    ctx.beginPath(); ctx.arc(toX(i), toY(pct), 2.2, 0, Math.PI*2);
-    ctx.fillStyle = pct >= upper ? "#1D9E75" : "#e05050";
-    ctx.fill();
+  ["high","low"].forEach(side => {
+    maBreadthSignalEvents(valid, key, side, threshold).forEach(e => {
+      const row = valid.find(r => r.date === e.date);
+      if(!row) return;
+      const pct = +row[`pct_${key}`];
+      ctx.beginPath(); ctx.arc(toX(row), toY(pct), 3.2, 0, Math.PI*2);
+      ctx.fillStyle = side === "high" ? "#1D9E75" : "#e05050";
+      ctx.fill();
+      ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
+    });
   });
   ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
   const seen = new Set();
-  valid.forEach((r,i)=>{ const yr=new Date(r.date+"T12:00:00").getFullYear(); if(seen.has(yr)||yr%2) return; seen.add(yr); ctx.fillText("'" + String(yr).slice(2), toX(i), H-PAD.bottom+16); });
+  valid.forEach(r=>{ const yr=new Date(r.date+"T12:00:00").getFullYear(); if(seen.has(yr)||yr%2) return; seen.add(yr); ctx.fillText("'" + String(yr).slice(2), toX(r), H-PAD.bottom+16); });
 }
 
 function drawStocksAboveAnalyzer() {
@@ -5057,7 +5072,7 @@ function drawStocksAboveAnalyzer() {
   const rawRows = Array.isArray(md.ma_breadth_compression) ? md.ma_breadth_compression : [];
   const rawPrice = marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y");
   const key = maBreadthMetric;
-  const domain = ensureCGDateControls("cg-mabreadth", [rawRows, rawPrice], maBreadthHistoryRange);
+  const domain = ensureCGCommonDateControls("cg-mabreadth", [rawRows, rawPrice], maBreadthHistoryRange);
   const rows = filterRowsByDateDomain(rawRows, domain);
   const priceRows = filterRowsByDateDomain(rawPrice, domain);
   [["20", "20d"], ["50", "50d"], ["200", "200d"]].forEach(([id, val]) => {
@@ -5094,7 +5109,7 @@ function drawStocksAboveAnalyzer() {
   const chartTitle = document.getElementById("maBreadthChartTitle");
   if(chartTitle) chartTitle.textContent = `${maBreadthMetricLabel(key)} % stocks above — Breadth level`;
   drawMABreadthPrice(priceRows, rows, key, domain || minMaxDates([rawRows, rawPrice]), maBreadthThresholdPct);
-  drawMABreadthPctChart(rows, key, maBreadthThresholdPct);
+  drawMABreadthPctChart(rows, key, domain || minMaxDates([rawRows, rawPrice]), maBreadthThresholdPct);
   renderMABreadthForward(rawRows, rawPrice, key, maBreadthThresholdPct);
 }
 
