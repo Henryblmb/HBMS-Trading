@@ -1735,7 +1735,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-mabreadth">
       <div class="cg-header">
         <div class="cg-title">% Stocks above</div>
-        <div class="cg-sub">S&amp;P 500 breadth analyzer for stocks above or below their 20D, 50D and 200D moving averages. Z-score uses the level of breadth versus its rolling history; high SD marks broad participation, low SD marks internal weakness.</div>
+        <div class="cg-sub">S&amp;P 500 breadth analyzer for stocks above or below their 20D, 50D and 200D moving averages. Select a percentage threshold to mark low breadth below that level and high breadth above the mirrored upper level.</div>
       </div>
 
       <div class="signal-bar">
@@ -1745,7 +1745,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Stocks Below</div><div class="signal-bar-val" id="maBreadthBelow">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Level Z</div><div class="signal-bar-val" id="maBreadthZ">—</div></div>
+        <div><div class="signal-bar-label">Threshold</div><div class="signal-bar-val" id="maBreadthThresholdVal">—</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="maBreadthRegime" style="font-size:14px;padding-top:4px">—</div></div>
         <div class="signal-inline-controls">
@@ -1758,11 +1758,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
             </div>
           </div>
           <div class="signal-inline-control">
-            <label>Sigma</label>
+            <label>Threshold</label>
             <div class="ma-sigma-pick">
-              <button id="maBreadthSigma20" class="active" onclick="setMABreadthSigma(2)">2.0</button>
-              <button id="maBreadthSigma25" onclick="setMABreadthSigma(2.5)">2.5</button>
-              <button id="maBreadthSigma30" onclick="setMABreadthSigma(3)">3.0</button>
+              <button id="maBreadthThresh5" onclick="setMABreadthThreshold(5)">5%</button>
+              <button id="maBreadthThresh10" onclick="setMABreadthThreshold(10)">10%</button>
+              <button id="maBreadthThresh15" onclick="setMABreadthThreshold(15)">15%</button>
+              <button id="maBreadthThresh20" class="active" onclick="setMABreadthThreshold(20)">20%</button>
             </div>
           </div>
         </div>
@@ -1778,11 +1779,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="maBreadthPriceTitle">S&amp;P 500 — Breadth SD markers</span>
+          <span class="cg-chart-title" id="maBreadthPriceTitle">S&amp;P 500 — Breadth threshold markers</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
-            <span id="maBreadthLegendExp" style="color:#1D9E75">High breadth +2.0σ</span>
-            <span id="maBreadthLegendComp" style="color:#e05050">Low breadth −2.0σ</span>
+            <span id="maBreadthLegendExp" style="color:#1D9E75">High breadth ≥80%</span>
+            <span id="maBreadthLegendComp" style="color:#e05050">Low breadth ≤20%</span>
           </div>
         </div>
         <canvas id="maBreadthPriceCanvas" style="width:100%;display:block"></canvas>
@@ -1790,19 +1791,19 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="maBreadthChartTitle">% stocks above MA — Level Z-score</span>
+          <span class="cg-chart-title" id="maBreadthChartTitle">% stocks above MA — Breadth level</span>
           <div class="cg-chart-legend">
             <span style="color:#1D9E75">High breadth</span>
             <span style="color:#e05050">Low breadth</span>
-            <span id="maBreadthTriggerLegend" style="color:#777">±2.0σ trigger</span>
+            <span id="maBreadthTriggerLegend" style="color:#777">20% / 80% trigger</span>
           </div>
         </div>
         <canvas id="maBreadthCanvas" style="width:100%;display:block"></canvas>
       </div>
 
       <div class="interp-grid ret-forward-grid">
-        <div class="interp-cell bull"><div class="interp-title bull" id="maBreadthExpTitle">High Breadth +2.0σ</div><div class="interp-text">A high percentage of stocks above the selected moving average shows broad participation. It can confirm trend strength, but very high SD can also mark crowded upside.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear" id="maBreadthCompTitle">Low Breadth −2.0σ</div><div class="interp-text">A low percentage of stocks above the selected moving average shows broad internal weakness. Deep negative SD often appears during stress or washed-out rebound setups.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull" id="maBreadthExpTitle">High Breadth ≥80%</div><div class="interp-text">A high percentage of stocks above the selected moving average shows broad participation. It can confirm trend strength, while very high readings may also reflect crowded upside.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear" id="maBreadthCompTitle">Low Breadth ≤20%</div><div class="interp-text">A low percentage of stocks above the selected moving average shows broad internal weakness. Deep low-breadth readings often appear during stress or washed-out rebound setups.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull" id="maBreadthForwardExpTitle">Forward After High Breadth</div><div class="interp-text" id="maBreadthForwardExp">Waiting for breadth data.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear" id="maBreadthForwardCompTitle">Forward After Low Breadth</div><div class="interp-text" id="maBreadthForwardComp">Waiting for breadth data.</div></div>
       </div>
@@ -1929,7 +1930,7 @@ let peRatioHistoryRange = "max";
 let peRatioBacktestSigmaLevel = 1.5;
 let maBreadthMetric = "50d";
 let maBreadthHistoryRange = "10Y";
-let maBreadthSigmaLevel = 2;
+let maBreadthThresholdPct = 20;
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
@@ -2023,7 +2024,7 @@ function showTab(id, el) {
   if(id === "cg-goldsilver") setTimeout(drawGoldSilverRatio, 60);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
-  if(id === "cg-mabreadth") setTimeout(drawMABreadthCompression, 60);
+  if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
@@ -2067,7 +2068,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-vixspike") drawVIXSpikeModel();
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
     if(activePanel && activePanel.id === "tab-cg-peratio") drawPERatioChart();
-    if(activePanel && activePanel.id === "tab-cg-mabreadth") drawMABreadthCompression();
+    if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -3154,12 +3155,12 @@ function setPERatioBacktestSigma(level) {
 
 function setMABreadthMetric(metric) {
   maBreadthMetric = ["20d", "50d", "200d"].includes(metric) ? metric : "50d";
-  drawMABreadthCompression();
+  drawStocksAboveAnalyzer();
 }
 
-function setMABreadthSigma(level) {
-  maBreadthSigmaLevel = [2, 2.5, 3].includes(+level) ? +level : 2;
-  drawMABreadthCompression();
+function setMABreadthThreshold(level) {
+  maBreadthThresholdPct = [5, 10, 15, 20].includes(+level) ? +level : 20;
+  drawStocksAboveAnalyzer();
 }
 
 function setMABreadthRange(range, btn) {
@@ -3167,7 +3168,7 @@ function setMABreadthRange(range, btn) {
   delete cgDateRanges["cg-mabreadth"];
   document.querySelectorAll("#maBreadthRange .hist-btn").forEach(b => b.classList.remove("active"));
   if(btn) btn.classList.add("active");
-  drawMABreadthCompression();
+  drawStocksAboveAnalyzer();
 }
 
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
@@ -3636,7 +3637,7 @@ const cgRedraw = {
   "cg-vix2": () => mirrorVIXCharts(),
   "cg-bt20": () => drawBT20Chart(),
   "cg-bt50": () => drawBT50Chart(),
-  "cg-mabreadth": () => drawMABreadthCompression(),
+  "cg-mabreadth": () => drawStocksAboveAnalyzer(),
   "cg-oil": () => drawOilCharts(),
   "cg-goldsilver": () => drawGoldSilverRatio(),
 };
@@ -4930,48 +4931,29 @@ function maBreadthMetricLabel(key) {
   return key === "20d" ? "20D MA" : key === "200d" ? "200D MA" : "50D MA";
 }
 
-function maBreadthRowsWithLevelZ(rows, key) {
-  const out = [];
-  const vals = [];
-  (rows || []).forEach(r => {
-    const pct = +r[`pct_${key}`];
-    if(!Number.isFinite(pct)) return;
-    vals.push(pct);
-    const sample = vals.slice(Math.max(0, vals.length - 252));
-    let z = null, mean = null, sd = null;
-    if(sample.length >= 126) {
-      mean = sample.reduce((a,b)=>a+b,0) / sample.length;
-      sd = Math.sqrt(sample.map(v => (v - mean) ** 2).reduce((a,b)=>a+b,0) / Math.max(1, sample.length - 1));
-      if(sd > 0) z = (pct - mean) / sd;
-    }
-    out.push({ ...r, [`level_z_${key}`]: z, [`level_mean_${key}`]: mean, [`level_sd_${key}`]: sd });
-  });
-  return out;
-}
-
-function maBreadthSignalEvents(rows, key, side, sigma=maBreadthSigmaLevel) {
-  const threshold = side === "expansion" ? sigma : -sigma;
+function maBreadthSignalEvents(rows, key, side, threshold=maBreadthThresholdPct) {
+  const upper = 100 - threshold;
   const out = [];
   const seenMonths = new Set();
   (rows || []).forEach((r, i) => {
-    const z = +r[`level_z_${key}`];
-    const prev = i > 0 ? +rows[i - 1][`level_z_${key}`] : NaN;
-    if(!Number.isFinite(z)) return;
-    const hit = side === "expansion" ? z >= threshold && !(Number.isFinite(prev) && prev >= threshold) : z <= threshold && !(Number.isFinite(prev) && prev <= threshold);
+    const pct = +r[`pct_${key}`];
+    const prev = i > 0 ? +rows[i - 1][`pct_${key}`] : NaN;
+    if(!Number.isFinite(pct)) return;
+    const hit = side === "high" ? pct >= upper && !(Number.isFinite(prev) && prev >= upper) : pct <= threshold && !(Number.isFinite(prev) && prev <= threshold);
     if(!hit) return;
     const month = r.date.slice(0, 7);
     if(seenMonths.has(month)) return;
     seenMonths.add(month);
-    out.push({ date: r.date, z, pct: +r[`pct_${key}`], universe: +r[`universe_${key}`], index: i });
+    out.push({ date: r.date, pct, universe: +r[`universe_${key}`], index: i });
   });
   return out;
 }
 
-function renderMABreadthForward(rows, priceRows, key, sigma=maBreadthSigmaLevel) {
+function renderMABreadthForward(rows, priceRows, key, threshold=maBreadthThresholdPct) {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
   const priceByDate = new Map((priceRows || []).map((r, i) => [r.date, { ...r, i }]));
   const calc = side => {
-    const events = maBreadthSignalEvents(rows, key, side, sigma);
+    const events = maBreadthSignalEvents(rows, key, side, threshold);
     return { events, stats: horizons.map(h => {
       const vals = [];
       events.forEach(e => {
@@ -4989,11 +4971,11 @@ function renderMABreadthForward(rows, priceRows, key, sigma=maBreadthSigmaLevel)
     el.innerHTML = `<div class="ret-fwd-events">${result.events.length} historical signals · ${label}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
       result.stats.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
   };
-  render("maBreadthForwardExp", calc("expansion"), `${maBreadthMetricLabel(key)} level Z ≥ +${sigma.toFixed(1)}σ`);
-  render("maBreadthForwardComp", calc("compression"), `${maBreadthMetricLabel(key)} level Z ≤ −${sigma.toFixed(1)}σ`);
+  render("maBreadthForwardExp", calc("high"), `${maBreadthMetricLabel(key)} above ≥ ${100 - threshold}%`);
+  render("maBreadthForwardComp", calc("low"), `${maBreadthMetricLabel(key)} above ≤ ${threshold}%`);
 }
 
-function drawMABreadthPrice(priceRows, breadthRows, key, domain, sigma=maBreadthSigmaLevel) {
+function drawMABreadthPrice(priceRows, breadthRows, key, domain, threshold=maBreadthThresholdPct) {
   const c = mkCanvas("maBreadthPriceCanvas", 240); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 34, bottom: 32, left: 46 };
@@ -5014,11 +4996,11 @@ function drawMABreadthPrice(priceRows, breadthRows, key, domain, sigma=maBreadth
   priceRows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r.close)) : ctx.moveTo(toX(r), toY(+r.close)));
   ctx.strokeStyle="rgba(216,216,216,.82)"; ctx.lineWidth=1.7; ctx.stroke();
   const priceByDate = new Map(priceRows.map(r => [r.date, r]));
-  ["expansion","compression"].forEach(side => {
-    maBreadthSignalEvents(breadthRows, key, side, sigma).forEach(e => {
+  ["high","low"].forEach(side => {
+    maBreadthSignalEvents(breadthRows, key, side, threshold).forEach(e => {
       const p = priceByDate.get(e.date); if(!p) return;
       ctx.beginPath(); ctx.arc(toX(p), toY(+p.close), 3.1, 0, Math.PI*2);
-      ctx.fillStyle = side === "expansion" ? "#1D9E75" : "#e05050"; ctx.fill();
+      ctx.fillStyle = side === "high" ? "#1D9E75" : "#e05050"; ctx.fill();
       ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
     });
   });
@@ -5032,83 +5014,88 @@ function drawMABreadthPrice(priceRows, breadthRows, key, domain, sigma=maBreadth
   });
 }
 
-function drawMABreadthZChart(rows, key, sigma=maBreadthSigmaLevel) {
+function drawMABreadthPctChart(rows, key, threshold=maBreadthThresholdPct) {
   const c = mkCanvas("maBreadthCanvas", 260); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 48, bottom: 34, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
-  const valid = (rows || []).filter(r => Number.isFinite(+r[`level_z_${key}`]) && Number.isFinite(+r[`pct_${key}`]));
+  const valid = (rows || []).filter(r => Number.isFinite(+r[`pct_${key}`]));
   if(valid.length < 40) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center"; ctx.fillText("Breadth analyzer history unavailable - run screener.py", W/2, H/2); return;
   }
-  const maxAbs = Math.max(sigma, Math.min(6, Math.ceil(Math.max(...valid.map(r => Math.abs(+r[`level_z_${key}`]))) * 10) / 10));
   const toX = i => PAD.left + (i / Math.max(1, valid.length - 1)) * PW;
-  const toY = v => PAD.top + PH - ((v + maxAbs) / (2 * maxAbs || 1)) * PH;
-  ctx.fillStyle="rgba(29,158,117,.08)"; ctx.fillRect(PAD.left, PAD.top, PW, toY(sigma) - PAD.top);
-  ctx.fillStyle="rgba(224,80,80,.08)"; ctx.fillRect(PAD.left, toY(-sigma), PW, PAD.top + PH - toY(-sigma));
+  const toY = v => PAD.top + PH - (v / 100) * PH;
+  const upper = 100 - threshold;
+  ctx.fillStyle="rgba(29,158,117,.08)"; ctx.fillRect(PAD.left, PAD.top, PW, toY(upper) - PAD.top);
+  ctx.fillStyle="rgba(224,80,80,.08)"; ctx.fillRect(PAD.left, toY(threshold), PW, PAD.top + PH - toY(threshold));
   ctx.setLineDash([5,5]); ctx.lineWidth=1;
-  [[sigma,"#1D9E75",`+${sigma.toFixed(1)}σ`],[0,"#777","0"],[-sigma,"#e05050",`−${sigma.toFixed(1)}σ`]].forEach(([v,col,lbl])=>{
+  [[upper,"#1D9E75",`${upper}%`],[50,"#777","50%"],[threshold,"#e05050",`${threshold}%`]].forEach(([v,col,lbl])=>{
     const y=toY(v); ctx.strokeStyle=col; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
     ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, y+3);
   });
   ctx.setLineDash([]);
-  const barW = Math.max(1, PW / valid.length * .72);
+  ctx.beginPath();
+  valid.forEach((r,i)=>i ? ctx.lineTo(toX(i), toY(+r[`pct_${key}`])) : ctx.moveTo(toX(i), toY(+r[`pct_${key}`])));
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.6; ctx.stroke();
+  const dotEvery = Math.max(1, Math.floor(valid.length / 180));
   valid.forEach((r,i)=>{
-    const z = +r[`level_z_${key}`], x = toX(i) - barW/2, y0 = toY(0), y = toY(z);
-    ctx.fillStyle = z >= sigma ? "#1D9E75" : z <= -sigma ? "#e05050" : "rgba(216,216,216,.22)";
-    ctx.fillRect(x, Math.min(y,y0), barW, Math.max(1, Math.abs(y-y0)));
+    if(i % dotEvery) return;
+    const pct = +r[`pct_${key}`];
+    if(pct < upper && pct > threshold) return;
+    ctx.beginPath(); ctx.arc(toX(i), toY(pct), 2.2, 0, Math.PI*2);
+    ctx.fillStyle = pct >= upper ? "#1D9E75" : "#e05050";
+    ctx.fill();
   });
   ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
   const seen = new Set();
   valid.forEach((r,i)=>{ const yr=new Date(r.date+"T12:00:00").getFullYear(); if(seen.has(yr)||yr%2) return; seen.add(yr); ctx.fillText("'" + String(yr).slice(2), toX(i), H-PAD.bottom+16); });
 }
 
-function drawMABreadthCompression() {
+function drawStocksAboveAnalyzer() {
   const md = window._marketData || {};
   const rawRows = Array.isArray(md.ma_breadth_compression) ? md.ma_breadth_compression : [];
   const rawPrice = marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y");
   const key = maBreadthMetric;
-  const enrichedRows = maBreadthRowsWithLevelZ(rawRows, key);
-  const domain = ensureCGDateControls("cg-mabreadth", [enrichedRows, rawPrice], maBreadthHistoryRange);
-  const rows = filterRowsByDateDomain(enrichedRows, domain);
+  const domain = ensureCGDateControls("cg-mabreadth", [rawRows, rawPrice], maBreadthHistoryRange);
+  const rows = filterRowsByDateDomain(rawRows, domain);
   const priceRows = filterRowsByDateDomain(rawPrice, domain);
   [["20", "20d"], ["50", "50d"], ["200", "200d"]].forEach(([id, val]) => {
     const btn = document.getElementById("maBreadthBtn" + id);
     if(btn) btn.classList.toggle("active", key === val);
   });
-  [["20", 2], ["25", 2.5], ["30", 3]].forEach(([id, val]) => {
-    const btn = document.getElementById("maBreadthSigma" + id);
-    if(btn) btn.classList.toggle("active", maBreadthSigmaLevel === val);
+  [5, 10, 15, 20].forEach(val => {
+    const btn = document.getElementById("maBreadthThresh" + val);
+    if(btn) btn.classList.toggle("active", maBreadthThresholdPct === val);
   });
-  const sigmaTxt = maBreadthSigmaLevel.toFixed(1);
-  [["maBreadthLegendExp", `High breadth +${sigmaTxt}σ`], ["maBreadthLegendComp", `Low breadth −${sigmaTxt}σ`], ["maBreadthTriggerLegend", `±${sigmaTxt}σ trigger`], ["maBreadthExpTitle", `High Breadth +${sigmaTxt}σ`], ["maBreadthCompTitle", `Low Breadth −${sigmaTxt}σ`]].forEach(([id, txt]) => {
+  const upper = 100 - maBreadthThresholdPct;
+  [["maBreadthLegendExp", `High breadth ≥${upper}%`], ["maBreadthLegendComp", `Low breadth ≤${maBreadthThresholdPct}%`], ["maBreadthTriggerLegend", `${maBreadthThresholdPct}% / ${upper}% trigger`], ["maBreadthExpTitle", `High Breadth ≥${upper}%`], ["maBreadthCompTitle", `Low Breadth ≤${maBreadthThresholdPct}%`]].forEach(([id, txt]) => {
     const el = document.getElementById(id);
     if(el) el.textContent = txt;
   });
   const latest = [...rows].reverse().find(r => Number.isFinite(+r[`pct_${key}`]));
   const setTxt = (id, val, color=null) => { const el = document.getElementById(id); if(el){ el.textContent = val; if(color) el.style.color = color; } };
   if(!latest) {
-    setTxt("maBreadthPct", "—"); setTxt("maBreadthAbove", "—"); setTxt("maBreadthBelow", "—"); setTxt("maBreadthZ", "—"); setTxt("maBreadthRegime", "—");
+    setTxt("maBreadthPct", "—"); setTxt("maBreadthAbove", "—"); setTxt("maBreadthBelow", "—"); setTxt("maBreadthThresholdVal", "—"); setTxt("maBreadthRegime", "—");
   } else {
-    const z = +latest[`level_z_${key}`], pct = +latest[`pct_${key}`], universe = +latest[`universe_${key}`];
+    const pct = +latest[`pct_${key}`], universe = +latest[`universe_${key}`];
     const above = Number.isFinite(universe) ? Math.round(universe * pct / 100) : null;
     const below = Number.isFinite(universe) && above != null ? Math.max(0, universe - above) : null;
-    const color = z >= maBreadthSigmaLevel ? "#1D9E75" : z <= -maBreadthSigmaLevel ? "#e05050" : "#d8d8d8";
-    const regime = z >= maBreadthSigmaLevel ? "HIGH BREADTH" : z <= -maBreadthSigmaLevel ? "LOW BREADTH" : "NEUTRAL";
+    const color = pct >= upper ? "#1D9E75" : pct <= maBreadthThresholdPct ? "#e05050" : "#d8d8d8";
+    const regime = pct >= upper ? "HIGH BREADTH" : pct <= maBreadthThresholdPct ? "LOW BREADTH" : "NEUTRAL";
     setTxt("maBreadthPct", Number.isFinite(pct) ? pct.toFixed(1) + "%" : "—", color);
     setTxt("maBreadthAbove", above == null ? "—" : String(above), color);
     setTxt("maBreadthBelow", below == null ? "—" : String(below), "#d8d8d8");
-    setTxt("maBreadthZ", Number.isFinite(z) ? (z >= 0 ? "+" : "") + z.toFixed(2) + "σ" : "—", color);
+    setTxt("maBreadthThresholdVal", `${maBreadthThresholdPct}% / ${upper}%`, color);
     setTxt("maBreadthRegime", regime, color);
   }
   const priceTitle = document.getElementById("maBreadthPriceTitle");
-  if(priceTitle && rows.length) priceTitle.textContent = `S&P 500 — ${maBreadthMetricLabel(key)} breadth SD signals · ${rows[0].date} to ${rows[rows.length-1].date}`;
+  if(priceTitle && rows.length) priceTitle.textContent = `S&P 500 — ${maBreadthMetricLabel(key)} breadth threshold signals · ${rows[0].date} to ${rows[rows.length-1].date}`;
   const chartTitle = document.getElementById("maBreadthChartTitle");
-  if(chartTitle) chartTitle.textContent = `${maBreadthMetricLabel(key)} % stocks above — Level Z-score`;
-  drawMABreadthPrice(priceRows, rows, key, domain || minMaxDates([enrichedRows, rawPrice]), maBreadthSigmaLevel);
-  drawMABreadthZChart(rows, key, maBreadthSigmaLevel);
-  renderMABreadthForward(enrichedRows, rawPrice, key, maBreadthSigmaLevel);
+  if(chartTitle) chartTitle.textContent = `${maBreadthMetricLabel(key)} % stocks above — Breadth level`;
+  drawMABreadthPrice(priceRows, rows, key, domain || minMaxDates([rawRows, rawPrice]), maBreadthThresholdPct);
+  drawMABreadthPctChart(rows, key, maBreadthThresholdPct);
+  renderMABreadthForward(rawRows, rawPrice, key, maBreadthThresholdPct);
 }
 
 function drawBT20BreadthChart(rows, signals) {
