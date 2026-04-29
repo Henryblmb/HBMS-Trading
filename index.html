@@ -467,6 +467,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-spxema .signal-bar-divider{background:#202020!important}
 #tab-cg-spxema .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-spxema .interp-text{color:#a8a8a8!important}
+#tab-cg-rollret .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-rollret .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-rollret .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-rollret .signal-bar-divider{background:#202020!important}
+#tab-cg-rollret .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-rollret .interp-text{color:#a8a8a8!important}
 #tab-cg-bt20 .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-bt20 .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-bt20 .signal-bar-desc{color:#d0d0d0!important}
@@ -562,6 +568,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
+      <div class="nav-item sub" onclick="showTab('cg-rollret',this)">SPY Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
       <div class="nav-item sub" onclick="showTab('cg-madist-stocks',this)">MA Distance Stocks</div>
@@ -972,6 +979,65 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bull"><div class="interp-title bull">Bullish Cross</div><div class="interp-text">The 9-week EMA moves above the 21-week EMA. This marks improving intermediate momentum.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Bearish Cross</div><div class="interp-text">The 9-week EMA moves below the 21-week EMA. This marks weakening intermediate momentum.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Weekly Signal</div><div class="interp-text">Weekly smoothing filters daily noise. The marker is drawn on the confirmation week.</div></div>
+      </div>
+    </div>
+
+    <!-- SPY ROLLING RETURNS -->
+    <div class="panel cg-page" id="tab-cg-rollret">
+      <div class="cg-header">
+        <div class="cg-title">SPY Rolling Returns — 20D Momentum Bands</div>
+        <div class="cg-sub">Twenty-trading-day S&amp;P 500 returns measured against the selected-history mean and 1.5σ bands. Upper-band thrusts mark persistent momentum pressure; lower-band breaks mark short-term stress or washout.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">20D Return</div>
+          <div class="signal-bar-val" id="rollRetNow" style="color:#d8d8d8">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Upper Band</div>
+          <div class="signal-bar-val" id="rollRetUpper" style="font-size:14px;color:#1D9E75;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Lower Band</div>
+          <div class="signal-bar-val" id="rollRetLower" style="font-size:14px;color:#e05050;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Signal</div>
+          <div class="signal-bar-val" id="rollRetSignal" style="font-size:14px;color:#777;padding-top:4px">—</div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="rollRetRange">
+            <button class="hist-btn" onclick="setRollingReturnRange('1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setRollingReturnRange('5Y',this)">5Y</button>
+            <button class="hist-btn active" onclick="setRollingReturnRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setRollingReturnRange('20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="rollRetTitle">S&amp;P 500 + 20D Rolling Returns</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span><span class="cg-leg-line" style="background:#cfd6dc"></span>20D return</span>
+            <span style="color:#1D9E75">Upper 1.5σ</span>
+            <span style="color:#e05050">Lower 1.5σ</span>
+            <span style="color:rgba(29,158,117,.55)">Signal window</span>
+          </div>
+        </div>
+        <canvas id="rollRetCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Momentum Thrust</div><div class="interp-text">A 20D return above the upper 1.5σ band marks broad upside pressure. It often appears during strong trend phases, but can also flag short-term overextension after a fast move.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Momentum Washout</div><div class="interp-text">A 20D return below the lower 1.5σ band marks downside pressure or capitulation. Forward behavior separates crash continuation from rebound setups.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward After Upper</div><div class="interp-text" id="rollRetForwardPos">Waiting for rolling return data.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Forward After Lower</div><div class="interp-text" id="rollRetForwardNeg">Waiting for rolling return data.</div></div>
       </div>
     </div>
 
@@ -1764,6 +1830,7 @@ function showTab(id, el) {
   if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }, 60);
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
+  if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
   if(id === "cg-madist-stocks") setTimeout(renderMAStockDistance, 60);
@@ -1805,6 +1872,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
+    if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
     if(activePanel && activePanel.id === "tab-cg-madist-stocks") renderMAStockDistance();
@@ -2236,6 +2304,218 @@ function drawReturnSeriesChart(rows, mean, plus2, minus2, hoverIndex=null) {
   }
 }
 
+function rollingReturnBaseHistory() {
+  const candidates = [
+    marketHistory("sp500_history_rsi"),
+    marketHistory("sp500_history_20y"),
+    marketHistory("sp500_history"),
+    marketHistory("spy_history")
+  ];
+  const rows = (candidates.find(arr => arr && arr.length > 260) || candidates.find(arr => arr && arr.length) || [])
+    .filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0)
+    .sort((a,b) => rowDateMs(a) - rowDateMs(b));
+  return rows;
+}
+
+function rollingReturnRows(hist, days=20) {
+  const out = [];
+  hist.forEach((r, i) => {
+    if(i < days) return;
+    const close = +r.close;
+    const prev = +hist[i - days].close;
+    if(!Number.isFinite(close) || !Number.isFinite(prev) || prev <= 0) return;
+    out.push({ date: r.date, close, ret20: (close / prev - 1) * 100 });
+  });
+  return out;
+}
+
+function rollingReturnMonthlyEvents(rows, upper, lower, side) {
+  const byMonth = new Map();
+  rows.forEach((r, i) => {
+    const v = +r.ret20;
+    if(!Number.isFinite(v) || !r.date) return;
+    if(side === "pos" && v < upper) return;
+    if(side === "neg" && v > lower) return;
+    const month = r.date.slice(0, 7);
+    const prev = byMonth.get(month);
+    if(!prev || (side === "pos" ? v > prev.v : v < prev.v)) byMonth.set(month, { r, i, v });
+  });
+  return [...byMonth.values()].sort((a,b) => a.i - b.i);
+}
+
+function renderRollingReturnForward(rows, upper, lower) {
+  const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
+  const calc = side => {
+    const events = rollingReturnMonthlyEvents(rows, upper, lower, side).filter(({i}) => i + 21 < rows.length);
+    return horizons.map(h => {
+      const vals = events.map(({r,i}) => {
+        const f = rows[i + h.days];
+        return f && Number.isFinite(+r.close) && Number.isFinite(+f.close) ? (+f.close / +r.close - 1) * 100 : null;
+      }).filter(Number.isFinite);
+      const avg = vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
+      const win = vals.length ? vals.filter(v => v > 0).length / vals.length * 100 : null;
+      return { label:h.label, avg, win, n:vals.length };
+    });
+  };
+  const render = (id, events) => {
+    const el = document.getElementById(id); if(!el) return;
+    const n = Math.max(...events.map(e => e.n), 0);
+    el.innerHTML = `<div class="ret-fwd-events">${n} monthly-capped moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
+      events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
+  };
+  render("rollRetForwardPos", calc("pos"));
+  render("rollRetForwardNeg", calc("neg"));
+}
+
+function drawRollingReturnModel() {
+  const rawRows = rollingReturnRows(rollingReturnBaseHistory(), 20);
+  const domain = ensureCGDateControls("cg-rollret", [rawRows], rollRetHistoryRange);
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const vals = rows.map(r => +r.ret20).filter(Number.isFinite);
+  const stats = retStats(vals);
+  const set = (id, txt, color) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  if(rows.length < 80 || !Number.isFinite(stats.mean) || !Number.isFinite(stats.sigma) || stats.sigma <= 0) {
+    emptyCanvas("rollRetCanvas", 420, "Not enough S&P 500 rolling return history");
+    set("rollRetNow", "—"); set("rollRetUpper", "—"); set("rollRetLower", "—"); set("rollRetSignal", "—");
+    return;
+  }
+  const upper = stats.mean + 1.5 * stats.sigma;
+  const lower = stats.mean - 1.5 * stats.sigma;
+  const last = rows[rows.length - 1];
+  const signal = last.ret20 >= upper ? "MOMENTUM THRUST" : last.ret20 <= lower ? "MOMENTUM WASHOUT" : "INSIDE RANGE";
+  const col = last.ret20 >= upper ? "#1D9E75" : last.ret20 <= lower ? "#e05050" : last.ret20 >= 0 ? "#5DCAA5" : "#EF9F27";
+  set("rollRetNow", fmtPct(last.ret20, 2), col);
+  set("rollRetUpper", fmtPct(upper, 2), "#1D9E75");
+  set("rollRetLower", fmtPct(lower, 2), "#e05050");
+  set("rollRetSignal", signal, col);
+  set("rollRetTitle", `S&P 500 + 20D Rolling Returns · ${rollRetHistoryRange === "max" ? "Max" : rollRetHistoryRange} · 1.5σ bands`);
+  renderRollingReturnForward(rows, upper, lower);
+  drawRollingReturnChart(rows, stats.mean, upper, lower, null);
+}
+
+function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null) {
+  if(!rows || rows.length < 2) {
+    emptyCanvas("rollRetCanvas", 420, "S&P 500 rolling return history unavailable");
+    return;
+  }
+  const c = mkCanvas("rollRetCanvas", 420); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 64, bottom: 34, left: 52 };
+  const PW = W - PAD.left - PAD.right;
+  const topH = 190;
+  const gap = 24;
+  const botTop = PAD.top + topH + gap;
+  const botH = H - botTop - PAD.bottom;
+  const startMs = rowDateMs(rows[0]), endMs = rowDateMs(rows[rows.length - 1]);
+  const xSpan = endMs - startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - startMs) / xSpan) * PW;
+  const closeLogs = rows.map(r => Math.log(+r.close)).filter(Number.isFinite);
+  const pMin = Math.min(...closeLogs) * .998;
+  const pMax = Math.max(...closeLogs) * 1.002;
+  const toPriceY = v => PAD.top + topH - ((Math.log(v) - pMin) / ((pMax - pMin) || 1)) * topH;
+  const retVals = rows.map(r => +r.ret20).filter(Number.isFinite);
+  const maxAbs = Math.max(5, Math.abs(Math.min(...retVals, lower)), Math.abs(Math.max(...retVals, upper)));
+  const rMin = -maxAbs * 1.12, rMax = maxAbs * 1.12;
+  const toRetY = v => botTop + botH - ((v - rMin) / ((rMax - rMin) || 1)) * botH;
+  const zeroY = toRetY(0);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0,0,W,H);
+
+  const posEvents = rollingReturnMonthlyEvents(rows, upper, lower, "pos");
+  const negEvents = rollingReturnMonthlyEvents(rows, upper, lower, "neg");
+  [...posEvents.map(e => ({...e, color:"rgba(29,158,117,.18)"})), ...negEvents.map(e => ({...e, color:"rgba(224,80,80,.14)"}))].forEach(e => {
+    const x = toX(e.r);
+    ctx.fillStyle = e.color;
+    ctx.fillRect(x - 2, PAD.top, 4, topH + gap + botH);
+  });
+
+  ctx.setLineDash([2, 5]);
+  ctx.strokeStyle = "rgba(255,255,255,.055)";
+  for(let i=0;i<=4;i++) {
+    let y = PAD.top + i/4*topH;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+    y = botTop + i/4*botH;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  rows.forEach((r,i) => i === 0 ? ctx.moveTo(toX(r), toPriceY(+r.close)) : ctx.lineTo(toX(r), toPriceY(+r.close)));
+  ctx.strokeStyle = "#d8d8d8"; ctx.lineWidth = 1.8; ctx.stroke();
+
+  ctx.beginPath();
+  rows.forEach((r,i) => i === 0 ? ctx.moveTo(toX(r), toRetY(+r.ret20)) : ctx.lineTo(toX(r), toRetY(+r.ret20)));
+  ctx.strokeStyle = "#cfd6dc"; ctx.lineWidth = 1.3; ctx.stroke();
+  [[0,"rgba(255,255,255,.18)",[],"0%"],[mean,"#EF9F27",[6,5],"Mean"],[upper,"#1D9E75",[6,5],"Upper"],[lower,"#e05050",[6,5],"Lower"]].forEach(([v,color,dash,label]) => {
+    const y = toRetY(v);
+    ctx.strokeStyle = color; ctx.lineWidth = v === 0 ? 1 : 1.15; ctx.setLineDash(dash);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = color; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText(label, PAD.left + PW + 6, y + 3);
+  });
+  const barW = Math.max(1, PW / rows.length - .2);
+  rows.forEach(r => {
+    const v = +r.ret20, x = toX(r), y = toRetY(v);
+    if(!Number.isFinite(v)) return;
+    ctx.fillStyle = v >= upper ? "rgba(29,158,117,.75)" : v <= lower ? "rgba(224,80,80,.78)" : "rgba(220,230,235,.28)";
+    if(v >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
+    else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
+  });
+
+  ctx.fillStyle = "#555"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [Math.exp(pMin), Math.exp((pMin+pMax)/2), Math.exp(pMax)].forEach(v => ctx.fillText(v.toFixed(0), PAD.left - 5, toPriceY(v) + 3));
+  [lower,0,upper].forEach(v => ctx.fillText(v.toFixed(1) + "%", PAD.left - 5, toRetY(v) + 3));
+  ctx.textAlign = "center"; ctx.fillStyle = "#4a4a4a";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = startMs + (endMs - startMs) * p;
+    const d = new Date(ms);
+    ctx.fillText(d.toLocaleString("en-US", { year:"2-digit" }), toDateX(ms), H - PAD.bottom + 14);
+  });
+
+  const last = rows[rows.length - 1];
+  ctx.fillStyle = "#d8d8d8"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("S&P", PAD.left + PW + 6, toPriceY(+last.close) + 3);
+  ctx.fillStyle = last.ret20 >= upper ? "#1D9E75" : last.ret20 <= lower ? "#e05050" : "#cfd6dc";
+  ctx.fillText("20D", PAD.left + PW + 6, toRetY(+last.ret20) + 3);
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r), y = toRetY(+r.ret20);
+    const label = `${formatSignalDate(r.date)} · ${fmtPct(+r.ret20, 2)}`;
+    const color = r.ret20 >= upper ? "#1D9E75" : r.ret20 <= lower ? "#e05050" : "#d8d8d8";
+    ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H - PAD.bottom); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill();
+    ctx.font = "bold 10px sans-serif";
+    const tw = ctx.measureText(label).width;
+    const boxW = tw + 14, boxH = 21;
+    let bx = Math.max(PAD.left + 2, Math.min(W - PAD.right - boxW - 2, x - boxW / 2));
+    const by = Math.max(PAD.top + 6, Math.min(H - PAD.bottom - boxH - 4, y - boxH - 10));
+    ctx.fillStyle = "rgba(8,8,8,.94)"; ctx.strokeStyle = "#303030";
+    ctx.fillRect(bx, by, boxW, boxH); ctx.strokeRect(bx, by, boxW, boxH);
+    ctx.fillStyle = color; ctx.textAlign = "left"; ctx.fillText(label, bx + 7, by + 14);
+  }
+
+  const canvas = document.getElementById("rollRetCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) {
+        drawRollingReturnChart(rows, mean, upper, lower, null);
+        return;
+      }
+      const targetMs = startMs + ((x - PAD.left) / PW) * xSpan;
+      let best = 0, bestDist = Infinity;
+      rows.forEach((r,i) => {
+        const d = Math.abs(rowDateMs(r) - targetMs);
+        if(d < bestDist) { best = i; bestDist = d; }
+      });
+      drawRollingReturnChart(rows, mean, upper, lower, best);
+    };
+    canvas.onmouseleave = () => drawRollingReturnChart(rows, mean, upper, lower, null);
+  }
+}
+
 function percentileRank(vals, x) {
   const clean = vals.filter(Number.isFinite).sort((a,b)=>a-b);
   if(!clean.length || !Number.isFinite(x)) return null;
@@ -2540,6 +2820,14 @@ function setReturnHistogramRange(range, btn) {
   document.querySelectorAll("#retHistRange .hist-btn").forEach(b => b.classList.remove("active"));
   if(btn) btn.classList.add("active");
   renderReturnHistogram();
+}
+
+function setRollingReturnRange(range, btn) {
+  rollRetHistoryRange = range || rollRetHistoryRange;
+  delete cgDateRanges["cg-rollret"];
+  document.querySelectorAll("#rollRetRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  drawRollingReturnModel();
 }
 
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
@@ -2990,12 +3278,14 @@ let vixrvHistoryRange = "20Y";
 let vixspikeHistoryRange = "5Y";
 let maDistHistoryRange = "5Y";
 let retHistHistoryRange = "max";
+let rollRetHistoryRange = "10Y";
 const cgDateRanges = {};
 
 const cgRedraw = {
   "cg-hyg": () => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); },
   "cg-spxrsi": () => drawSPXRSIReversal(),
   "cg-spxema": () => drawSPXWeeklyEMA(),
+  "cg-rollret": () => drawRollingReturnModel(),
   "cg-vixsd": () => drawVIXSDSignal(),
   "cg-vixrv": () => drawVIXRealizedVol(),
   "cg-vixspike": () => drawVIXSpikeModel(),
