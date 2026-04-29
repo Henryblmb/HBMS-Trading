@@ -5144,54 +5144,6 @@ function renderBTForwardStats(elId, priceRows, signals, label, horizons) {
     rows.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
 }
 
-function btRowsFromMABreadth(key, weekly=false) {
-  const md = window._marketData || {};
-  const raw = Array.isArray(md.ma_breadth_compression) ? md.ma_breadth_compression : [];
-  const rows = raw
-    .filter(r => r && r.date && Number.isFinite(+r[`pct_${key}`]))
-    .map(r => ({ date: r.date, value: +r[`pct_${key}`], source: "ma_breadth_compression" }));
-  if(!weekly) return rows;
-  const weeks = new Map();
-  rows.forEach(r => {
-    const d = new Date(r.date + "T12:00:00");
-    const monday = new Date(d);
-    monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-    weeks.set(monday.toISOString().slice(0, 10), r);
-  });
-  return [...weeks.values()];
-}
-
-function btSignalsFromRows(rows, low, high, maxBars) {
-  const signals = [];
-  let setupIdx = null;
-  (rows || []).forEach((row, i) => {
-    const val = +row.value;
-    if(!Number.isFinite(val)) return;
-    if(setupIdx == null) {
-      if(val < low) setupIdx = i;
-      return;
-    }
-    if(val < +rows[setupIdx].value) setupIdx = i;
-    if(i - setupIdx > maxBars) {
-      setupIdx = val < low ? i : null;
-      return;
-    }
-    if(val >= high) {
-      const start = rows[setupIdx];
-      signals.push({
-        start_index: setupIdx,
-        confirm_index: i,
-        start_date: start.date,
-        confirm_date: row.date,
-        start_value: start.value,
-        confirm_value: val
-      });
-      setupIdx = null;
-    }
-  });
-  return signals;
-}
-
 function drawBT20BreadthChart(rows, signals, domain=null) {
   const c = mkCanvas("bt20Canvas", 220); if(!c) return;
   const { ctx, W, H } = c;
@@ -5239,12 +5191,11 @@ function drawBT20BreadthChart(rows, signals, domain=null) {
 function drawBT20Chart() {
   const md = window._marketData || {};
   const rawPriceRows = marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : (marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history")));
-  const maBreadthRows = btRowsFromMABreadth("20d");
-  const rawBreadthRows = maBreadthRows.length ? maBreadthRows : (Array.isArray(md.bt20_history) ? md.bt20_history : []);
+  const rawBreadthRows = Array.isArray(md.bt20_history) ? md.bt20_history : [];
   const domain = ensureCGCommonDateControls("cg-bt20", [rawPriceRows, rawBreadthRows], "max");
   const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
   const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
-  const signals = maBreadthRows.length ? btSignalsFromRows(rawBreadthRows, 15, 80, 15) : (Array.isArray(md.bt20_signals) ? md.bt20_signals : []);
+  const signals = Array.isArray(md.bt20_signals) ? md.bt20_signals : [];
   if(priceRows.length > 100) {
     drawHistoryLineLogByDate("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
     drawBTSignalDotsByDate("bt20PriceCanvas", priceRows, signals, "close", false, true, domain);
@@ -5262,8 +5213,7 @@ function drawBT20Chart() {
 function updateBT20Signal() {
   const md = window._marketData || {};
   const status = md.bt20_status || {};
-  const maRows = btRowsFromMABreadth("20d");
-  const pct = maRows.length ? +maRows[maRows.length - 1].value : (status.current != null ? +status.current : breadthData.pct_above_20);
+  const pct = status.current != null ? +status.current : breadthData.pct_above_20;
   if(pct==null || !Number.isFinite(pct)) return;
   document.getElementById("bt20Val").textContent = pct.toFixed(1)+"%";
 }
@@ -5316,9 +5266,8 @@ function drawBT50BreadthChart(rows, signals, domain=null) {
 function drawBT50Chart() {
   const md = window._marketData || {};
   const rawPriceRows = Array.isArray(md.bt50_sp500_history) ? md.bt50_sp500_history : [];
-  const maBreadthRows = btRowsFromMABreadth("50d", true);
-  const rawBreadthRows = maBreadthRows.length ? maBreadthRows : (Array.isArray(md.bt50_history) ? md.bt50_history : []);
-  const signals = maBreadthRows.length ? btSignalsFromRows(rawBreadthRows, 10, 80, 12) : (Array.isArray(md.bt50_signals) ? md.bt50_signals : []);
+  const rawBreadthRows = Array.isArray(md.bt50_history) ? md.bt50_history : [];
+  const signals = Array.isArray(md.bt50_signals) ? md.bt50_signals : [];
   const domain = ensureCGCommonDateControls("cg-bt50", [rawPriceRows, rawBreadthRows], "max");
   const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
   const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
@@ -5339,8 +5288,7 @@ function drawBT50Chart() {
 function updateBT50Signal() {
   const md = window._marketData || {};
   const status = md.bt50_status || {};
-  const maRows = btRowsFromMABreadth("50d", true);
-  const pct = maRows.length ? +maRows[maRows.length - 1].value : (status.current != null ? +status.current : null);
+  const pct = status.current != null ? +status.current : null;
   if(pct==null || !Number.isFinite(pct)) return;
   document.getElementById("bt50Val").textContent = pct.toFixed(1)+"%";
 }
