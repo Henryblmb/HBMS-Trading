@@ -986,7 +986,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-rollret">
       <div class="cg-header">
         <div class="cg-title">SPY Rolling Returns — 20D Momentum Bands</div>
-        <div class="cg-sub">Twenty-trading-day S&amp;P 500 returns measured against the selected-history mean and 1.5σ bands. Upper-band thrusts mark persistent momentum pressure; lower-band breaks mark short-term stress or washout.</div>
+        <div class="cg-sub">Twenty-trading-day S&amp;P 500 returns measured against the selected-history mean and selectable sigma bands. Upper-band thrusts mark persistent momentum pressure; lower-band breaks mark short-term stress or washout.</div>
       </div>
 
       <div class="signal-bar">
@@ -1009,6 +1009,24 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-bar-label">Signal</div>
           <div class="signal-bar-val" id="rollRetSignal" style="font-size:14px;color:#777;padding-top:4px">—</div>
         </div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Sigma</label>
+            <div class="ma-sigma-pick">
+              <button id="rollRetSigma15" onclick="setRollingReturnSigma(1.5)">1.5σ</button>
+              <button id="rollRetSigma175" class="active" onclick="setRollingReturnSigma(1.75)">1.75σ</button>
+              <button id="rollRetSigma20" onclick="setRollingReturnSigma(2)">2.0σ</button>
+            </div>
+          </div>
+          <div class="signal-inline-control">
+            <label>Signal Side</label>
+            <div class="ma-sigma-pick">
+              <button id="rollRetSideBoth" class="active" onclick="setRollingReturnSide('both')">Both</button>
+              <button id="rollRetSideBullish" onclick="setRollingReturnSide('bullish')">Bullish</button>
+              <button id="rollRetSideBearish" onclick="setRollingReturnSide('bearish')">Bearish</button>
+            </div>
+          </div>
+        </div>
         <div class="signal-range-controls" data-cg-date-host>
           <div class="hist-range" id="rollRetRange">
             <button class="hist-btn" onclick="setRollingReturnRange('1Y',this)">1Y</button>
@@ -1025,17 +1043,17 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span><span class="cg-leg-line" style="background:#cfd6dc"></span>20D return</span>
-            <span style="color:#1D9E75">Upper 1.5σ</span>
-            <span style="color:#e05050">Lower 1.5σ</span>
-            <span style="color:rgba(29,158,117,.55)">Signal window</span>
+            <span id="rollRetUpperLegend" style="color:#1D9E75">Upper 1.75σ</span>
+            <span id="rollRetLowerLegend" style="color:#e05050">Lower 1.75σ</span>
+            <span id="rollRetSignalLegend" style="color:rgba(29,158,117,.55)">Signal window</span>
           </div>
         </div>
         <canvas id="rollRetCanvas" style="width:100%;display:block"></canvas>
       </div>
 
       <div class="interp-grid ret-forward-grid">
-        <div class="interp-cell bull"><div class="interp-title bull">Momentum Thrust</div><div class="interp-text">A 20D return above the upper 1.5σ band marks broad upside pressure. It often appears during strong trend phases, but can also flag short-term overextension after a fast move.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear">Momentum Washout</div><div class="interp-text">A 20D return below the lower 1.5σ band marks downside pressure or capitulation. Forward behavior separates crash continuation from rebound setups.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Momentum Thrust</div><div class="interp-text" id="rollRetBullText">A 20D return above the selected upper band marks broad upside pressure. It often appears during strong trend phases, but can also flag short-term overextension after a fast move.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Momentum Washout</div><div class="interp-text" id="rollRetBearText">A 20D return below the selected lower band marks downside pressure or capitulation. Forward behavior separates crash continuation from rebound setups.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Forward After Upper</div><div class="interp-text" id="rollRetForwardPos">Waiting for rolling return data.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Forward After Lower</div><div class="interp-text" id="rollRetForwardNeg">Waiting for rolling return data.</div></div>
       </div>
@@ -1747,6 +1765,8 @@ let rsSortCol = "vs_spy", rsSortDir = -1;
 let dataRefreshTimer = null;
 let dataGenerated = "";
 let maDistBacktestSigmaLevel = 2;
+let rollRetSigmaLevel = 1.75;
+let rollRetSignalSide = "both";
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
@@ -2343,7 +2363,7 @@ function rollingReturnMonthlyEvents(rows, upper, lower, side) {
   return [...byMonth.values()].sort((a,b) => a.i - b.i);
 }
 
-function renderRollingReturnForward(rows, upper, lower) {
+function renderRollingReturnForward(rows, upper, lower, sideFilter="both") {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
   const calc = side => {
     const events = rollingReturnMonthlyEvents(rows, upper, lower, side).filter(({i}) => i + 21 < rows.length);
@@ -2359,7 +2379,11 @@ function renderRollingReturnForward(rows, upper, lower) {
   };
   const render = (id, events) => {
     const el = document.getElementById(id); if(!el) return;
-    const n = Math.max(...events.map(e => e.n), 0);
+    if((id === "rollRetForwardPos" && sideFilter === "bearish") || (id === "rollRetForwardNeg" && sideFilter === "bullish")) {
+      el.innerHTML = `<div class="ret-fwd-events">Disabled by signal side filter</div>`;
+      return;
+    }
+    const n = events.length ? Math.max(...events.map(e => e.n), 0) : 0;
     el.innerHTML = `<div class="ret-fwd-events">${n} monthly-capped moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
       events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
   };
@@ -2379,21 +2403,31 @@ function drawRollingReturnModel() {
     set("rollRetNow", "—"); set("rollRetUpper", "—"); set("rollRetLower", "—"); set("rollRetSignal", "—");
     return;
   }
-  const upper = stats.mean + 1.5 * stats.sigma;
-  const lower = stats.mean - 1.5 * stats.sigma;
+  const sigmaLevel = rollRetSigmaLevel || 1.75;
+  const side = rollRetSignalSide || "both";
+  const upper = stats.mean + sigmaLevel * stats.sigma;
+  const lower = stats.mean - sigmaLevel * stats.sigma;
   const last = rows[rows.length - 1];
-  const signal = last.ret20 >= upper ? "MOMENTUM THRUST" : last.ret20 <= lower ? "MOMENTUM WASHOUT" : "INSIDE RANGE";
-  const col = last.ret20 >= upper ? "#1D9E75" : last.ret20 <= lower ? "#e05050" : last.ret20 >= 0 ? "#5DCAA5" : "#EF9F27";
+  const bullEnabled = side === "both" || side === "bullish";
+  const bearEnabled = side === "both" || side === "bearish";
+  const signal = bullEnabled && last.ret20 >= upper ? "MOMENTUM THRUST" : bearEnabled && last.ret20 <= lower ? "MOMENTUM WASHOUT" : "INSIDE RANGE";
+  const col = bullEnabled && last.ret20 >= upper ? "#1D9E75" : bearEnabled && last.ret20 <= lower ? "#e05050" : last.ret20 >= 0 ? "#5DCAA5" : "#EF9F27";
   set("rollRetNow", fmtPct(last.ret20, 2), col);
   set("rollRetUpper", fmtPct(upper, 2), "#1D9E75");
   set("rollRetLower", fmtPct(lower, 2), "#e05050");
   set("rollRetSignal", signal, col);
-  set("rollRetTitle", `S&P 500 + 20D Rolling Returns · ${rows[0].date} to ${rows[rows.length - 1].date} · 1.5σ bands`);
-  renderRollingReturnForward(rows, upper, lower);
-  drawRollingReturnChart(rows, stats.mean, upper, lower, null);
+  set("rollRetTitle", `S&P 500 + 20D Rolling Returns · ${rows[0].date} to ${rows[rows.length - 1].date} · ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ bands`);
+  set("rollRetUpperLegend", `Upper ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ`);
+  set("rollRetLowerLegend", `Lower ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ`);
+  set("rollRetSignalLegend", side === "both" ? "Bullish + bearish windows" : side === "bullish" ? "Bullish windows" : "Bearish windows");
+  set("rollRetBullText", `A 20D return above the upper ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ band marks broad upside pressure. It often appears during strong trend phases, but can also flag short-term overextension after a fast move.`);
+  set("rollRetBearText", `A 20D return below the lower ${sigmaLevel.toFixed(sigmaLevel % 1 ? 2 : 1)}σ band marks downside pressure or capitulation. Forward behavior separates crash continuation from rebound setups.`);
+  updateRollingReturnControlState();
+  renderRollingReturnForward(rows, upper, lower, side);
+  drawRollingReturnChart(rows, stats.mean, upper, lower, null, side);
 }
 
-function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null) {
+function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null, sideFilter="both") {
   if(!rows || rows.length < 2) {
     emptyCanvas("rollRetCanvas", 420, "S&P 500 rolling return history unavailable");
     return;
@@ -2422,8 +2456,8 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null) {
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = "#151515"; ctx.fillRect(0,0,W,H);
 
-  const posEvents = rollingReturnMonthlyEvents(rows, upper, lower, "pos");
-  const negEvents = rollingReturnMonthlyEvents(rows, upper, lower, "neg");
+  const posEvents = sideFilter === "bearish" ? [] : rollingReturnMonthlyEvents(rows, upper, lower, "pos");
+  const negEvents = sideFilter === "bullish" ? [] : rollingReturnMonthlyEvents(rows, upper, lower, "neg");
   [...posEvents.map(e => ({...e, color:"rgba(29,158,117,.18)"})), ...negEvents.map(e => ({...e, color:"rgba(224,80,80,.14)"}))].forEach(e => {
     const x = toX(e.r);
     ctx.fillStyle = e.color;
@@ -2457,7 +2491,7 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null) {
   rows.forEach(r => {
     const v = +r.ret20, x = toX(r), y = toRetY(v);
     if(!Number.isFinite(v)) return;
-    ctx.fillStyle = v >= upper ? "rgba(29,158,117,.75)" : v <= lower ? "rgba(224,80,80,.78)" : "rgba(220,230,235,.28)";
+    ctx.fillStyle = sideFilter !== "bearish" && v >= upper ? "rgba(29,158,117,.75)" : sideFilter !== "bullish" && v <= lower ? "rgba(224,80,80,.78)" : "rgba(220,230,235,.28)";
     if(v >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
     else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
   });
@@ -2475,13 +2509,13 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null) {
   const last = rows[rows.length - 1];
   ctx.fillStyle = "#d8d8d8"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
   ctx.fillText("S&P", PAD.left + PW + 6, toPriceY(+last.close) + 3);
-  ctx.fillStyle = last.ret20 >= upper ? "#1D9E75" : last.ret20 <= lower ? "#e05050" : "#cfd6dc";
+  ctx.fillStyle = sideFilter !== "bearish" && last.ret20 >= upper ? "#1D9E75" : sideFilter !== "bullish" && last.ret20 <= lower ? "#e05050" : "#cfd6dc";
   ctx.fillText("20D", PAD.left + PW + 6, toRetY(+last.ret20) + 3);
 
   if(hoverIndex != null && rows[hoverIndex]) {
     const r = rows[hoverIndex], x = toX(r), y = toRetY(+r.ret20);
     const label = `${formatSignalDate(r.date)} · ${fmtPct(+r.ret20, 2)}`;
-    const color = r.ret20 >= upper ? "#1D9E75" : r.ret20 <= lower ? "#e05050" : "#d8d8d8";
+    const color = sideFilter !== "bearish" && r.ret20 >= upper ? "#1D9E75" : sideFilter !== "bullish" && r.ret20 <= lower ? "#e05050" : "#d8d8d8";
     ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H - PAD.bottom); ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill();
@@ -2501,7 +2535,7 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null) {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       if(x < PAD.left || x > PAD.left + PW) {
-        drawRollingReturnChart(rows, mean, upper, lower, null);
+        drawRollingReturnChart(rows, mean, upper, lower, null, sideFilter);
         return;
       }
       const targetMs = startMs + ((x - PAD.left) / PW) * xSpan;
@@ -2510,9 +2544,9 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null) {
         const d = Math.abs(rowDateMs(r) - targetMs);
         if(d < bestDist) { best = i; bestDist = d; }
       });
-      drawRollingReturnChart(rows, mean, upper, lower, best);
+      drawRollingReturnChart(rows, mean, upper, lower, best, sideFilter);
     };
-    canvas.onmouseleave = () => drawRollingReturnChart(rows, mean, upper, lower, null);
+    canvas.onmouseleave = () => drawRollingReturnChart(rows, mean, upper, lower, null, sideFilter);
   }
 }
 
@@ -2820,6 +2854,29 @@ function setReturnHistogramRange(range, btn) {
   document.querySelectorAll("#retHistRange .hist-btn").forEach(b => b.classList.remove("active"));
   if(btn) btn.classList.add("active");
   renderReturnHistogram();
+}
+
+function updateRollingReturnControlState() {
+  const sigma = +(rollRetSigmaLevel || 1.75);
+  const sigmaKey = sigma === 1.5 ? "15" : sigma === 2 ? "20" : "175";
+  ["15","175","20"].forEach(key => {
+    const btn = document.getElementById("rollRetSigma" + key);
+    if(btn) btn.classList.toggle("active", key === sigmaKey);
+  });
+  ["Both","Bullish","Bearish"].forEach(name => {
+    const btn = document.getElementById("rollRetSide" + name);
+    if(btn) btn.classList.toggle("active", name.toLowerCase() === (rollRetSignalSide || "both"));
+  });
+}
+
+function setRollingReturnSigma(level) {
+  rollRetSigmaLevel = Number.isFinite(+level) ? +level : 1.75;
+  drawRollingReturnModel();
+}
+
+function setRollingReturnSide(side) {
+  rollRetSignalSide = ["bullish", "bearish", "both"].includes(side) ? side : "both";
+  drawRollingReturnModel();
 }
 
 function setRollingReturnRange(range, btn) {
