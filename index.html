@@ -1012,11 +1012,13 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="signal-inline-controls">
           <div class="signal-inline-control">
             <label>Sigma</label>
-            <div class="ma-sigma-pick">
-              <button id="rollRetSigma15" onclick="setRollingReturnSigma(1.5)">1.5σ</button>
-              <button id="rollRetSigma175" class="active" onclick="setRollingReturnSigma(1.75)">1.75σ</button>
-              <button id="rollRetSigma20" onclick="setRollingReturnSigma(2)">2.0σ</button>
-            </div>
+            <select id="rollRetSigmaSelect" onchange="setRollingReturnSigma(this.value)">
+              <option value="1.5">1.5σ</option>
+              <option value="1.75" selected>1.75σ</option>
+              <option value="2">2.0σ</option>
+              <option value="2.25">2.25σ</option>
+              <option value="2.5">2.5σ</option>
+            </select>
           </div>
           <div class="signal-inline-control">
             <label>Signal Side</label>
@@ -2858,6 +2860,8 @@ function setReturnHistogramRange(range, btn) {
 
 function updateRollingReturnControlState() {
   const sigma = +(rollRetSigmaLevel || 1.75);
+  const sigmaSelect = document.getElementById("rollRetSigmaSelect");
+  if(sigmaSelect) sigmaSelect.value = String(sigma);
   const sigmaKey = sigma === 1.5 ? "15" : sigma === 2 ? "20" : "175";
   ["15","175","20"].forEach(key => {
     const btn = document.getElementById("rollRetSigma" + key);
