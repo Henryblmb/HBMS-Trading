@@ -4,7 +4,7 @@ HBMS Trading Screener v6.3 – SP500/DAX/HSI Edition
 Fast Polygon OHLC/snapshot data, yfinance fallbacks for unsupported symbols.
 """
 
-import argparse, base64, datetime, io, json, os, re, time
+import argparse, base64, datetime, html, io, json, os, re, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import quote
 import numpy as np
@@ -985,7 +985,7 @@ def process_ma_stock_history(stock):
         if len(close) < 260:
             return None
         frame = pd.DataFrame(index=close.index)
-        for ma_len in (50, 200):
+        for ma_len in (20, 50, 200):
             ma = close.rolling(ma_len).mean()
             frame[f"dist{ma_len}"] = ((close / ma) - 1) * 100
         frame = frame.dropna(how="all")
@@ -993,12 +993,14 @@ def process_ma_stock_history(stock):
         for dt, row in frame.iterrows():
             d50 = row.get("dist50")
             d200 = row.get("dist200")
+            d20 = row.get("dist20")
             close_val = close.get(dt)
             rows.append([
                 str(dt.date()),
                 round(float(d50), 2) if pd.notna(d50) else None,
                 round(float(d200), 2) if pd.notna(d200) else None,
                 round(float(close_val), 4) if pd.notna(close_val) else None,
+                round(float(d20), 2) if pd.notna(d20) else None,
             ])
         return {"ticker": t, "name": n, "rows": rows, "source": source}
     except Exception as e:
@@ -1769,8 +1771,9 @@ def sp500_weekly_rsi_payload(hist, source, display_start="2016-01-01"):
     }
 
 
-def bt20_breadth_payload(years=10, display_start="2016-01-01"):
-    hist, source = EODHD.eod_history(["S5TW.INDX"], years=years, start_date=datetime.date(2016, 1, 1))
+def bt20_breadth_payload(years=30, display_start="1996-01-01"):
+    start_date = datetime.date.today() - datetime.timedelta(days=int(years * 366))
+    hist, source = EODHD.eod_history(["S5TW.INDX"], years=years, start_date=start_date)
     if hist is None or hist.empty or "Close" not in hist.columns:
         return [], [], {"status": "unavailable", "source": source}
 
@@ -1832,8 +1835,9 @@ def bt20_breadth_payload(years=10, display_start="2016-01-01"):
     }
 
 
-def bt50_weekly_breadth_payload(years=20, display_start="2006-01-01"):
-    hist, source = EODHD.eod_history(["S5FI.INDX"], years=years, start_date=datetime.date(2006, 1, 1))
+def bt50_weekly_breadth_payload(years=30, display_start="1996-01-01"):
+    start_date = datetime.date.today() - datetime.timedelta(days=int(years * 366))
+    hist, source = EODHD.eod_history(["S5FI.INDX"], years=years, start_date=start_date)
     if hist is None or hist.empty or "Close" not in hist.columns:
         return [], [], {"status": "unavailable", "source": source}
 
@@ -1892,6 +1896,179 @@ def bt50_weekly_breadth_payload(years=20, display_start="2006-01-01"):
         "current_date": None if last is None else last["date"],
         "last_signal": last_signal,
         "active_setup_start": None if setup_idx is None else rows[setup_idx],
+    }
+
+
+def ma_breadth_compression_payload(years=30, display_start="1996-01-01", change_days=5, z_window=252):
+    symbols = {
+        "20d": "S5TW.INDX",
+        "50d": "S5FI.INDX",
+        "200d": "S5TH.INDX",
+    }
+    start_date = datetime.date.today() - datetime.timedelta(days=int(years * 366))
+    series = {}
+    sources = {}
+    for key, sym in symbols.items():
+        hist, source = EODHD.eod_history([sym], years=years, start_date=start_date)
+        sources[key] = source
+        if hist is None or hist.empty or "Close" not in hist.columns:
+            continue
+        closes = hist["Close"].astype(float).dropna().sort_index()
+        series[key] = closes
+
+    if not series:
+        return [], {"status": "unavailable", "source": sources}
+
+    df = pd.concat(series.values(), axis=1, join="outer", sort=False).sort_index().ffill()
+    df.columns = list(series.keys())
+    df = df.dropna(how="all")
+    rows = []
+    for key in list(series.keys()):
+        df[f"chg_{key}"] = df[key] - df[key].shift(change_days)
+        roll = df[f"chg_{key}"].rolling(z_window, min_periods=126)
+        df[f"z_{key}"] = (df[f"chg_{key}"] - roll.mean()) / roll.std()
+
+    for idx, row in df.iterrows():
+        date_s = str(pd.Timestamp(idx).date())
+        if date_s < display_start:
+            continue
+        out = {"date": date_s}
+        for key in ["20d", "50d", "200d"]:
+            if key in df.columns and pd.notna(row.get(key)):
+                out[f"pct_{key}"] = round(float(row[key]), 2)
+            if pd.notna(row.get(f"chg_{key}")):
+                out[f"chg_{key}"] = round(float(row[f"chg_{key}"]), 2)
+            if pd.notna(row.get(f"z_{key}")) and np.isfinite(row[f"z_{key}"]):
+                out[f"z_{key}"] = round(float(row[f"z_{key}"]), 2)
+        rows.append(out)
+
+    last = rows[-1] if rows else None
+    latest_key = "50d"
+    latest_z = None if not last else last.get(f"z_{latest_key}")
+    if latest_z is None:
+        status = "unavailable"
+    elif latest_z >= 2:
+        status = "expansion"
+    elif latest_z <= -2:
+        status = "compression"
+    else:
+        status = "neutral"
+
+    return rows, {
+        "status": status,
+        "source": sources,
+        "current_date": None if last is None else last["date"],
+        "change_days": change_days,
+        "z_window": z_window,
+        "default_metric": latest_key,
+        "current_pct": None if last is None else last.get(f"pct_{latest_key}"),
+        "current_change": None if last is None else last.get(f"chg_{latest_key}"),
+        "current_z": latest_z,
+        "start_date": rows[0]["date"] if rows else None,
+        "observations": len(rows),
+    }
+
+
+def ma_breadth_compression_from_stock_histories(history_items, years=30, change_days=5, z_window=252):
+    cutoff = pd.Timestamp(datetime.date.today() - datetime.timedelta(days=int(years * 366)))
+    counts = {}
+    for item in history_items or []:
+        rows = item.get("rows") or []
+        if not rows:
+            continue
+        dates, closes = [], []
+        for r in rows:
+            if len(r) < 4 or r[0] is None or r[3] is None:
+                continue
+            try:
+                dt = pd.Timestamp(r[0])
+                if dt < cutoff:
+                    continue
+                close = float(r[3])
+                if close <= 0:
+                    continue
+                dates.append(dt)
+                closes.append(close)
+            except Exception:
+                continue
+        if len(closes) < 260:
+            continue
+        s = pd.Series(closes, index=pd.DatetimeIndex(dates)).sort_index()
+        for ma_len, key in [(20, "20d"), (50, "50d"), (200, "200d")]:
+            ma = s.rolling(ma_len).mean()
+            above = (s > ma) & ma.notna()
+            valid = ma.notna()
+            for dt, is_valid in valid.items():
+                if not bool(is_valid):
+                    continue
+                d = str(pd.Timestamp(dt).date())
+                bucket = counts.setdefault(d, {"date": d, "n_20d": 0, "a_20d": 0, "n_50d": 0, "a_50d": 0, "n_200d": 0, "a_200d": 0})
+                bucket[f"n_{key}"] += 1
+                if bool(above.loc[dt]):
+                    bucket[f"a_{key}"] += 1
+
+    if not counts:
+        return [], {"status": "unavailable", "source": "current_sp500_constituent_histories"}
+
+    base_rows = []
+    for d in sorted(counts):
+        bucket = counts[d]
+        out = {"date": d}
+        for key in ["20d", "50d", "200d"]:
+            n = bucket.get(f"n_{key}", 0)
+            if n >= 100:
+                out[f"pct_{key}"] = round(bucket.get(f"a_{key}", 0) / n * 100, 2)
+                out[f"universe_{key}"] = int(n)
+        if any(k.startswith("pct_") for k in out):
+            base_rows.append(out)
+
+    df = pd.DataFrame(base_rows).set_index(pd.to_datetime([r["date"] for r in base_rows])).sort_index()
+    for key in ["20d", "50d", "200d"]:
+        col = f"pct_{key}"
+        if col not in df:
+            continue
+        df[f"chg_{key}"] = df[col] - df[col].shift(change_days)
+        roll = df[f"chg_{key}"].rolling(z_window, min_periods=126)
+        df[f"z_{key}"] = (df[f"chg_{key}"] - roll.mean()) / roll.std()
+
+    rows = []
+    for _, row in df.iterrows():
+        out = {"date": row["date"]}
+        for key in ["20d", "50d", "200d"]:
+            for prefix in ["pct", "chg", "z"]:
+                col = f"{prefix}_{key}"
+                if col in row and pd.notna(row[col]) and np.isfinite(row[col]):
+                    out[col] = round(float(row[col]), 2)
+            ucol = f"universe_{key}"
+            if ucol in row and pd.notna(row[ucol]):
+                out[ucol] = int(row[ucol])
+        rows.append(out)
+
+    last = rows[-1] if rows else None
+    latest_key = "50d"
+    latest_z = None if not last else last.get(f"z_{latest_key}")
+    if latest_z is None:
+        status = "unavailable"
+    elif latest_z >= 2:
+        status = "expansion"
+    elif latest_z <= -2:
+        status = "compression"
+    else:
+        status = "neutral"
+
+    return rows, {
+        "status": status,
+        "source": "current_sp500_constituent_histories",
+        "method": "Current S&P 500 constituents; survivorship-biased breadth history",
+        "current_date": None if last is None else last["date"],
+        "change_days": change_days,
+        "z_window": z_window,
+        "default_metric": latest_key,
+        "current_pct": None if last is None else last.get(f"pct_{latest_key}"),
+        "current_change": None if last is None else last.get(f"chg_{latest_key}"),
+        "current_z": latest_z,
+        "start_date": rows[0]["date"] if rows else None,
+        "observations": len(rows),
     }
 
 
@@ -2260,6 +2437,15 @@ Aug 2009 13.81
 Jul 2009 13.37
 Jun 2009 13.78
 May 2009 13.77
+Apr 2009 12.95
+Feb 2009 14.66
+Dec 2008 22.21
+Oct 2008 23.89
+Aug 2008 32.03
+Jun 2008 30.56
+Apr 2008 32.47
+Feb 2008 26.88
+Jan 2008 29.23
 """
 
 
@@ -2303,24 +2489,45 @@ def fetch_stockmarket_forward_pe_current():
     return None
 
 
-def forward_pe_payload():
-    rows = fetch_trendonify_forward_pe()
-    source = "Trendonify"
-    if len(rows) < 100:
-        rows = parse_forward_pe_rows(FORWARD_PE_SEED_TEXT)
-        source = "Trendonify seed + StockMarketPERatio current fallback"
+def parse_multpl_monthly_rows(text, value_key, min_value=0, max_value=50000):
+    month_map = {m: i for i, m in enumerate(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], 1)}
+    plain = html.unescape(re.sub(r"<[^>]+>", " ", text or ""))
+    rows = {}
+    for mon, day, year, val in re.findall(r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),\s+(\d{4})\s+[\s†]*([0-9][0-9,]*(?:\.\d+)?)\b", plain):
+        date = datetime.date(int(year), month_map[mon], 1)
+        value = float(val.replace(",", ""))
+        if min_value < value < max_value and str(date) not in rows:
+            rows[str(date)] = {"date": str(date), value_key: round(value, 2)}
+    return [rows[k] for k in sorted(rows)]
 
-    current = fetch_stockmarket_forward_pe_current()
-    if current:
-        by_date = {r["date"]: dict(r) for r in rows}
-        latest_seed_date = max(by_date) if by_date else ""
-        # Keep the Trendonify seed for overlapping months; use the free current feed only to extend.
-        if current["date"] > latest_seed_date:
-            by_date[current["date"]] = current
-            rows = [by_date[k] for k in sorted(by_date)]
 
+def fetch_multpl_pe_ratio_history():
+    url = "https://www.multpl.com/s-p-500-pe-ratio/table/by-month"
+    try:
+        r = requests.get(url, timeout=25, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code >= 400:
+            return []
+        rows = parse_multpl_monthly_rows(r.text, "pe", min_value=0, max_value=50)
+        return [r for r in rows if r["date"] >= "1980-01-01"]
+    except Exception:
+        return []
+
+
+def fetch_multpl_sp500_monthly_prices():
+    url = "https://www.multpl.com/s-p-500-historical-prices/table/by-month"
+    try:
+        r = requests.get(url, timeout=25, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code >= 400:
+            return []
+        rows = parse_multpl_monthly_rows(r.text, "close", min_value=0, max_value=50000)
+        return [r for r in rows if r["date"] >= "1980-01-01"]
+    except Exception:
+        return []
+
+
+def pe_status_payload(rows, source):
     if not rows:
-        return [], {"source": source, "status": "unavailable"}
+        return {"source": source, "status": "unavailable"}
 
     dates = pd.to_datetime([r["date"] for r in rows])
     vals = np.array([float(r["pe"]) for r in rows], dtype=float)
@@ -2344,9 +2551,9 @@ def forward_pe_payload():
 
     avg20 = period_stats(20)
     pe = float(latest["pe"])
-    ref = avg20.get("avg") or float(np.mean(vals))
-    status = "expensive" if pe >= ref * 1.18 else "above_average" if pe >= ref * 1.06 else "cheap" if pe <= ref * 0.88 else "fair_value"
-    return rows, {
+    ref = avg20.get("median") or avg20.get("avg") or float(np.median(vals))
+    status = "expensive" if pe >= ref * 1.25 else "above_average" if pe >= ref * 1.08 else "cheap" if pe <= ref * 0.82 else "fair_value"
+    return {
         "source": source,
         "status": status,
         "current_pe": round(pe, 2),
@@ -2359,6 +2566,34 @@ def forward_pe_payload():
         "avg_all": round(float(np.mean(vals)), 2),
         "median_all": round(float(np.median(vals)), 2),
     }
+
+
+def pe_ratio_payload():
+    rows = fetch_multpl_pe_ratio_history()
+    source = "Multpl monthly S&P 500 trailing P/E"
+    return rows, pe_status_payload(rows, source)
+
+
+def forward_pe_payload():
+    rows = fetch_trendonify_forward_pe()
+    source = "Trendonify"
+    if len(rows) < 100:
+        rows = parse_forward_pe_rows(FORWARD_PE_SEED_TEXT)
+        source = "Trendonify seed + StockMarketPERatio current fallback"
+
+    current = fetch_stockmarket_forward_pe_current()
+    if current:
+        by_date = {r["date"]: dict(r) for r in rows}
+        latest_seed_date = max(by_date) if by_date else ""
+        # Keep the Trendonify seed for overlapping months; use the free current feed only to extend.
+        if current["date"] > latest_seed_date:
+            by_date[current["date"]] = current
+            rows = [by_date[k] for k in sorted(by_date)]
+
+    if not rows:
+        return [], {"source": source, "status": "unavailable"}
+
+    return rows, pe_status_payload(rows, source)
 
 
 def cl_contract_symbol(year, month):
@@ -2563,6 +2798,97 @@ def high_yield_nhnl_history(limit=260):
     return rows, current
 
 
+def rsp_spy_breadth_payload(display_start="2004-01-01"):
+    def close_series(symbol):
+        hist = yf_history(yf.Ticker(symbol), "max", "1d")
+        source = f"yfinance:{symbol}"
+        if hist is None or hist.empty or "Close" not in hist.columns:
+            hist, source = history_df(symbol, years=25, period="max")
+        if hist is None or hist.empty or "Close" not in hist.columns:
+            return pd.Series(dtype=float), source
+        close = hist["Close"].astype(float).dropna()
+        close.index = pd.to_datetime(close.index).tz_localize(None).normalize()
+        close = close[~close.index.duplicated(keep="last")].sort_index()
+        return close, source
+
+    rsp, rsp_source = close_series("RSP")
+    spy, spy_source = close_series("SPY")
+    if rsp.empty or spy.empty:
+        return [], [], {"status": "unavailable", "source": f"{rsp_source}/{spy_source}"}
+
+    df = pd.DataFrame({"rsp": rsp, "spy": spy}).dropna()
+    df = df[df.index >= pd.Timestamp(display_start)]
+    if len(df) < 260:
+        return [], [], {"status": "unavailable", "source": f"{rsp_source}/{spy_source}"}
+
+    raw_ratio = df["rsp"] / df["spy"]
+    ratio = raw_ratio / raw_ratio.iloc[0] * 100.0
+    ma50 = ratio.rolling(50, min_periods=30).mean()
+    ma200 = ratio.rolling(200, min_periods=120).mean()
+    chg63 = ratio.pct_change(63) * 100.0
+    mean252 = ratio.rolling(252, min_periods=126).mean()
+    std252 = ratio.rolling(252, min_periods=126).std(ddof=1)
+    z252 = (ratio - mean252) / std252.replace(0, np.nan)
+
+    rows = []
+    states = []
+    for idx in df.index:
+        r = ratio.loc[idx]
+        m50 = ma50.loc[idx]
+        m200 = ma200.loc[idx]
+        c63 = chg63.loc[idx]
+        z = z252.loc[idx]
+        score = 50
+        if pd.notna(m50):
+            score += 20 if r >= m50 else -20
+        if pd.notna(m200):
+            score += 25 if r >= m200 else -25
+        if pd.notna(c63):
+            score += 15 if c63 >= 0 else -15
+        score = int(max(0, min(100, score)))
+        state = "bull" if score >= 70 else "bear" if score <= 30 else "neutral"
+        states.append(state)
+        rows.append({
+            "date": str(pd.Timestamp(idx).date()),
+            "rsp": round(float(df.loc[idx, "rsp"]), 4),
+            "spy": round(float(df.loc[idx, "spy"]), 4),
+            "ratio": round(float(r), 4),
+            "ma50": None if pd.isna(m50) else round(float(m50), 4),
+            "ma200": None if pd.isna(m200) else round(float(m200), 4),
+            "chg_63d": None if pd.isna(c63) else round(float(c63), 2),
+            "z_252d": None if pd.isna(z) else round(float(z), 2),
+            "score": score,
+            "state": state,
+        })
+
+    signals = []
+    prev = None
+    last_signal_i = -10_000
+    for i, (row, state) in enumerate(zip(rows, states)):
+        if state != prev and state in ("bull", "bear") and i - last_signal_i >= 63:
+            signals.append({
+                "date": row["date"],
+                "confirm_date": row["date"],
+                "type": state,
+                "score": row["score"],
+                "ratio": row["ratio"],
+            })
+            last_signal_i = i
+        prev = state
+
+    latest = rows[-1] if rows else {}
+    return rows, signals, {
+        "status": latest.get("state", "unavailable"),
+        "source": f"{rsp_source}/{spy_source}",
+        "current_ratio": latest.get("ratio"),
+        "current_score": latest.get("score"),
+        "current_chg_63d": latest.get("chg_63d"),
+        "current_z_252d": latest.get("z_252d"),
+        "current_date": latest.get("date"),
+        "last_signal": signals[-1] if signals else None,
+    }
+
+
 def fetch_market_indicators():
     result = {
         "vix": None, "vix_sma20": None,
@@ -2590,6 +2916,11 @@ def fetch_market_indicators():
         "bt50_history": [],
         "bt50_signals": [],
         "bt50_status": {},
+        "ma_breadth_compression": [],
+        "ma_breadth_compression_status": {},
+        "rsp_spy_breadth_history": [],
+        "rsp_spy_breadth_signals": [],
+        "rsp_spy_breadth_status": {},
         "hyg_history": [],
         "hyg_price": None,
         "hyg_nhnl_history": [],
@@ -2600,6 +2931,9 @@ def fetch_market_indicators():
         "gold_silver_ratio_status": {},
         "forward_pe_history": [],
         "forward_pe_status": {},
+        "pe_ratio_history": [],
+        "pe_ratio_status": {},
+        "sp500_monthly_price_history": [],
         "return_histograms": {},
         "ma_distance": {},
         "pc_total_history": [],
@@ -2613,14 +2947,15 @@ def fetch_market_indicators():
     sp500_20y_rows, sp500_20y_hist, sp500_20y_source = eodhd_sp500_history(years=20, display_start="2006-01-01")
     sp500_rsi_rows, sp500_rsi_hist, sp500_rsi_source = eodhd_sp500_history(years=35, display_start="1994-01-01")
     weekly_rsi, rsi_signals, rsi_status = sp500_weekly_rsi_payload(sp500_rsi_hist, sp500_rsi_source, display_start="1994-01-01")
-    bt20_rows, bt20_signals, bt20_status = bt20_breadth_payload(years=10)
-    bt50_rows, bt50_signals, bt50_status = bt50_weekly_breadth_payload(years=20)
+    bt20_rows, bt20_signals, bt20_status = bt20_breadth_payload(years=30)
+    bt50_rows, bt50_signals, bt50_status = bt50_weekly_breadth_payload(years=30)
+    rsp_spy_rows, rsp_spy_signals, rsp_spy_status = rsp_spy_breadth_payload()
     result["spy_history"] = sp500_rows
     result["sp500_history"] = sp500_rows
     result["sp500_history_20y"] = sp500_20y_rows
     result["sp500_history_rsi"] = sp500_rsi_rows
     result["sp500_ema_weekly_history"] = weekly_rows_from_history_df(sp500_ema_hist, sp500_ema_source, display_start="2006-01-01")
-    result["bt50_sp500_history"] = weekly_rows_from_history_df(sp500_20y_hist, sp500_20y_source, display_start="2006-01-01")
+    result["bt50_sp500_history"] = weekly_rows_from_history_df(sp500_rsi_hist, sp500_rsi_source, display_start="1996-01-01")
     result["sp500_rsi_weekly"] = weekly_rsi
     result["sp500_rsi_signals"] = rsi_signals
     result["sp500_rsi_status"] = rsi_status
@@ -2630,6 +2965,10 @@ def fetch_market_indicators():
     result["bt50_history"] = bt50_rows
     result["bt50_signals"] = bt50_signals
     result["bt50_status"] = bt50_status
+    result["ma_breadth_compression"], result["ma_breadth_compression_status"] = ma_breadth_compression_payload(years=30)
+    result["rsp_spy_breadth_history"] = rsp_spy_rows
+    result["rsp_spy_breadth_signals"] = rsp_spy_signals
+    result["rsp_spy_breadth_status"] = rsp_spy_status
     result["vix_sd_history"], result["vix_sd_current"] = vix_sd_payload(years=20)
     result["vix_realized_vol_history"], result["vix_realized_vol_current"] = vix_realized_vol_payload(
         sp500_20y_hist,
@@ -2640,6 +2979,8 @@ def fetch_market_indicators():
     result["oil_history"], result["oil_status"] = oil_market_payload(sp500_hist, years=10)
     result["gold_silver_ratio_history"], result["gold_silver_ratio_status"] = gold_silver_ratio_payload()
     result["forward_pe_history"], result["forward_pe_status"] = forward_pe_payload()
+    result["pe_ratio_history"], result["pe_ratio_status"] = pe_ratio_payload()
+    result["sp500_monthly_price_history"] = fetch_multpl_sp500_monthly_prices()
     result["hyg_history"] = dividend_adjusted_history("HYG", years=25, period="max")
     hyg_price_history = chart_history("HYG", years=1, period="1y")
     if hyg_price_history:
@@ -2653,12 +2994,16 @@ def fetch_market_indicators():
     print(f"  S&P weekly RSI: {len(result['sp500_rsi_weekly'])} weeks | signals: {len(result['sp500_rsi_signals'])}")
     print(f"  S&P 20D breadth: {len(result['bt20_history'])} days | signals: {len(result['bt20_signals'])}")
     print(f"  S&P 50D weekly breadth: {len(result['bt50_history'])} weeks | signals: {len(result['bt50_signals'])}")
+    print(f"  MA breadth compression: {len(result['ma_breadth_compression'])} days | z: {result['ma_breadth_compression_status'].get('current_z')}")
+    print(f"  RSP/SPY breadth: {len(result['rsp_spy_breadth_history'])} days | score: {result['rsp_spy_breadth_status'].get('current_score')}")
     print(f"  VIX SD history: {len(result['vix_sd_history'])} days | SD: {result['vix_sd_current'].get('current_sd')}")
     print(f"  VIX vs RV20 history: {len(result['vix_realized_vol_history'])} days | premium: {result['vix_realized_vol_current'].get('current_premium')}")
     print(f"  VIX spike history: {len(result['vix_spike_history'])} days | change: {result['vix_spike_status'].get('current_chg_pct')}%")
     print(f"  Oil history: {len(result['oil_history'])} days | spread: {result['oil_status'].get('current_spread')}")
     print(f"  Gold/Silver ratio: {len(result['gold_silver_ratio_history'])} weeks | ratio: {result['gold_silver_ratio_status'].get('current_ratio')}")
     print(f"  Forward P/E history: {len(result['forward_pe_history'])} months | PE: {result['forward_pe_status'].get('current_pe')}")
+    print(f"  P/E ratio history: {len(result['pe_ratio_history'])} months | PE: {result['pe_ratio_status'].get('current_pe')}")
+    print(f"  S&P monthly price history: {len(result['sp500_monthly_price_history'])} months")
     print(f"  HYG total-return history: {len(result['hyg_history'])} days")
     print(f"  HYG NH-NL history: {len(result['hyg_nhnl_history'])} days")
     print(f"  Return histograms: {len(result['return_histograms'])} symbols")
@@ -2989,6 +3334,9 @@ def run_once(upload=True, include_insider=True):
 
     print("\n[4b/5] Market Indicators (VIX + P/C)...")
     market_indicators = fetch_market_indicators()
+    ma_breadth_rows, ma_breadth_status = ma_breadth_compression_from_stock_histories(ma_stock_history, years=30)
+    market_indicators["ma_breadth_compression"] = ma_breadth_rows
+    market_indicators["ma_breadth_compression_status"] = ma_breadth_status
 
     insider_trades = []
     if include_insider:

@@ -490,6 +490,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-bt50 .signal-bar-divider{background:#202020!important}
 #tab-cg-bt50 .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-bt50 .interp-text{color:#a8a8a8!important}
+#tab-cg-rspspy .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-rspspy .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-rspspy .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-rspspy .signal-bar-divider{background:#202020!important}
+#tab-cg-rspspy .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-rspspy .interp-text{color:#a8a8a8!important}
 #tab-cg-oil .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-oil .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-oil .signal-bar-desc{color:#d0d0d0!important}
@@ -568,6 +574,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-mabreadth',this)">% Stocks above</div>
+      <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Momentum</span><span class="nav-folder-arrow">›</span></div>
@@ -1733,6 +1740,69 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- RSP/SPY BREADTH -->
+    <div class="panel cg-page" id="tab-cg-rspspy">
+      <div class="cg-header">
+        <div class="cg-title">RSP/SPY Equal Weight vs Cap Weight Breadth Model</div>
+        <div class="cg-sub">RSP divided by SPY tracks whether the average S&amp;P 500 stock is keeping up with the cap-weighted index. A rising ratio signals broad participation; a falling ratio warns that gains are concentrated in the largest names.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">Ratio Index</div>
+          <div class="signal-bar-val" id="rspSpyRatioVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Breadth Score</div>
+          <div class="signal-bar-val" id="rspSpyScoreVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">3M Relative</div>
+          <div class="signal-bar-val" id="rspSpyChgVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Regime</div>
+          <div class="signal-bar-val" id="rspSpyRegimeVal" style="font-size:14px;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc">Score blends ratio vs 50D, ratio vs 200D and 3M relative momentum. Green = equal-weight participation; red = narrow cap-weight leadership.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="rspSpyPriceTitle">S&amp;P 500 — RSP/SPY regime markers</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>SPY</span>
+            <span style="color:#1D9E75">● Broad participation</span>
+            <span style="color:#e05050">● Narrow leadership</span>
+          </div>
+        </div>
+        <canvas id="rspSpyPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="rspSpyRatioTitle">RSP/SPY Ratio Index — 50D / 200D Trend</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Ratio</span>
+            <span><span class="cg-leg-line" style="background:#1D9E75"></span>50D</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>200D</span>
+          </div>
+        </div>
+        <canvas id="rspSpyRatioCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Broad Participation</div><div class="interp-text">RSP outperforming SPY means the average S&amp;P 500 stock is contributing. This usually confirms healthier risk appetite than mega-cap-only leadership.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Narrow Leadership</div><div class="interp-text">RSP lagging SPY means cap-weight concentration is carrying the index. It is not automatically bearish, but it lowers breadth quality.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Signal Use</div><div class="interp-text">Best used as a confirmation layer with % stocks above and breadth thrust. Persistent weakness while SPY rises can warn of fragile upside.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="rspSpyForwardStats">Waiting for RSP/SPY data.</div></div>
+      </div>
+    </div>
+
     <!-- % STOCKS ABOVE -->
     <div class="panel cg-page" id="tab-cg-mabreadth">
       <div class="cg-header">
@@ -2026,6 +2096,7 @@ function showTab(id, el) {
   if(id === "cg-goldsilver") setTimeout(drawGoldSilverRatio, 60);
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
+  if(id === "cg-rspspy") setTimeout(drawRSPSpyBreadth, 60);
   if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
@@ -2070,6 +2141,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-vixspike") drawVIXSpikeModel();
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
     if(activePanel && activePanel.id === "tab-cg-peratio") drawPERatioChart();
+    if(activePanel && activePanel.id === "tab-cg-rspspy") drawRSPSpyBreadth();
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
@@ -3639,6 +3711,7 @@ const cgRedraw = {
   "cg-vix2": () => mirrorVIXCharts(),
   "cg-bt20": () => drawBT20Chart(),
   "cg-bt50": () => drawBT50Chart(),
+  "cg-rspspy": () => drawRSPSpyBreadth(),
   "cg-mabreadth": () => drawStocksAboveAnalyzer(),
   "cg-oil": () => drawOilCharts(),
   "cg-goldsilver": () => drawGoldSilverRatio(),
@@ -4939,6 +5012,142 @@ function drawBTSignalDotsByDate(canvasId, rows, signals, valueKey, fixedScale=fa
     ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(220,255,240,.85)"; ctx.stroke();
     ctx.restore();
   });
+}
+
+function drawRSPSpySignalDots(canvasId, rows, signals, valueKey, logScale=false, domain=null) {
+  if(!rows || rows.length < 2 || !signals || !signals.length || !domain) return;
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
+  const H = canvas.clientHeight || parseFloat(canvas.style.height) || 240;
+  const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const values = rows.map(r => +r[valueKey]).filter(Number.isFinite);
+  if(values.length < 2) return;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  let toY;
+  if(logScale) {
+    const logs = values.filter(v => v > 0).map(v => Math.log(v));
+    const minV = Math.min(...logs) * .998, maxV = Math.max(...logs) * 1.002;
+    toY = v => PAD.top + PH - ((Math.log(v) - minV) / (maxV - minV || 1)) * PH;
+  } else {
+    const minV = Math.min(...values) * .996, maxV = Math.max(...values) * 1.004;
+    toY = v => PAD.top + PH - ((v - minV) / (maxV - minV || 1)) * PH;
+  }
+  signals.forEach(sig => {
+    const idx = firstIndexOnOrAfter(rows, sig.confirm_date || sig.date);
+    const row = rows[idx];
+    const val = row ? +row[valueKey] : NaN;
+    if(!row || !Number.isFinite(val)) return;
+    const t = rowDateMs(row);
+    if(t < domain.startMs || t > domain.endMs) return;
+    const col = sig.type === "bear" ? "#e05050" : "#1D9E75";
+    ctx.save();
+    ctx.beginPath(); ctx.arc(toX(row), toY(val), 6.2, 0, Math.PI * 2);
+    ctx.fillStyle = col + "33"; ctx.fill();
+    ctx.beginPath(); ctx.arc(toX(row), toY(val), 3.9, 0, Math.PI * 2);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.lineWidth = 1.1; ctx.strokeStyle = "rgba(245,245,245,.78)"; ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawRSPSpyRatioChart(rows, signals, domain) {
+  const c = mkCanvas("rspSpyRatioCanvas", 260); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  const valid = (rows || []).filter(r => Number.isFinite(+r.ratio));
+  if(!domain || valid.length < 50) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("RSP/SPY breadth history unavailable - run screener.py", W/2, H/2); return;
+  }
+  const vals = valid.flatMap(r => [+r.ratio, +r.ma50, +r.ma200]).filter(Number.isFinite);
+  const vMin = Math.min(...vals) * .985, vMax = Math.max(...vals) * 1.015;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)";
+  for(let i=0;i<=4;i++){ const y=PAD.top+i/4*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  const drawSeries = (key, col, width=1.6) => {
+    ctx.beginPath();
+    let started = false;
+    valid.forEach(r => {
+      const v = +r[key];
+      if(!Number.isFinite(v)) return;
+      if(!started) { ctx.moveTo(toX(r), toY(v)); started = true; }
+      else ctx.lineTo(toX(r), toY(v));
+    });
+    ctx.strokeStyle = col; ctx.lineWidth = width; ctx.stroke();
+  };
+  drawSeries("ratio", "rgba(216,216,216,.85)", 1.8);
+  drawSeries("ma50", "rgba(29,158,117,.82)", 1.2);
+  drawSeries("ma200", "rgba(239,159,39,.82)", 1.2);
+  drawRSPSpySignalDots("rspSpyRatioCanvas", valid, signals, "ratio", false, domain);
+  ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [vMin,(vMin+vMax)/2,vMax].forEach(v=>ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p=>{ const ms=domain.startMs+(domain.endMs-domain.startMs)*p; ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), toDateX(ms), H-PAD.bottom+14); });
+}
+
+function renderRSPSpyForward(priceRows, signals) {
+  const el = document.getElementById("rspSpyForwardStats");
+  if(!el) return;
+  const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
+  const sigs = Array.isArray(signals) ? signals : [];
+  const calc = (type, bars) => {
+    const vals = [];
+    sigs.filter(s => s.type === type).forEach(sig => {
+      const i = firstIndexOnOrAfter(prices, sig.confirm_date || sig.date);
+      const start = prices[i], end = prices[i + bars];
+      if(!start || !end || +start.close <= 0) return;
+      vals.push((+end.close / +start.close - 1) * 100);
+    });
+    return {
+      avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null,
+      win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null,
+      n: vals.length
+    };
+  };
+  const row = (label, type) => {
+    const m3 = calc(type, 63), m12 = calc(type, 252);
+    const fmtCell = r => `<strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</em>`;
+    return `<div class="ret-fwd-row"><span>${label}</span><span>${fmtCell(m3)}</span><span>${fmtCell(m12)}</span></div>`;
+  };
+  const bull = sigs.filter(s=>s.type==="bull").length, bear = sigs.filter(s=>s.type==="bear").length;
+  el.innerHTML = `<div class="ret-fwd-events">${bull} broad / ${bear} narrow regime starts</div><div class="ret-fwd-head"><span>Signal</span><span>3M</span><span>12M</span></div>${row("Broad","bull")}${row("Narrow","bear")}`;
+}
+
+function drawRSPSpyBreadth() {
+  const md = window._marketData || {};
+  const rawRows = Array.isArray(md.rsp_spy_breadth_history) ? md.rsp_spy_breadth_history : [];
+  const signals = Array.isArray(md.rsp_spy_breadth_signals) ? md.rsp_spy_breadth_signals : [];
+  const domain = ensureCGDateControls("cg-rspspy", [rawRows], "max");
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const priceRows = rows.map(r => ({ date: r.date, close: +r.spy })).filter(r => Number.isFinite(r.close));
+  const latest = rows[rows.length - 1] || {};
+  const regime = latest.state === "bull" ? "BROAD" : latest.state === "bear" ? "NARROW" : "NEUTRAL";
+  const color = latest.state === "bull" ? "#1D9E75" : latest.state === "bear" ? "#e05050" : "#d8d8d8";
+  [["rspSpyRatioVal", Number.isFinite(+latest.ratio) ? (+latest.ratio).toFixed(1) : "—"], ["rspSpyScoreVal", Number.isFinite(+latest.score) ? Math.round(+latest.score) + "/100" : "—"], ["rspSpyChgVal", Number.isFinite(+latest.chg_63d) ? fmtPct(+latest.chg_63d,1) : "—"], ["rspSpyRegimeVal", regime]].forEach(([id, txt]) => {
+    const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
+  });
+  if(priceRows.length > 50) {
+    drawHistoryLineLogByDate("rspSpyPriceCanvas", priceRows, 240, "SPY", "#d8d8d8", domain, []);
+    drawRSPSpySignalDots("rspSpyPriceCanvas", priceRows, signals, "close", true, domain);
+  } else {
+    emptyCanvas("rspSpyPriceCanvas", 240, "RSP/SPY price history unavailable - run screener.py");
+  }
+  drawRSPSpyRatioChart(rows, signals, domain);
+  renderRSPSpyForward(rawRows.map(r => ({ date: r.date, close: +r.spy })), signals);
+  const priceTitle = document.getElementById("rspSpyPriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `SPY — RSP/SPY breadth regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const ratioTitle = document.getElementById("rspSpyRatioTitle");
+  if(ratioTitle && rows.length) ratioTitle.textContent = `RSP/SPY Ratio Index — 50D / 200D Trend · ${rows[0].date} to ${rows[rows.length - 1].date}`;
 }
 
 function maBreadthMetricLabel(key) {
