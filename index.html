@@ -1646,7 +1646,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 — 10Y Daily · Green Dots = 20D Breadth Thrust</span>
+          <span class="cg-chart-title" id="bt20PriceTitle">S&amp;P 500 — Daily · Green Dots = 20D Breadth Thrust</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span style="color:#1D9E75">● Thrust Confirmed</span>
@@ -1657,7 +1657,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">% S&amp;P 500 Stocks Above 20D MA — 10Y Daily History</span>
+          <span class="cg-chart-title" id="bt20BreadthTitle">% S&amp;P 500 Stocks Above 20D MA — Daily History</span>
           <div class="cg-chart-legend">
             <span style="color:#e05050">— 15% (Thrust Start)</span>
             <span style="color:#1D9E75">— 80% (Thrust Confirm)</span>
@@ -1668,10 +1668,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <canvas id="bt20Canvas" style="width:100%;display:block"></canvas>
       </div>
 
-      <div class="interp-grid">
+      <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Thrust Confirmed (&lt;15% → &gt;80%)</div><div class="interp-text">Explosive breadth expansion. Market participation surged across all sectors. Avg 3-month forward return after confirmed thrust: +12%. Very low false-positive rate.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Setup Zone (Below 15%)</div><div class="interp-text">Deeply oversold breadth. If a thrust initiation occurs here, watch the next 15 trading days closely for a push above 80% to confirm the full signal.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Overbought Zone (Above 85%)</div><div class="interp-text">Short-term overbought. Normal pullback likely in 1–3 weeks. Not a sell signal — just expect consolidation. Higher TF (50D, 200D) breadth more important for trend.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="bt20ForwardStats">Waiting for breadth thrust data.</div></div>
       </div>
     </div>
 
@@ -1702,7 +1703,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">S&amp;P 500 — 20Y Weekly · Green Dots = 50D Breadth Thrust</span>
+          <span class="cg-chart-title" id="bt50PriceTitle">S&amp;P 500 — Weekly · Green Dots = 50D Breadth Thrust</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
             <span style="color:#1D9E75">● Thrust Confirmed</span>
@@ -1713,7 +1714,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">% S&amp;P 500 Stocks Above 50D MA — 20Y Weekly History</span>
+          <span class="cg-chart-title" id="bt50BreadthTitle">% S&amp;P 500 Stocks Above 50D MA — Weekly History</span>
           <div class="cg-chart-legend">
             <span style="color:#e05050">— 10% (Thrust Start)</span>
             <span style="color:#1D9E75">— 80% (Thrust Confirm)</span>
@@ -1724,10 +1725,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <canvas id="bt50Canvas" style="width:100%;display:block"></canvas>
       </div>
 
-      <div class="interp-grid">
+      <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Thrust Confirmed (&lt;10% → &gt;80%)</div><div class="interp-text">Broad recovery across the S&amp;P 500. This is slower than the 20D thrust and captures durable participation rather than short-term snapback.</div></div>
         <div class="interp-cell neut"><div class="interp-title neut">Setup Zone (Below 10%)</div><div class="interp-text">Deep washout. Once breadth leaves this zone, the next 12 weekly bars decide whether a full thrust confirms.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Weekly Timeframe</div><div class="interp-text">Weekly data filters daily noise. Signals are marked on the week they confirm above 80%.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="bt50ForwardStats">Waiting for breadth thrust data.</div></div>
       </div>
     </div>
 
@@ -5113,7 +5115,36 @@ function drawStocksAboveAnalyzer() {
   renderMABreadthForward(rawRows, rawPrice, key, maBreadthThresholdPct);
 }
 
-function drawBT20BreadthChart(rows, signals) {
+function renderBTForwardStats(elId, priceRows, signals, label, horizons) {
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
+  const sigs = Array.isArray(signals) ? signals : [];
+  if(prices.length < 20 || !sigs.length) {
+    el.innerHTML = `<div class="ret-fwd-events">No completed historical signals</div>`;
+    return;
+  }
+  const rows = horizons.map(h => {
+    const vals = [];
+    sigs.forEach(sig => {
+      const i = firstIndexOnOrAfter(prices, sig.confirm_date);
+      const start = prices[i];
+      const end = prices[i + h.bars];
+      if(!start || !end || !Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
+      vals.push((+end.close / +start.close - 1) * 100);
+    });
+    return {
+      label: h.label,
+      avg: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null,
+      win: vals.length ? vals.filter(v => v > 0).length / vals.length * 100 : null,
+      n: vals.length
+    };
+  });
+  el.innerHTML = `<div class="ret-fwd-events">${sigs.length} historical signals · ${label}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
+    rows.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
+}
+
+function drawBT20BreadthChart(rows, signals, domain=null) {
   const c = mkCanvas("bt20Canvas", 220); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
@@ -5132,36 +5163,51 @@ function drawBT20BreadthChart(rows, signals) {
     ctx.fillText("20D breadth history unavailable - run screener.py",W/2,H/2);
     return;
   }
-  const toX=i=>PAD.left+(i/(rows.length-1))*PW;
+  const xSpan = domain ? (domain.endMs - domain.startMs || 1) : null;
+  const toX=(row,i)=>domain ? PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW : PAD.left+(i/(rows.length-1))*PW;
+  const toDateX=ms=>PAD.left+((ms-domain.startMs)/(domain.endMs-domain.startMs||1))*PW;
   ctx.beginPath();
-  rows.forEach((r,i)=>i===0?ctx.moveTo(toX(i),toY(+r.value)):ctx.lineTo(toX(i),toY(+r.value)));
+  rows.forEach((r,i)=>i===0?ctx.moveTo(toX(r,i),toY(+r.value)):ctx.lineTo(toX(r,i),toY(+r.value)));
   ctx.strokeStyle="#5892d4";ctx.lineWidth=1.8;ctx.lineJoin="round";ctx.stroke();
   ctx.fillStyle="#4a4a4a";ctx.font="8px sans-serif";ctx.textAlign="right";
   [0,25,50,75,100].forEach(v=>ctx.fillText(v+"%",PAD.left-5,toY(v)+3));
   ctx.fillStyle="#3a3a3a";ctx.font="8px sans-serif";ctx.textAlign="center";
-  [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
-    const r=rows[i]; if(!r) return;
-    const d=new Date(r.date+"T12:00:00");
-    ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"2-digit"}),toX(i),H-PAD.bottom+14);
-  });
-  drawBT20SignalDots("bt20Canvas", rows, signals, "value", true);
+  if(domain) {
+    [0,.2,.4,.6,.8,1].forEach(p=>{
+      const ms=domain.startMs+(domain.endMs-domain.startMs)*p;
+      const d=new Date(ms);
+      ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toDateX(ms),H-PAD.bottom+14);
+    });
+  } else {
+    [0,.2,.4,.6,.8,1].map(p=>Math.round((rows.length-1)*p)).forEach(i=>{
+      const r=rows[i]; if(!r) return;
+      const d=new Date(r.date+"T12:00:00");
+      ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toX(r,i),H-PAD.bottom+14);
+    });
+  }
+  drawBTSignalDotsByDate("bt20Canvas", rows, signals, "value", true, false, domain);
 }
 
 function drawBT20Chart() {
   const md = window._marketData || {};
-  const rawPriceRows = (marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history")).filter(d => d.date >= "2016-01-01");
-  const rawBreadthRows = Array.isArray(md.bt20_history) ? md.bt20_history.filter(d => d && d.date >= "2016-01-01") : [];
-  const domain = ensureCGDateControls("cg-bt20", [rawPriceRows, rawBreadthRows], "10Y");
+  const rawPriceRows = marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : (marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : (marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("spy_history")));
+  const rawBreadthRows = Array.isArray(md.bt20_history) ? md.bt20_history : [];
+  const domain = ensureCGCommonDateControls("cg-bt20", [rawPriceRows, rawBreadthRows], "max");
   const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
   const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
   const signals = Array.isArray(md.bt20_signals) ? md.bt20_signals : [];
   if(priceRows.length > 100) {
-    drawHistoryLineLog("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", []);
-    drawBT20SignalDots("bt20PriceCanvas", priceRows, signals, "close", false, true);
+    drawHistoryLineLogByDate("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
+    drawBTSignalDotsByDate("bt20PriceCanvas", priceRows, signals, "close", false, true, domain);
   } else {
-    emptyCanvas("bt20PriceCanvas", 240, "S&P 500 10Y history unavailable - run screener.py");
+    emptyCanvas("bt20PriceCanvas", 240, "S&P 500 daily history unavailable - run screener.py");
   }
-  drawBT20BreadthChart(breadthRows, signals);
+  const priceTitle = document.getElementById("bt20PriceTitle");
+  if(priceTitle && priceRows.length) priceTitle.textContent = `S&P 500 — Daily 20D Breadth Thrust signals · ${priceRows[0].date} to ${priceRows[priceRows.length - 1].date}`;
+  const breadthTitle = document.getElementById("bt20BreadthTitle");
+  if(breadthTitle && breadthRows.length) breadthTitle.textContent = `% S&P 500 Stocks Above 20D MA — Daily History · ${breadthRows[0].date} to ${breadthRows[breadthRows.length - 1].date}`;
+  drawBT20BreadthChart(breadthRows, signals, domain);
+  renderBTForwardStats("bt20ForwardStats", rawPriceRows, signals, "20D thrust confirm", [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"12M",bars:252}]);
 }
 
 function updateBT20Signal() {
@@ -5222,16 +5268,21 @@ function drawBT50Chart() {
   const rawPriceRows = Array.isArray(md.bt50_sp500_history) ? md.bt50_sp500_history : [];
   const rawBreadthRows = Array.isArray(md.bt50_history) ? md.bt50_history : [];
   const signals = Array.isArray(md.bt50_signals) ? md.bt50_signals : [];
-  const domain = ensureCGDateControls("cg-bt50", [rawPriceRows, rawBreadthRows], "20Y");
+  const domain = ensureCGCommonDateControls("cg-bt50", [rawPriceRows, rawBreadthRows], "max");
   const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
   const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
   if(priceRows.length > 100) {
     drawHistoryLineLogByDate("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", domain, []);
     drawBTSignalDotsByDate("bt50PriceCanvas", priceRows, signals, "close", false, true, domain);
   } else {
-    emptyCanvas("bt50PriceCanvas", 260, "S&P 500 20Y weekly history unavailable - run screener.py");
+    emptyCanvas("bt50PriceCanvas", 260, "S&P 500 weekly history unavailable - run screener.py");
   }
+  const priceTitle = document.getElementById("bt50PriceTitle");
+  if(priceTitle && priceRows.length) priceTitle.textContent = `S&P 500 — Weekly 50D Breadth Thrust signals · ${priceRows[0].date} to ${priceRows[priceRows.length - 1].date}`;
+  const breadthTitle = document.getElementById("bt50BreadthTitle");
+  if(breadthTitle && breadthRows.length) breadthTitle.textContent = `% S&P 500 Stocks Above 50D MA — Weekly History · ${breadthRows[0].date} to ${breadthRows[breadthRows.length - 1].date}`;
   drawBT50BreadthChart(breadthRows, signals, domain);
+  renderBTForwardStats("bt50ForwardStats", rawPriceRows, signals, "50D weekly thrust confirm", [{label:"1M",bars:4},{label:"3M",bars:13},{label:"6M",bars:26},{label:"12M",bars:52}]);
 }
 
 function updateBT50Signal() {
