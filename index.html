@@ -2388,7 +2388,7 @@ function drawRollingReturnModel() {
   set("rollRetUpper", fmtPct(upper, 2), "#1D9E75");
   set("rollRetLower", fmtPct(lower, 2), "#e05050");
   set("rollRetSignal", signal, col);
-  set("rollRetTitle", `S&P 500 + 20D Rolling Returns · ${rollRetHistoryRange === "max" ? "Max" : rollRetHistoryRange} · 1.5σ bands`);
+  set("rollRetTitle", `S&P 500 + 20D Rolling Returns · ${rows[0].date} to ${rows[rows.length - 1].date} · 1.5σ bands`);
   renderRollingReturnForward(rows, upper, lower);
   drawRollingReturnChart(rows, stats.mean, upper, lower, null);
 }
