@@ -2213,6 +2213,7 @@ const PASS = "HBMS2026";
 const DATA_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/data.json";
 const MA_STOCK_STATS_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/ma_stock_stats.json";
 const MA_STOCK_HISTORY_BASE = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/ma_stock_history/";
+const WASHED_OUT_HISTORY_URL = "https://raw.githubusercontent.com/Henryblmb/HBMS-Trading/main/washed_out_bottom_picker_history.json";
 let allStocks=[], allTrending=[], allSectors=[], breadthData={};
 let currentTF = "1d";
 let rsSortCol = "vs_spy", rsSortDir = -1;
@@ -2234,6 +2235,8 @@ let maStockStatsByTicker = null;
 let maStockStatsPromise = null;
 let maStockHistoryCache = new Map();
 let maStockHistoryRequests = new Map();
+let washedOutHistoryCache = null;
+let washedOutHistoryPromise = null;
 
 // ═══════════════════════════════════════════════
 // AUTH
@@ -5880,6 +5883,29 @@ function washedOutPayload() {
   return md.washed_out_bottom_picker || {};
 }
 
+function loadWashedOutFullHistory(payload) {
+  if(washedOutHistoryCache) return Promise.resolve(washedOutHistoryCache);
+  if(washedOutHistoryPromise) return washedOutHistoryPromise;
+  const file = payload && payload.history_file ? String(payload.history_file) : "";
+  const url = file ? WASHED_OUT_HISTORY_URL : "";
+  if(!url) return Promise.resolve(null);
+  washedOutHistoryPromise = fetch(url + "?t=" + Date.now(), { cache: "no-store" })
+    .then(r => {
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(json => {
+      washedOutHistoryCache = Array.isArray(json.rows) ? json.rows : [];
+      return washedOutHistoryCache;
+    })
+    .catch(err => {
+      console.warn("Washed-out full history unavailable", err);
+      return null;
+    })
+    .finally(() => { washedOutHistoryPromise = null; });
+  return washedOutHistoryPromise;
+}
+
 function washedOutHorizons() {
   return ["1M", "3M", "6M", "9M", "12M"];
 }
@@ -5996,7 +6022,8 @@ function drawWashedOutThresholdChart(thresholds) {
 function drawWashedOutBottomPicker() {
   const payload = washedOutPayload();
   const status = payload.status || {};
-  const rows = Array.isArray(payload.history) ? payload.history : [];
+  const compactRows = Array.isArray(payload.history) ? payload.history : [];
+  const rows = (washedOutHistoryCache && washedOutHistoryCache.length) ? washedOutHistoryCache : compactRows;
   const signals = Array.isArray(payload.signals) ? payload.signals : [];
   const threshold = Number.isFinite(+status.model_threshold) ? +status.model_threshold : 80;
   const priceRows = rows.filter(r => Number.isFinite(+r.close));
@@ -6012,7 +6039,13 @@ function drawWashedOutBottomPicker() {
   setTxt("washedOutThresholdVal", status.model_threshold == null ? "—" : (+status.model_threshold).toFixed(0)+"%", "#EF9F27");
   setTxt("washedOutSignalVal", active ? "ACTIVE" : "NO SIGNAL", active ? "#1D9E75" : "#d8d8d8");
   const desc = document.getElementById("washedOutDesc");
-  if(desc) desc.textContent = status.current_date ? `Data date ${status.current_date}. Model signal status: ${status.model_signal_status || "—"}. Events: ${status.model_signal_events || 0}.` : "Run screener.py to load washed-out model data.";
+  if(desc) {
+    const fullTxt = washedOutHistoryCache && washedOutHistoryCache.length ? `Full history ${rows[0]?.date || "—"} to ${rows[rows.length - 1]?.date || "—"}.` : (payload.history_file ? "Loading full chart history..." : "Compact chart history.");
+    desc.textContent = status.current_date ? `Data date ${status.current_date}. Model signal status: ${status.model_signal_status || "—"}. Events: ${status.model_signal_events || 0}. ${fullTxt}` : "Run screener.py to load washed-out model data.";
+  }
+  if(payload.history_file && (!washedOutHistoryCache || !washedOutHistoryCache.length) && !washedOutHistoryPromise) {
+    loadWashedOutFullHistory(payload).then(full => { if(full && full.length) drawWashedOutBottomPicker(); });
+  }
   if(visPrice.length > 30 && domain) {
     drawHistoryLineLogByDate("washedOutPriceCanvas", visPrice, 260, "S&P 500", "#d8d8d8", domain, []);
     drawWashedOutSignalLines("washedOutPriceCanvas", visPrice, visSignals, domain, "close", true);
