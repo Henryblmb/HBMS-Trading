@@ -2112,23 +2112,18 @@ def spy_binary_returns_payload(spy_rows, roc_windows=(1, 2, 3, 5, 10, 20, 40, 60
 
     signals = []
     setup_low = False
-    setup_high = False
     last_signal_i = -10_000
     for i, row in enumerate(rows):
-        val = float(row["value"])
-        prev = float(rows[i - 1]["value"]) if i > 0 else val
+        val = row.get("ma20")
+        prev = rows[i - 1].get("ma20") if i > 0 else val
+        if val is None or prev is None:
+            continue
+        val = float(val)
+        prev = float(prev)
         if val <= -18:
             setup_low = True
-        if val >= 18:
-            setup_high = True
         if setup_low and prev <= 0 < val and i - last_signal_i >= 63:
             signals.append({"date": row["date"], "confirm_date": row["date"], "type": "bull", "value": row["value"], "spy": row["spy"]})
-            setup_low = False
-            setup_high = False
-            last_signal_i = i
-        elif setup_high and prev >= 0 > val and i - last_signal_i >= 63:
-            signals.append({"date": row["date"], "confirm_date": row["date"], "type": "bear", "value": row["value"], "spy": row["spy"]})
-            setup_high = False
             setup_low = False
             last_signal_i = i
 

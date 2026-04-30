@@ -1026,7 +1026,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-bar-val" id="binRetRegimeVal" style="font-size:14px;padding-top:4px">—</div>
         </div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">Signals trigger when the oscillator crosses back through zero after reaching distribution below -18 or accumulation above +18.</div>
+        <div class="signal-bar-desc">Long signal triggers when the smoothed binary line first reached -18, then crosses back above the orange zero line.</div>
         <div class="signal-range-controls" data-cg-date-host>
           <div class="hist-range" id="binRetRange">
             <button class="hist-btn" onclick="setHistoryRange('binret','1Y',this)">1Y</button>
@@ -1042,8 +1042,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <span class="cg-chart-title" id="binRetPriceTitle">SPY — Binary accumulation regime markers</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>SPY</span>
-            <span style="color:#1D9E75">● Accumulation reset</span>
-            <span style="color:#e05050">● Distribution reset</span>
+            <span style="color:#1D9E75">Long signal line</span>
           </div>
         </div>
         <canvas id="binRetPriceCanvas" style="width:100%;display:block"></canvas>
@@ -5115,13 +5114,57 @@ function renderBinaryReturnsForward(priceRows, signals) {
     });
     return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length };
   });
-  const rows = [{ name:"Bull", type:"bull", data:calc("bull") }, { name:"Bear", type:"bear", data:calc("bear") }];
-  el.innerHTML = `<div class="ret-fwd-events">${sigs.filter(s=>s.type==="bull").length} bull / ${sigs.filter(s=>s.type==="bear").length} bear resets</div><div class="ret-fwd-head"><span>Type</span><span>3M</span><span>12M</span></div>` +
+  const rows = [{ name:"Long", type:"bull", data:calc("bull") }];
+  el.innerHTML = `<div class="ret-fwd-events">${sigs.filter(s=>s.type==="bull").length} long signals</div><div class="ret-fwd-head"><span>Type</span><span>3M</span><span>12M</span></div>` +
     rows.map(side => {
       const m3 = side.data.find(r=>r.label==="3M"), m12 = side.data.find(r=>r.label==="12M");
       const cell = r => `<strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</em>`;
       return `<div class="ret-fwd-row"><span>${side.name}</span><span>${cell(m3)}</span><span>${cell(m12)}</span></div>`;
     }).join("");
+}
+
+function drawBinaryLongSignalLines(canvasId, rows, signals, domain, valueKey=null, fromZero=false) {
+  if(!rows || rows.length < 2 || !signals || !signals.length || !domain) return;
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
+  const H = canvas.clientHeight || parseFloat(canvas.style.height) || 240;
+  const PAD = { top: valueKey ? 16 : 14, right: 48, bottom: valueKey ? 30 : 28, left: valueKey ? 44 : 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  let toY = () => PAD.top + PH;
+  if(valueKey) {
+    const vals = rows.map(r => +r[valueKey]).filter(Number.isFinite);
+    const vMin = Math.min(-24, ...vals) * 1.08, vMax = Math.max(24, ...vals) * 1.08;
+    toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
+  }
+  signals.filter(s => s.type === "bull").forEach(sig => {
+    const idx = firstIndexOnOrAfter(rows, sig.confirm_date || sig.date);
+    const row = rows[idx];
+    if(!row) return;
+    const t = rowDateMs(row);
+    if(t < domain.startMs || t > domain.endMs) return;
+    const x = toX(row);
+    const y1 = fromZero ? toY(0) : PAD.top + PH;
+    ctx.save();
+    ctx.strokeStyle = "rgba(29,158,117,.72)";
+    ctx.lineWidth = 1.15;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, y1);
+    ctx.lineTo(x, PAD.top);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if(valueKey) {
+      ctx.beginPath();
+      ctx.arc(x, toY(0), 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#1D9E75";
+      ctx.fill();
+    }
+    ctx.restore();
+  });
 }
 
 function drawBinaryReturnsOscillator(rows, signals, domain) {
@@ -5158,6 +5201,7 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
     else ctx.lineTo(toX(r), toY(v));
   });
   ctx.strokeStyle="#3ed8d8"; ctx.lineWidth=1.8; ctx.stroke();
+  drawBinaryLongSignalLines("binRetOscCanvas", valid, signals, domain, "ma20", true);
   ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [vMin,0,vMax].forEach(v=>ctx.fillText(Math.round(v), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
@@ -5179,6 +5223,7 @@ function drawSPYBinaryReturns() {
   });
   if(priceRows.length > 50) {
     drawHistoryLineLogByDate("binRetPriceCanvas", priceRows, 240, "SPY", "#d8d8d8", domain, []);
+    drawBinaryLongSignalLines("binRetPriceCanvas", priceRows, signals, domain);
   } else {
     emptyCanvas("binRetPriceCanvas", 240, "SPY history unavailable - run screener.py");
   }
