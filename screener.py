@@ -2122,10 +2122,11 @@ def spy_binary_returns_payload(spy_rows, roc_windows=(1, 2, 3, 5, 10, 20, 40, 60
         prev = float(prev)
         if val <= -18:
             setup_low = True
-        if setup_low and prev <= 0 < val and i - last_signal_i >= 63:
-            signals.append({"date": row["date"], "confirm_date": row["date"], "type": "bull", "value": row["value"], "spy": row["spy"]})
+        if prev <= 0 < val:
+            if setup_low and i - last_signal_i >= 21:
+                signals.append({"date": row["date"], "confirm_date": row["date"], "type": "bull", "value": row["value"], "spy": row["spy"]})
+                last_signal_i = i
             setup_low = False
-            last_signal_i = i
 
     latest = rows[-1] if rows else {}
     return rows, signals, {

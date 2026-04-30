@@ -5123,6 +5123,32 @@ function renderBinaryReturnsForward(priceRows, signals) {
     }).join("");
 }
 
+function binaryLongSignalsFromRows(rows) {
+  const valid = (rows || []).filter(r => r && r.date && Number.isFinite(+r.ma20));
+  const signals = [];
+  let touchedLow = false;
+  let lastSignalIdx = -10000;
+  valid.forEach((row, i) => {
+    const val = +row.ma20;
+    const prev = i > 0 ? +valid[i - 1].ma20 : val;
+    if(val <= -18) touchedLow = true;
+    if(prev <= 0 && val > 0) {
+      if(touchedLow && i - lastSignalIdx >= 21) {
+        signals.push({
+          date: row.date,
+          confirm_date: row.date,
+          type: "bull",
+          value: +row.value,
+          spy: +row.spy
+        });
+        lastSignalIdx = i;
+      }
+      touchedLow = false;
+    }
+  });
+  return signals;
+}
+
 function drawBinaryLongSignalLines(canvasId, rows, signals, domain, valueKey=null, fromZero=false) {
   if(!rows || rows.length < 2 || !signals || !signals.length || !domain) return;
   const canvas = document.getElementById(canvasId);
@@ -5211,7 +5237,7 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
 function drawSPYBinaryReturns() {
   const md = window._marketData || {};
   const rawRows = Array.isArray(md.binary_accumulation_history) ? md.binary_accumulation_history : [];
-  const signals = Array.isArray(md.binary_accumulation_signals) ? md.binary_accumulation_signals : [];
+  const signals = binaryLongSignalsFromRows(rawRows);
   const domain = ensureCGDateControls("cg-binret", [rawRows], binRetHistoryRange);
   const rows = filterRowsByDateDomain(rawRows, domain);
   const priceRows = rows.map(r => ({ date:r.date, close:+r.spy })).filter(r => Number.isFinite(r.close));
