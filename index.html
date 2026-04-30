@@ -472,6 +472,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-spxema .signal-bar-divider{background:#202020!important}
 #tab-cg-spxema .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-spxema .interp-text{color:#a8a8a8!important}
+#tab-cg-binret .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-binret .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-binret .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-binret .signal-bar-divider{background:#202020!important}
+#tab-cg-binret .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-binret .interp-text{color:#a8a8a8!important}
 #tab-cg-rollret .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-rollret .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-rollret .signal-bar-desc{color:#d0d0d0!important}
@@ -581,6 +587,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
+      <div class="nav-item sub" onclick="showTab('cg-binret',this)">SPY Binary Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
@@ -993,6 +1000,73 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bull"><div class="interp-title bull">Bullish Cross</div><div class="interp-text">The 9-week EMA moves above the 21-week EMA. This marks improving intermediate momentum.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Bearish Cross</div><div class="interp-text">The 9-week EMA moves below the 21-week EMA. This marks weakening intermediate momentum.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Weekly Signal</div><div class="interp-text">Weekly smoothing filters daily noise. The marker is drawn on the confirmation week.</div></div>
+      </div>
+    </div>
+
+    <!-- SPY BINARY RETURNS -->
+    <div class="panel cg-page" id="tab-cg-binret">
+      <div class="cg-header">
+        <div class="cg-title">SPY Binary Accumulation — Daily Returns</div>
+        <div class="cg-sub">SPY momentum model combining multiple rate-of-change windows in binary form. Each ROC window contributes +1 when positive and -1 when negative, then the combined score is scaled into an accumulation/distribution oscillator.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">Binary Value</div>
+          <div class="signal-bar-val" id="binRetVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Raw Score</div>
+          <div class="signal-bar-val" id="binRetRawVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Regime</div>
+          <div class="signal-bar-val" id="binRetRegimeVal" style="font-size:14px;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc">Signals trigger when the oscillator crosses back through zero after reaching distribution below -18 or accumulation above +18.</div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="binRetRange">
+            <button class="hist-btn" onclick="setHistoryRange('binret','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('binret','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('binret','10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('binret','20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="binRetPriceTitle">SPY — Binary accumulation regime markers</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>SPY</span>
+            <span style="color:#1D9E75">● Accumulation reset</span>
+            <span style="color:#e05050">● Distribution reset</span>
+          </div>
+        </div>
+        <canvas id="binRetPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="binRetOscTitle">SPY Binary Accumulation Daily Returns</span>
+          <div class="cg-chart-legend">
+            <span style="color:#3ed8d8">Accumulation</span>
+            <span style="color:#d43ddb">Distribution</span>
+            <span style="color:#e05050">+18</span>
+            <span style="color:#1D9E75">-18</span>
+          </div>
+        </div>
+        <canvas id="binRetOscCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Accumulation Reset</div><div class="interp-text">After a negative washout, a cross back above zero means the combined SPY ROC stack has flipped positive again.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Distribution Reset</div><div class="interp-text">After a strong positive run, a cross below zero means the binary ROC stack has lost broad momentum across windows.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Binary ROC Stack</div><div class="interp-text">Magnitude of each ROC does not matter. Each window only votes positive or negative, which keeps the model focused on direction.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="binRetForwardStats">Waiting for SPY binary data.</div></div>
       </div>
     </div>
 
@@ -2086,6 +2160,7 @@ function showTab(id, el) {
   if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }, 60);
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
+  if(id === "cg-binret") setTimeout(drawSPYBinaryReturns, 60);
   if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
@@ -2131,6 +2206,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-hyg") { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
+    if(activePanel && activePanel.id === "tab-cg-binret") drawSPYBinaryReturns();
     if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
@@ -3688,6 +3764,7 @@ function emaSeries(values, span) {
 
 let spxrsiHistoryRange = "10Y";
 let spxemaHistoryRange = "20Y";
+let binRetHistoryRange = "max";
 let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
 let vixspikeHistoryRange = "5Y";
@@ -3700,6 +3777,7 @@ const cgRedraw = {
   "cg-hyg": () => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); },
   "cg-spxrsi": () => drawSPXRSIReversal(),
   "cg-spxema": () => drawSPXWeeklyEMA(),
+  "cg-binret": () => drawSPYBinaryReturns(),
   "cg-rollret": () => drawRollingReturnModel(),
   "cg-vixsd": () => drawVIXSDSignal(),
   "cg-vixrv": () => drawVIXRealizedVol(),
@@ -3883,6 +3961,13 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#spxemaRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawSPXWeeklyEMA();
+  }
+  if(chart === "binret") {
+    binRetHistoryRange = range;
+    delete cgDateRanges["cg-binret"];
+    document.querySelectorAll("#binRetRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawSPYBinaryReturns();
   }
   if(chart === "vixsd") {
     vixsdHistoryRange = range;
@@ -5012,6 +5097,102 @@ function drawBTSignalDotsByDate(canvasId, rows, signals, valueKey, fixedScale=fa
     ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(220,255,240,.85)"; ctx.stroke();
     ctx.restore();
   });
+}
+
+function renderBinaryReturnsForward(priceRows, signals) {
+  const el = document.getElementById("binRetForwardStats");
+  if(!el) return;
+  const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
+  const sigs = Array.isArray(signals) ? signals : [];
+  const horizons = [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"12M",bars:252}];
+  const calc = type => horizons.map(h => {
+    const vals = [];
+    sigs.filter(s => s.type === type).forEach(sig => {
+      const i = firstIndexOnOrAfter(prices, sig.confirm_date || sig.date);
+      const start = prices[i], end = prices[i + h.bars];
+      if(!start || !end || +start.close <= 0) return;
+      vals.push((+end.close / +start.close - 1) * 100);
+    });
+    return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length };
+  });
+  const rows = [{ name:"Bull", type:"bull", data:calc("bull") }, { name:"Bear", type:"bear", data:calc("bear") }];
+  el.innerHTML = `<div class="ret-fwd-events">${sigs.filter(s=>s.type==="bull").length} bull / ${sigs.filter(s=>s.type==="bear").length} bear resets</div><div class="ret-fwd-head"><span>Type</span><span>3M</span><span>12M</span></div>` +
+    rows.map(side => {
+      const m3 = side.data.find(r=>r.label==="3M"), m12 = side.data.find(r=>r.label==="12M");
+      const cell = r => `<strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</em>`;
+      return `<div class="ret-fwd-row"><span>${side.name}</span><span>${cell(m3)}</span><span>${cell(m12)}</span></div>`;
+    }).join("");
+}
+
+function drawBinaryReturnsOscillator(rows, signals, domain) {
+  const c = mkCanvas("binRetOscCanvas", 260); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  const valid = (rows || []).filter(r => Number.isFinite(+r.value));
+  if(!domain || valid.length < 50) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("SPY binary returns unavailable - run screener.py", W/2, H/2); return;
+  }
+  const vals = valid.flatMap(r => [+r.value, +r.ma20]).filter(Number.isFinite);
+  const vMin = Math.min(-24, ...vals) * 1.08, vMax = Math.max(24, ...vals) * 1.08;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)";
+  for(let i=0;i<=4;i++){ const y=PAD.top+i/4*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  [[18,"#e05050","+18"],[0,"#d8d36a","0"],[-18,"#1D9E75","-18"]].forEach(([v,col,lbl])=>{
+    const y=toY(v); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.setLineDash(v===0?[]:[4,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, y+3);
+  });
+  ctx.beginPath();
+  valid.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r.value)) : ctx.moveTo(toX(r), toY(+r.value)));
+  ctx.strokeStyle="#3ed8d8"; ctx.lineWidth=1.6; ctx.stroke();
+  ctx.beginPath();
+  let started = false;
+  valid.forEach(r => {
+    const v = +r.ma20;
+    if(!Number.isFinite(v)) return;
+    if(!started) { ctx.moveTo(toX(r), toY(v)); started = true; }
+    else ctx.lineTo(toX(r), toY(v));
+  });
+  ctx.strokeStyle="rgba(212,61,219,.78)"; ctx.lineWidth=1.1; ctx.stroke();
+  drawRSPSpySignalDots("binRetOscCanvas", valid, signals, "value", false, domain);
+  ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [vMin,0,vMax].forEach(v=>ctx.fillText(Math.round(v), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p=>{ const ms=domain.startMs+(domain.endMs-domain.startMs)*p; ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), toDateX(ms), H-PAD.bottom+14); });
+}
+
+function drawSPYBinaryReturns() {
+  const md = window._marketData || {};
+  const rawRows = Array.isArray(md.binary_accumulation_history) ? md.binary_accumulation_history : [];
+  const signals = Array.isArray(md.binary_accumulation_signals) ? md.binary_accumulation_signals : [];
+  const domain = ensureCGDateControls("cg-binret", [rawRows], binRetHistoryRange);
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const priceRows = rows.map(r => ({ date:r.date, close:+r.spy })).filter(r => Number.isFinite(r.close));
+  const latest = rows[rows.length - 1] || {};
+  const color = +latest.value > 0 ? "#1D9E75" : +latest.value < 0 ? "#e05050" : "#d8d8d8";
+  const regime = +latest.value > 0 ? "ACCUMULATION" : +latest.value < 0 ? "DISTRIBUTION" : "NEUTRAL";
+  [["binRetVal", Number.isFinite(+latest.value) ? (+latest.value).toFixed(0) : "—"], ["binRetRawVal", Number.isFinite(+latest.raw) ? (+latest.raw).toFixed(0) : "—"], ["binRetRegimeVal", regime]].forEach(([id, txt]) => {
+    const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
+  });
+  if(priceRows.length > 50) {
+    drawHistoryLineLogByDate("binRetPriceCanvas", priceRows, 240, "SPY", "#d8d8d8", domain, []);
+    drawRSPSpySignalDots("binRetPriceCanvas", priceRows, signals, "close", true, domain);
+  } else {
+    emptyCanvas("binRetPriceCanvas", 240, "SPY history unavailable - run screener.py");
+  }
+  drawBinaryReturnsOscillator(rows, signals, domain);
+  renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.spy })), signals);
+  const priceTitle = document.getElementById("binRetPriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `SPY — Binary accumulation regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const oscTitle = document.getElementById("binRetOscTitle");
+  if(oscTitle && rows.length) oscTitle.textContent = `SPY Binary Accumulation Daily Returns · ${rows[0].date} to ${rows[rows.length - 1].date}`;
 }
 
 function drawRSPSpySignalDots(canvasId, rows, signals, valueKey, logScale=false, domain=null) {
