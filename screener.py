@@ -2187,10 +2187,10 @@ def btc_binary_xl_payload(display_start="2014-01-01", roc_windows=(1, 2, 3, 5, 1
             continue
         val = float(val)
         prev = float(prev)
-        if val <= -45:
+        if val <= -90:
             setup_low = True
         if prev <= 0 < val:
-            if setup_low and i - last_signal_i >= 30:
+            if setup_low and i - last_signal_i >= 60:
                 signals.append({"date": row["date"], "confirm_date": row["date"], "type": "bull", "value": row["value"], "btc": row["btc"]})
                 last_signal_i = i
             setup_low = False
