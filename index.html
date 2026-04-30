@@ -5098,11 +5098,15 @@ function drawBTSignalDotsByDate(canvasId, rows, signals, valueKey, fixedScale=fa
   });
 }
 
-function renderBinaryReturnsForward(priceRows, signals) {
+function renderBinaryReturnsForward(priceRows, signals, domain=null) {
   const el = document.getElementById("binRetForwardStats");
   if(!el) return;
   const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
-  const sigs = Array.isArray(signals) ? signals : [];
+  const sigs = (Array.isArray(signals) ? signals : []).filter(sig => {
+    if(!domain) return true;
+    const t = rowDateMs({ date: sig.confirm_date || sig.date });
+    return Number.isFinite(t) && t >= domain.startMs && t <= domain.endMs;
+  });
   const horizons = [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"12M",bars:252}];
   const calc = type => horizons.map(h => {
     const vals = [];
@@ -5115,7 +5119,7 @@ function renderBinaryReturnsForward(priceRows, signals) {
     return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length };
   });
   const rows = [{ name:"Long", type:"bull", data:calc("bull") }];
-  el.innerHTML = `<div class="ret-fwd-events">${sigs.filter(s=>s.type==="bull").length} long signals</div><div class="ret-fwd-head"><span>Type</span><span>3M</span><span>12M</span></div>` +
+  el.innerHTML = `<div class="ret-fwd-events">${sigs.filter(s=>s.type==="bull").length} visible long signals</div><div class="ret-fwd-head"><span>Type</span><span>3M</span><span>12M</span></div>` +
     rows.map(side => {
       const m3 = side.data.find(r=>r.label==="3M"), m12 = side.data.find(r=>r.label==="12M");
       const cell = r => `<strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</em>`;
@@ -5254,7 +5258,7 @@ function drawSPYBinaryReturns() {
     emptyCanvas("binRetPriceCanvas", 240, "SPY history unavailable - run screener.py");
   }
   drawBinaryReturnsOscillator(rows, signals, domain);
-  renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.spy })), signals);
+  renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.spy })), signals, domain);
   const priceTitle = document.getElementById("binRetPriceTitle");
   if(priceTitle && rows.length) priceTitle.textContent = `SPY — Binary accumulation regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
   const oscTitle = document.getElementById("binRetOscTitle");
