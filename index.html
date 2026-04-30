@@ -5130,12 +5130,12 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
   const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
-  const valid = (rows || []).filter(r => Number.isFinite(+r.value));
+  const valid = (rows || []).filter(r => Number.isFinite(+r.ma20));
   if(!domain || valid.length < 50) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
     ctx.fillText("SPY binary returns unavailable - run screener.py", W/2, H/2); return;
   }
-  const vals = valid.flatMap(r => [+r.value, +r.ma20]).filter(Number.isFinite);
+  const vals = valid.map(r => +r.ma20).filter(Number.isFinite);
   const vMin = Math.min(-24, ...vals) * 1.08, vMax = Math.max(24, ...vals) * 1.08;
   const xSpan = domain.endMs - domain.startMs || 1;
   const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
@@ -5150,9 +5150,6 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
     ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, y+3);
   });
   ctx.beginPath();
-  valid.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r.value)) : ctx.moveTo(toX(r), toY(+r.value)));
-  ctx.strokeStyle="#3ed8d8"; ctx.lineWidth=1.6; ctx.stroke();
-  ctx.beginPath();
   let started = false;
   valid.forEach(r => {
     const v = +r.ma20;
@@ -5160,8 +5157,7 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
     if(!started) { ctx.moveTo(toX(r), toY(v)); started = true; }
     else ctx.lineTo(toX(r), toY(v));
   });
-  ctx.strokeStyle="rgba(212,61,219,.78)"; ctx.lineWidth=1.1; ctx.stroke();
-  drawRSPSpySignalDots("binRetOscCanvas", valid, signals, "value", false, domain);
+  ctx.strokeStyle="#3ed8d8"; ctx.lineWidth=1.8; ctx.stroke();
   ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [vMin,0,vMax].forEach(v=>ctx.fillText(Math.round(v), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
@@ -5183,7 +5179,6 @@ function drawSPYBinaryReturns() {
   });
   if(priceRows.length > 50) {
     drawHistoryLineLogByDate("binRetPriceCanvas", priceRows, 240, "SPY", "#d8d8d8", domain, []);
-    drawRSPSpySignalDots("binRetPriceCanvas", priceRows, signals, "close", true, domain);
   } else {
     emptyCanvas("binRetPriceCanvas", 240, "SPY history unavailable - run screener.py");
   }
