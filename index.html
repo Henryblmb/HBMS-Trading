@@ -5171,6 +5171,8 @@ function drawBinaryLongSignalLines(canvasId, rows, signals, domain, valueKey=nul
     toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
   }
   signals.filter(s => s.type === "bull").forEach(sig => {
+    const sigMs = rowDateMs({ date: sig.confirm_date || sig.date });
+    if(!Number.isFinite(sigMs) || sigMs < domain.startMs || sigMs > domain.endMs) return;
     const idx = firstIndexOnOrAfter(rows, sig.confirm_date || sig.date);
     const row = rows[idx];
     if(!row) return;
