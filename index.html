@@ -1891,9 +1891,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">High-Conviction Model Forward Performance</div><div class="interp-text" id="washedOutForwardStats">Waiting for model data.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Latest Model Probabilities</div><div class="interp-text" id="washedOutProbStats">Waiting for model data.</div></div>
-        <div class="interp-cell neut"><div class="interp-title neut">Current Feature Read</div><div class="interp-text" id="washedOutFeatureStats">Waiting for model data.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear">Model Note</div><div class="interp-text">Signals are daily and update when screener.py refreshes data.json. High historical win rate can still be sample-size sensitive.</div></div>
       </div>
     </div>
 
@@ -6016,22 +6013,6 @@ function drawWashedOutBottomPicker() {
         return `<div class="ret-fwd-row"><span>${h}</span><strong style="color:${(s.avg||0)>=0?"#1D9E75":"#e05050"}">${s.avg==null?"—":fmtPct(s.avg,1)}</strong><em>${s.win_rate==null?"—":s.win_rate.toFixed(0)+"%"}${s.n ? " · " + s.n : ""}</em></div>`;
       }).join("");
   }
-  const probEl = document.getElementById("washedOutProbStats");
-  if(probEl) {
-    const ml = payload.ml || {};
-    probEl.innerHTML = washedOutHorizons().map(h => {
-      const m = ml[h] || {};
-      const p = m.latest_probability;
-      return `<div class="ret-fwd-row"><span>${h}</span><strong style="color:${p>=threshold?"#1D9E75":"#d8d8d8"}">${p==null?"—":p.toFixed(1)+"%"}</strong><em>AUC ${m.auc==null?"—":m.auc.toFixed(3)}</em></div>`;
-    }).join("");
-  }
-  const latest = rows[rows.length-1] || {};
-  const featEl = document.getElementById("washedOutFeatureStats");
-  if(featEl) featEl.innerHTML = [
-    ["RSI14", latest.rsi14], ["%>20D", latest.breadth20], ["%>50D", latest.breadth50], ["%>200D", latest.breadth200],
-    ["VIX", latest.vix], ["VIX/VIX3M", latest.vix_vix3m_ratio], ["HYG/SPY 20D", latest.hyg_spy_ret20],
-    ["Dist 50D", latest.dist_ma50], ["12M DD", latest.dd_12m]
-  ].map(([k,v]) => `<div class="ret-fwd-row"><span>${k}</span><strong>${Number.isFinite(+v)?(+v).toFixed(1):"—"}</strong><em></em></div>`).join("");
 }
 
 
