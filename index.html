@@ -587,11 +587,15 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
-      <div class="nav-item sub" onclick="showTab('cg-binret',this)">SPY Binary Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
       <div class="nav-item sub" onclick="showTab('cg-madist-stocks',this)">MA Distance Stocks</div>
+    </div>
+
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Binary Models</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-binret',this)">SPY Binary Returns</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Valuations</span><span class="nav-folder-arrow">›</span></div>
