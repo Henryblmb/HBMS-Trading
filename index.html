@@ -478,6 +478,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-binret .signal-bar-divider{background:#202020!important}
 #tab-cg-binret .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-binret .interp-text{color:#a8a8a8!important}
+#tab-cg-btcbin .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-btcbin .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-btcbin .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-btcbin .signal-bar-divider{background:#202020!important}
+#tab-cg-btcbin .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-btcbin .interp-text{color:#a8a8a8!important}
 #tab-cg-rollret .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-rollret .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-rollret .signal-bar-desc{color:#d0d0d0!important}
@@ -596,6 +602,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Binary Models</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-binret',this)">SPY Binary Returns</div>
+      <div class="nav-item sub" onclick="showTab('cg-btcbin',this)">BTC Binary XL</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Valuations</span><span class="nav-folder-arrow">›</span></div>
@@ -1070,6 +1077,72 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Distribution Reset</div><div class="interp-text">After a strong positive run, a cross below zero means the binary ROC stack has lost broad momentum across windows.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Binary ROC Stack</div><div class="interp-text">Magnitude of each ROC does not matter. Each window only votes positive or negative, which keeps the model focused on direction.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="binRetForwardStats">Waiting for SPY binary data.</div></div>
+      </div>
+    </div>
+
+    <!-- BTC BINARY XL -->
+    <div class="panel cg-page" id="tab-cg-btcbin">
+      <div class="cg-header">
+        <div class="cg-title">Bitcoin-USD Binary XL</div>
+        <div class="cg-sub">BTC-USD momentum model combining short and long rate-of-change windows in binary form. Each ROC window contributes +1 when positive and -1 when negative, scaled into a large-cycle accumulation/distribution oscillator.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">Binary XL</div>
+          <div class="signal-bar-val" id="btcBinVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Raw Score</div>
+          <div class="signal-bar-val" id="btcBinRawVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Regime</div>
+          <div class="signal-bar-val" id="btcBinRegimeVal" style="font-size:14px;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc">Long signal triggers when the smoothed Binary XL line first reached -45, then crosses back above the orange zero line.</div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="btcBinRange">
+            <button class="hist-btn" onclick="setHistoryRange('btcbin','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('btcbin','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('btcbin','10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('btcbin','20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="btcBinPriceTitle">BTC-USD — Binary XL signal markers</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>BTC-USD</span>
+            <span style="color:#1D9E75">Long signal line</span>
+          </div>
+        </div>
+        <canvas id="btcBinPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="btcBinOscTitle">BTC Binary XL</span>
+          <div class="cg-chart-legend">
+            <span style="color:#288cff">Accumulation</span>
+            <span style="color:#e05050">Distribution</span>
+            <span style="color:#e05050">+90</span>
+            <span style="color:#1D9E75">-45</span>
+          </div>
+        </div>
+        <canvas id="btcBinOscCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Binary XL Reset</div><div class="interp-text">After a deep negative cycle, a reclaim of zero means the combined BTC ROC stack has flipped back positive.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Distribution Zone</div><div class="interp-text">Deep negative readings often appear after major BTC drawdowns. They are not a signal alone; the zero reclaim is the confirmation.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">XL ROC Stack</div><div class="interp-text">Uses short, medium and long ROC windows. Magnitude does not matter; each window only votes positive or negative.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="btcBinForwardStats">Waiting for BTC binary data.</div></div>
       </div>
     </div>
 
@@ -2164,6 +2237,7 @@ function showTab(id, el) {
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-binret") setTimeout(drawSPYBinaryReturns, 60);
+  if(id === "cg-btcbin") setTimeout(drawBTCBinaryXL, 60);
   if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
@@ -2210,6 +2284,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-binret") drawSPYBinaryReturns();
+    if(activePanel && activePanel.id === "tab-cg-btcbin") drawBTCBinaryXL();
     if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
@@ -3768,6 +3843,7 @@ function emaSeries(values, span) {
 let spxrsiHistoryRange = "10Y";
 let spxemaHistoryRange = "20Y";
 let binRetHistoryRange = "max";
+let btcBinHistoryRange = "max";
 let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
 let vixspikeHistoryRange = "5Y";
@@ -3781,6 +3857,7 @@ const cgRedraw = {
   "cg-spxrsi": () => drawSPXRSIReversal(),
   "cg-spxema": () => drawSPXWeeklyEMA(),
   "cg-binret": () => drawSPYBinaryReturns(),
+  "cg-btcbin": () => drawBTCBinaryXL(),
   "cg-rollret": () => drawRollingReturnModel(),
   "cg-vixsd": () => drawVIXSDSignal(),
   "cg-vixrv": () => drawVIXRealizedVol(),
@@ -3971,6 +4048,13 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#binRetRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawSPYBinaryReturns();
+  }
+  if(chart === "btcbin") {
+    btcBinHistoryRange = range;
+    delete cgDateRanges["cg-btcbin"];
+    document.querySelectorAll("#btcBinRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawBTCBinaryXL();
   }
   if(chart === "vixsd") {
     vixsdHistoryRange = range;
@@ -5102,8 +5186,8 @@ function drawBTSignalDotsByDate(canvasId, rows, signals, valueKey, fixedScale=fa
   });
 }
 
-function renderBinaryReturnsForward(priceRows, signals, domain=null) {
-  const el = document.getElementById("binRetForwardStats");
+function renderBinaryReturnsForward(priceRows, signals, domain=null, elId="binRetForwardStats") {
+  const el = document.getElementById(elId);
   if(!el) return;
   const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
   const sigs = (Array.isArray(signals) ? signals : []).filter(sig => {
@@ -5131,7 +5215,7 @@ function renderBinaryReturnsForward(priceRows, signals, domain=null) {
     }).join("");
 }
 
-function binaryLongSignalsFromRows(rows) {
+function binaryLongSignalsFromRows(rows, threshold=-18, minGap=21, priceKey="spy") {
   const valid = (rows || []).filter(r => r && r.date && Number.isFinite(+r.ma20));
   const signals = [];
   let touchedLow = false;
@@ -5139,7 +5223,7 @@ function binaryLongSignalsFromRows(rows) {
   valid.forEach((row, i) => {
     const val = +row.ma20;
     const prev = i > 0 ? +valid[i - 1].ma20 : val;
-    if(val <= -18) touchedLow = true;
+    if(val <= threshold) touchedLow = true;
     if(prev <= 0 && val > 0) {
       if(touchedLow && i - lastSignalIdx >= 21) {
         signals.push({
@@ -5147,7 +5231,7 @@ function binaryLongSignalsFromRows(rows) {
           confirm_date: row.date,
           type: "bull",
           value: +row.value,
-          spy: +row.spy
+          [priceKey]: +row[priceKey]
         });
         lastSignalIdx = i;
       }
@@ -5203,8 +5287,8 @@ function drawBinaryLongSignalLines(canvasId, rows, signals, domain, valueKey=nul
   });
 }
 
-function drawBinaryReturnsOscillator(rows, signals, domain) {
-  const c = mkCanvas("binRetOscCanvas", 260); if(!c) return;
+function drawBinaryReturnsOscillator(rows, signals, domain, canvasId="binRetOscCanvas", opts={}) {
+  const c = mkCanvas(canvasId, 260); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
@@ -5212,10 +5296,12 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
   const valid = (rows || []).filter(r => Number.isFinite(+r.ma20));
   if(!domain || valid.length < 50) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
-    ctx.fillText("SPY binary returns unavailable - run screener.py", W/2, H/2); return;
+    ctx.fillText((opts.emptyLabel || "Binary returns unavailable - run screener.py"), W/2, H/2); return;
   }
   const vals = valid.map(r => +r.ma20).filter(Number.isFinite);
-  const vMin = Math.min(-24, ...vals) * 1.08, vMax = Math.max(24, ...vals) * 1.08;
+  const negLevel = Number.isFinite(+opts.negLevel) ? +opts.negLevel : -18;
+  const posLevel = Number.isFinite(+opts.posLevel) ? +opts.posLevel : 18;
+  const vMin = Math.min(negLevel * 1.35, ...vals) * 1.08, vMax = Math.max(posLevel * 1.35, ...vals) * 1.08;
   const xSpan = domain.endMs - domain.startMs || 1;
   const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
   const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
@@ -5223,7 +5309,7 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
   ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)";
   for(let i=0;i<=4;i++){ const y=PAD.top+i/4*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
   ctx.setLineDash([]);
-  [[18,"#e05050","+18"],[0,"#d8d36a","0"],[-18,"#1D9E75","-18"]].forEach(([v,col,lbl])=>{
+  [[posLevel,"#e05050","+" + Math.abs(posLevel)],[0,"#d8d36a","0"],[negLevel,"#1D9E75",String(negLevel)]].forEach(([v,col,lbl])=>{
     const y=toY(v); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.setLineDash(v===0?[]:[4,4]);
     ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, y+3);
@@ -5236,8 +5322,8 @@ function drawBinaryReturnsOscillator(rows, signals, domain) {
     if(!started) { ctx.moveTo(toX(r), toY(v)); started = true; }
     else ctx.lineTo(toX(r), toY(v));
   });
-  ctx.strokeStyle="#3ed8d8"; ctx.lineWidth=1.8; ctx.stroke();
-  drawBinaryLongSignalLines("binRetOscCanvas", valid, signals, domain, "ma20", true);
+  ctx.strokeStyle=opts.lineColor || "#3ed8d8"; ctx.lineWidth=1.8; ctx.stroke();
+  drawBinaryLongSignalLines(canvasId, valid, signals, domain, "ma20", true);
   ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [vMin,0,vMax].forEach(v=>ctx.fillText(Math.round(v), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
@@ -5269,6 +5355,33 @@ function drawSPYBinaryReturns() {
   if(priceTitle && rows.length) priceTitle.textContent = `SPY — Binary accumulation regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
   const oscTitle = document.getElementById("binRetOscTitle");
   if(oscTitle && rows.length) oscTitle.textContent = `SPY Binary Accumulation Daily Returns · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+}
+
+function drawBTCBinaryXL() {
+  const md = window._marketData || {};
+  const rawRows = Array.isArray(md.btc_binary_xl_history) ? md.btc_binary_xl_history : [];
+  const signals = binaryLongSignalsFromRows(rawRows, -45, 30, "btc");
+  const domain = ensureCGDateControls("cg-btcbin", [rawRows], btcBinHistoryRange);
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const priceRows = rows.map(r => ({ date:r.date, close:+r.btc })).filter(r => Number.isFinite(r.close));
+  const latest = rows[rows.length - 1] || {};
+  const color = +latest.value > 0 ? "#1D9E75" : +latest.value < 0 ? "#e05050" : "#d8d8d8";
+  const regime = +latest.value > 0 ? "ACCUMULATION" : +latest.value < 0 ? "DISTRIBUTION" : "NEUTRAL";
+  [["btcBinVal", Number.isFinite(+latest.value) ? (+latest.value).toFixed(0) : "—"], ["btcBinRawVal", Number.isFinite(+latest.raw) ? (+latest.raw).toFixed(0) : "—"], ["btcBinRegimeVal", regime]].forEach(([id, txt]) => {
+    const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
+  });
+  if(priceRows.length > 50) {
+    drawHistoryLineLogByDate("btcBinPriceCanvas", priceRows, 240, "BTC-USD", "#d8d8d8", domain, []);
+    drawBinaryLongSignalLines("btcBinPriceCanvas", priceRows, signals, domain);
+  } else {
+    emptyCanvas("btcBinPriceCanvas", 240, "BTC-USD history unavailable - run screener.py");
+  }
+  drawBinaryReturnsOscillator(rows, signals, domain, "btcBinOscCanvas", { lineColor:"#288cff", posLevel:90, negLevel:-45, emptyLabel:"BTC Binary XL unavailable - run screener.py" });
+  renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.btc })), signals, domain, "btcBinForwardStats");
+  const priceTitle = document.getElementById("btcBinPriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `BTC-USD — Binary XL signal markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const oscTitle = document.getElementById("btcBinOscTitle");
+  if(oscTitle && rows.length) oscTitle.textContent = `BTC Binary XL · ${rows[0].date} to ${rows[rows.length - 1].date}`;
 }
 
 function drawRSPSpySignalDots(canvasId, rows, signals, valueKey, logScale=false, domain=null) {

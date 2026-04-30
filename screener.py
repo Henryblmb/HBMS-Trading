@@ -2143,6 +2143,73 @@ def spy_binary_returns_payload(spy_rows, roc_windows=(1, 2, 3, 5, 10, 20, 40, 60
     }
 
 
+def btc_binary_xl_payload(display_start="2014-01-01", roc_windows=(1, 2, 3, 5, 10, 20, 40, 60, 90, 120, 180, 365), scale=15):
+    hist = yf_history(yf.Ticker("BTC-USD"), "max", "1d")
+    source = "yfinance:BTC-USD"
+    if hist is None or hist.empty or "Close" not in hist.columns:
+        return [], [], {"status": "unavailable", "source": source}
+    close = hist["Close"].astype(float).dropna()
+    close.index = pd.to_datetime(close.index).tz_localize(None).normalize()
+    close = close[~close.index.duplicated(keep="last")].sort_index()
+    close = close[close.index >= pd.Timestamp(display_start)]
+    if len(close) < max(500, max(roc_windows) + 20):
+        return [], [], {"status": "unavailable", "source": source}
+
+    df = pd.DataFrame({"btc": close})
+    parts = []
+    for window in roc_windows:
+        parts.append(np.sign(df["btc"].pct_change(window)).rename(f"roc_{window}"))
+    signals_frame = pd.concat(parts, axis=1)
+    df["value"] = signals_frame.sum(axis=1, min_count=len(roc_windows)) * scale
+    df["ma20"] = df["value"].rolling(20, min_periods=10).mean()
+    df["raw"] = df["value"]
+
+    rows = []
+    for idx, row in df.dropna(subset=["value"]).iterrows():
+        val = float(row["value"])
+        state = "accumulation" if val > 0 else "distribution" if val < 0 else "neutral"
+        rows.append({
+            "date": str(pd.Timestamp(idx).date()),
+            "btc": round(float(row["btc"]), 4),
+            "value": round(val, 2),
+            "raw": round(float(row["raw"]), 2),
+            "ma20": None if pd.isna(row.get("ma20")) else round(float(row["ma20"]), 2),
+            "state": state,
+        })
+
+    signals = []
+    setup_low = False
+    last_signal_i = -10_000
+    for i, row in enumerate(rows):
+        val = row.get("ma20")
+        prev = rows[i - 1].get("ma20") if i > 0 else val
+        if val is None or prev is None:
+            continue
+        val = float(val)
+        prev = float(prev)
+        if val <= -45:
+            setup_low = True
+        if prev <= 0 < val:
+            if setup_low and i - last_signal_i >= 30:
+                signals.append({"date": row["date"], "confirm_date": row["date"], "type": "bull", "value": row["value"], "btc": row["btc"]})
+                last_signal_i = i
+            setup_low = False
+
+    latest = rows[-1] if rows else {}
+    return rows, signals, {
+        "status": latest.get("state", "unavailable"),
+        "source": source,
+        "method": "BTC-USD combined ROC windows in binary XL form",
+        "roc_windows": list(roc_windows),
+        "scale": scale,
+        "current_value": latest.get("value"),
+        "current_raw": latest.get("raw"),
+        "current_date": latest.get("date"),
+        "last_signal": signals[-1] if signals else None,
+        "observations": len(rows),
+    }
+
+
 def oil_market_payload(sp500_hist=None, years=10, display_start="2016-01-01"):
     wti = brent = None
     wti_source = brent_source = "none"
@@ -2992,6 +3059,9 @@ def fetch_market_indicators():
         "binary_accumulation_history": [],
         "binary_accumulation_signals": [],
         "binary_accumulation_status": {},
+        "btc_binary_xl_history": [],
+        "btc_binary_xl_signals": [],
+        "btc_binary_xl_status": {},
         "rsp_spy_breadth_history": [],
         "rsp_spy_breadth_signals": [],
         "rsp_spy_breadth_status": {},
@@ -3040,6 +3110,7 @@ def fetch_market_indicators():
     result["bt50_signals"] = bt50_signals
     result["bt50_status"] = bt50_status
     result["binary_accumulation_history"], result["binary_accumulation_signals"], result["binary_accumulation_status"] = spy_binary_returns_payload(sp500_rsi_rows)
+    result["btc_binary_xl_history"], result["btc_binary_xl_signals"], result["btc_binary_xl_status"] = btc_binary_xl_payload()
     result["ma_breadth_compression"], result["ma_breadth_compression_status"] = ma_breadth_compression_payload(years=30)
     result["rsp_spy_breadth_history"] = rsp_spy_rows
     result["rsp_spy_breadth_signals"] = rsp_spy_signals
@@ -3070,6 +3141,7 @@ def fetch_market_indicators():
     print(f"  S&P 20D breadth: {len(result['bt20_history'])} days | signals: {len(result['bt20_signals'])}")
     print(f"  S&P 50D weekly breadth: {len(result['bt50_history'])} weeks | signals: {len(result['bt50_signals'])}")
     print(f"  SPY binary returns: {len(result['binary_accumulation_history'])} days | value: {result['binary_accumulation_status'].get('current_value')}")
+    print(f"  BTC binary XL: {len(result['btc_binary_xl_history'])} days | value: {result['btc_binary_xl_status'].get('current_value')}")
     print(f"  MA breadth compression: {len(result['ma_breadth_compression'])} days | z: {result['ma_breadth_compression_status'].get('current_z')}")
     print(f"  RSP/SPY breadth: {len(result['rsp_spy_breadth_history'])} days | score: {result['rsp_spy_breadth_status'].get('current_score')}")
     print(f"  VIX SD history: {len(result['vix_sd_history'])} days | SD: {result['vix_sd_current'].get('current_sd')}")
