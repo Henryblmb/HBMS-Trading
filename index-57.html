@@ -571,8 +571,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="nav-section">Screener</div>
-    <div class="nav-item active" onclick="showTab('gp',this)">Golden Pocket</div>
-    <div class="nav-item" onclick="showTab('os',this)">Oversold</div>
+    <div class="nav-item active" onclick="showTab('os',this)">Oversold</div>
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
@@ -658,22 +657,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   <div class="main">
     <!-- ══════════════════════ SCREENER PANELS ══════════════════════ -->
 
-    <!-- GOLDEN POCKET -->
-    <div class="panel active" id="tab-gp">
-      <div class="filter-row">
-        <label>Type:</label>
-        <select id="gpSig" onchange="filterGP()"><option value="all">All</option><option value="52w">52W</option><option value="ytd">YTD</option></select>
-        <label>Index:</label>
-        <select id="gpIdx" onchange="filterGP()"><option value="all">All</option><option value="SP500">S&amp;P 500</option><option value="DAX">DAX</option><option value="HSI">HSI</option></select>
-        <label>Dir:</label>
-        <select id="gpDir" onchange="filterGP()"><option value="all">All</option><option value="bullish">Bullish</option><option value="bearish">Bearish</option></select>
-      </div>
-      <div class="section-title">Fibonacci 61.8 – 65% Golden Pocket</div>
-      <div class="stock-grid" id="gpGrid"><div class="empty">Loading data...</div></div>
-    </div>
-
     <!-- OVERSOLD -->
-    <div class="panel" id="tab-os">
+    <div class="panel active" id="tab-os">
       <div class="filter-row">
         <label>Max RSI W:</label>
         <input type="range" min="10" max="45" value="35" id="rsiW" step="1" oninput="updateSliders();filterOS()">
@@ -2338,7 +2323,7 @@ async function loadData() {
     dataGenerated = json.generated || "";
     document.getElementById("stockCount").textContent = "Stocks - " + (json.total || allStocks.length || "—");
     document.getElementById("lastUpd").textContent = "Updated: " + (json.generated || "—");
-    filterGP(); filterOS(); filterTrend(); renderSectors();
+    filterOS(); filterTrend(); renderSectors();
     renderHiLo(); renderMomentum(); renderSeasonality();
     // Update CG-VIX readings if open
     updateCGVIX2Readings();
@@ -2365,7 +2350,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
-    document.getElementById("gpGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
+    document.getElementById("osGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
   }
 }
 
@@ -6673,26 +6658,6 @@ function drawVIXChartToCanvas(canvasId,history){
 function fmtP(p){return p==null?"—":p<10?p.toFixed(4):p.toLocaleString("en-US",{maximumFractionDigits:2});}
 function fmtChg(c,sfx=""){if(c==null)return'<span style="color:#333">—</span>';return`<span class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}${sfx}</span>`;}
 
-function filterGP(){
-  const sig=document.getElementById("gpSig").value,idx=document.getElementById("gpIdx").value,dir=document.getElementById("gpDir").value;
-  const f=allStocks.filter(d=>{
-    if(sig==="52w"&&!d.in_gp_52w)return false;if(sig==="ytd"&&!d.in_gp_ytd)return false;
-    if(sig==="all"&&!d.in_gp_52w&&!d.in_gp_ytd)return false;
-    if(idx!=="all"&&d.group!==idx)return false;if(dir==="bullish"&&d.chg<0)return false;if(dir==="bearish"&&d.chg>=0)return false;return true;
-  });
-  const grid=document.getElementById("gpGrid");
-  if(!f.length){grid.innerHTML=allStocks.length>0?'<div class="empty">No stocks in Golden Pocket</div>':'<div class="empty">Run screener.py</div>';return;}
-  grid.innerHTML=f.map(d=>{
-    const u=sig==="52w"||(sig==="all"&&d.in_gp_52w);const hi=u?d.hi52:d.hi_ytd,lo=u?d.lo52:d.lo_ytd,fib=u?d.fib_52w:d.fib_ytd;
-    const fp=((d.price-lo)/(hi-lo)*100).toFixed(1);
-    return`<div class="scard"><div class="scard-header"><span class="ticker">${d.ticker}</span><span class="stag">${d.group}</span></div>
-    <div class="sname">${d.name}</div><div class="price-row"><span class="price">$${fmtP(d.price)}</span><span class="chg ${d.chg>=0?"pos":"neg"}">${d.chg>=0?"+":""}${d.chg.toFixed(2)}%</span></div>
-    <div class="fib-label-row"><span>Lo $${fmtP(lo)}</span><span style="color:#EF9F27;font-weight:600">${fib}%</span><span>Hi $${fmtP(hi)}</span></div>
-    <div class="fib-bar"><div class="fib-fill" style="width:${fp}%"></div><div class="fib-pocket" style="left:35%;width:3.2%"></div><div class="fib-marker" style="left:${fp}%"></div></div>
-    <div class="gp-label">Golden Pocket 61.8–65%</div>
-    <span class="sig-badge ${u?"sig-52w":"sig-ytd"}">${u?"52W":"YTD"}</span></div>`;
-  }).join("");
-}
 function updateSliders(){document.getElementById("rsiWval").textContent=document.getElementById("rsiW").value;document.getElementById("rsiDval").textContent=document.getElementById("rsiD").value;}
 function rsiColor(v){if(v==null)return"#333";if(v<20)return"#e05050";if(v<25)return"#EF9F27";if(v<30)return"#facc15";return"#1D9E75";}
 function filterOS(){
