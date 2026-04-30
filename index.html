@@ -5886,9 +5886,7 @@ function washedOutPayload() {
 function loadWashedOutFullHistory(payload) {
   if(washedOutHistoryCache) return Promise.resolve(washedOutHistoryCache);
   if(washedOutHistoryPromise) return washedOutHistoryPromise;
-  const file = payload && payload.history_file ? String(payload.history_file) : "";
-  const url = file ? WASHED_OUT_HISTORY_URL : "";
-  if(!url) return Promise.resolve(null);
+  const url = WASHED_OUT_HISTORY_URL;
   washedOutHistoryPromise = fetch(url + "?t=" + Date.now(), { cache: "no-store" })
     .then(r => {
       if(!r.ok) throw new Error("HTTP " + r.status);
@@ -6040,10 +6038,10 @@ function drawWashedOutBottomPicker() {
   setTxt("washedOutSignalVal", active ? "ACTIVE" : "NO SIGNAL", active ? "#1D9E75" : "#d8d8d8");
   const desc = document.getElementById("washedOutDesc");
   if(desc) {
-    const fullTxt = washedOutHistoryCache && washedOutHistoryCache.length ? `Full history ${rows[0]?.date || "—"} to ${rows[rows.length - 1]?.date || "—"}.` : (payload.history_file ? "Loading full chart history..." : "Compact chart history.");
+    const fullTxt = washedOutHistoryCache && washedOutHistoryCache.length ? `Full history ${rows[0]?.date || "—"} to ${rows[rows.length - 1]?.date || "—"}.` : "Loading full chart history...";
     desc.textContent = status.current_date ? `Data date ${status.current_date}. Model signal status: ${status.model_signal_status || "—"}. Events: ${status.model_signal_events || 0}. ${fullTxt}` : "Run screener.py to load washed-out model data.";
   }
-  if(payload.history_file && (!washedOutHistoryCache || !washedOutHistoryCache.length) && !washedOutHistoryPromise) {
+  if((compactRows.length || payload.history_file) && (!washedOutHistoryCache || !washedOutHistoryCache.length) && !washedOutHistoryPromise) {
     loadWashedOutFullHistory(payload).then(full => { if(full && full.length) drawWashedOutBottomPicker(); });
   }
   if(visPrice.length > 30 && domain) {
