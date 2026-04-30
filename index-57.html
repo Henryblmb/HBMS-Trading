@@ -1889,17 +1889,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <canvas id="washedOutScoreCanvas" style="width:100%;display:block"></canvas>
       </div>
 
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title">Threshold Chart — Historical Win Rate By Score Threshold</span>
-          <div class="cg-chart-legend">
-            <span style="color:#1D9E75">1M / 3M / 6M / 9M / 12M positivity</span>
-            <span style="color:#EF9F27">— 90% target</span>
-          </div>
-        </div>
-        <canvas id="washedOutThresholdCanvas" style="width:100%;display:block"></canvas>
-      </div>
-
       <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">High-Conviction Model Forward Performance</div><div class="interp-text" id="washedOutForwardStats">Waiting for model data.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Latest Model Probabilities</div><div class="interp-text" id="washedOutProbStats">Waiting for model data.</div></div>
@@ -5982,41 +5971,6 @@ function drawWashedOutScoreChart(rows, signals, domain, threshold) {
   [0,.2,.4,.6,.8,1].forEach(p=>{ const ms=domain.startMs+(domain.endMs-domain.startMs)*p; const d=new Date(ms); ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}), PAD.left+p*PW, H-PAD.bottom+14); });
 }
 
-function drawWashedOutThresholdChart(thresholds) {
-  const c = mkCanvas("washedOutThresholdCanvas", 260); if(!c) return;
-  const { ctx, W, H } = c;
-  const PAD = { top: 18, right: 70, bottom: 34, left: 42 };
-  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
-  const rows = (thresholds || []).filter(r => Number.isFinite(+r.threshold));
-  if(rows.length < 2) {
-    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
-    ctx.fillText("Threshold data unavailable - run screener.py", W/2, H/2);
-    return;
-  }
-  const minT = Math.min(...rows.map(r=>+r.threshold)), maxT = Math.max(...rows.map(r=>+r.threshold));
-  const toX = t => PAD.left + ((t - minT) / (maxT - minT || 1)) * PW;
-  const toY = v => PAD.top + PH - (Math.max(0, Math.min(100, v)) / 100) * PH;
-  [[90,"#EF9F27","90% target"],[50,"#555","50%"]].forEach(([v,col,lbl])=>{
-    const y=toY(v); ctx.strokeStyle=col; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(lbl, PAD.left+PW+5, y+3);
-  });
-  const colors = {"1M":"#60a5fa","3M":"#1D9E75","6M":"#EF9F27","9M":"#a78bfa","12M":"#f97373"};
-  washedOutHorizons().forEach(label => {
-    const pts = rows.filter(r => Number.isFinite(+r[`wr_${label}`]));
-    if(pts.length < 2) return;
-    ctx.beginPath();
-    pts.forEach((r,i)=>i ? ctx.lineTo(toX(+r.threshold), toY(+r[`wr_${label}`])) : ctx.moveTo(toX(+r.threshold), toY(+r[`wr_${label}`])));
-    ctx.strokeStyle=colors[label] || "#d8d8d8"; ctx.lineWidth=1.8; ctx.stroke();
-    const last = pts[pts.length-1];
-    ctx.fillStyle=colors[label] || "#d8d8d8"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText(label, toX(+last.threshold)+5, toY(+last[`wr_${label}`])+3);
-  });
-  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
-  [0,50,90,100].forEach(v=>ctx.fillText(v+"%", PAD.left-5, toY(v)+3));
-  ctx.textAlign="center";
-  rows.forEach(r=>ctx.fillText(String(r.threshold), toX(+r.threshold), H-PAD.bottom+14));
-}
-
 function drawWashedOutBottomPicker() {
   const payload = washedOutPayload();
   const status = payload.status || {};
@@ -6049,7 +6003,6 @@ function drawWashedOutBottomPicker() {
     drawWashedOutSignalLines("washedOutPriceCanvas", visPrice, visSignals, domain, "close", true);
   } else emptyCanvas("washedOutPriceCanvas", 260, "S&P 500 washed-out history unavailable - run screener.py");
   drawWashedOutScoreChart(visRows, visSignals, domain, threshold);
-  drawWashedOutThresholdChart(payload.thresholds || []);
   const priceTitle = document.getElementById("washedOutPriceTitle");
   if(priceTitle && visPrice.length) priceTitle.textContent = `S&P 500 — High-Conviction Bottom Signals · ${visPrice[0].date} to ${visPrice[visPrice.length-1].date}`;
   const scoreTitle = document.getElementById("washedOutScoreTitle");
