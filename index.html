@@ -1103,7 +1103,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-bar-val" id="btcBinRegimeVal" style="font-size:14px;padding-top:4px">—</div>
         </div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">Long signal triggers when the smoothed Binary XL line first reached -90, then crosses back above the orange zero line.</div>
+        <div class="signal-bar-desc">Long signal triggers when the smoothed Binary XL line first reached -110, then crosses back above the orange zero line.</div>
         <div class="signal-range-controls" data-cg-date-host>
           <div class="hist-range" id="btcBinRange">
             <button class="hist-btn" onclick="setHistoryRange('btcbin','1Y',this)">1Y</button>
@@ -1132,7 +1132,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
             <span style="color:#288cff">Accumulation</span>
             <span style="color:#e05050">Distribution</span>
             <span style="color:#e05050">+90</span>
-            <span style="color:#1D9E75">-90</span>
+            <span style="color:#1D9E75">-110</span>
           </div>
         </div>
         <canvas id="btcBinOscCanvas" style="width:100%;display:block"></canvas>
@@ -5360,7 +5360,7 @@ function drawSPYBinaryReturns() {
 function drawBTCBinaryXL() {
   const md = window._marketData || {};
   const rawRows = Array.isArray(md.btc_binary_xl_history) ? md.btc_binary_xl_history : [];
-  const signals = binaryLongSignalsFromRows(rawRows, -90, 60, "btc");
+  const signals = binaryLongSignalsFromRows(rawRows, -110, 60, "btc");
   const domain = ensureCGDateControls("cg-btcbin", [rawRows], btcBinHistoryRange);
   const rows = filterRowsByDateDomain(rawRows, domain);
   const priceRows = rows.map(r => ({ date:r.date, close:+r.btc })).filter(r => Number.isFinite(r.close));
@@ -5376,7 +5376,7 @@ function drawBTCBinaryXL() {
   } else {
     emptyCanvas("btcBinPriceCanvas", 240, "BTC-USD history unavailable - run screener.py");
   }
-  drawBinaryReturnsOscillator(rows, signals, domain, "btcBinOscCanvas", { lineColor:"#288cff", posLevel:90, negLevel:-90, emptyLabel:"BTC Binary XL unavailable - run screener.py" });
+  drawBinaryReturnsOscillator(rows, signals, domain, "btcBinOscCanvas", { lineColor:"#288cff", posLevel:90, negLevel:-110, emptyLabel:"BTC Binary XL unavailable - run screener.py" });
   renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.btc })), signals, domain, "btcBinForwardStats");
   const priceTitle = document.getElementById("btcBinPriceTitle");
   if(priceTitle && rows.length) priceTitle.textContent = `BTC-USD — Binary XL signal markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
