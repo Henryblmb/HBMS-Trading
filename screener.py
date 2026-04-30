@@ -2143,14 +2143,54 @@ def spy_binary_returns_payload(spy_rows, roc_windows=(1, 2, 3, 5, 10, 20, 40, 60
     }
 
 
-def btc_binary_xl_payload(display_start="2014-01-01", roc_windows=(1, 2, 3, 5, 10, 20, 40, 60, 90, 120, 180, 365), scale=15):
+def coinmetrics_btc_priceusd(start_time="2010-01-01"):
+    url = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
+    params = {
+        "assets": "btc",
+        "metrics": "PriceUSD",
+        "frequency": "1d",
+        "start_time": start_time,
+        "page_size": 10000,
+    }
+    out = []
+    try:
+        while url:
+            r = requests.get(url, params=params if not out else None, timeout=30)
+            r.raise_for_status()
+            payload = r.json()
+            out.extend(payload.get("data", []))
+            url = payload.get("next_page_url")
+            params = None
+    except Exception:
+        return pd.Series(dtype=float)
+    if not out:
+        return pd.Series(dtype=float)
+    df = pd.DataFrame(out)
+    if "time" not in df.columns or "PriceUSD" not in df.columns:
+        return pd.Series(dtype=float)
+    s = pd.to_numeric(df["PriceUSD"], errors="coerce")
+    s.index = pd.to_datetime(df["time"], errors="coerce").dt.tz_localize(None).dt.normalize()
+    s = s.dropna()
+    return s[~s.index.duplicated(keep="last")].sort_index()
+
+
+def btc_binary_xl_payload(display_start="2010-01-01", roc_windows=(1, 2, 3, 5, 10, 20, 40, 60, 90, 120, 180, 365), scale=15):
+    close = coinmetrics_btc_priceusd(display_start)
+    source = "coinmetrics:btc.PriceUSD"
+    yf_close = pd.Series(dtype=float)
     hist = yf_history(yf.Ticker("BTC-USD"), "max", "1d")
-    source = "yfinance:BTC-USD"
-    if hist is None or hist.empty or "Close" not in hist.columns:
-        return [], [], {"status": "unavailable", "source": source}
-    close = hist["Close"].astype(float).dropna()
-    close.index = pd.to_datetime(close.index).tz_localize(None).normalize()
-    close = close[~close.index.duplicated(keep="last")].sort_index()
+    if hist is not None and not hist.empty and "Close" in hist.columns:
+        yf_close = hist["Close"].astype(float).dropna()
+        yf_close.index = pd.to_datetime(yf_close.index).tz_localize(None).normalize()
+        yf_close = yf_close[~yf_close.index.duplicated(keep="last")].sort_index()
+    if close.empty:
+        close = yf_close
+        source = "yfinance:BTC-USD"
+    elif not yf_close.empty:
+        extra = yf_close[yf_close.index > close.index.max()]
+        if not extra.empty:
+            close = pd.concat([close, extra]).sort_index()
+            source = "coinmetrics:btc.PriceUSD + yfinance:BTC-USD latest"
     close = close[close.index >= pd.Timestamp(display_start)]
     if len(close) < max(500, max(roc_windows) + 20):
         return [], [], {"status": "unavailable", "source": source}
