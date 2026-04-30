@@ -6007,10 +6007,10 @@ function drawWashedOutBottomPicker() {
   const modelStats = (payload.model_signal || {}).stats || {};
   const statEl = document.getElementById("washedOutForwardStats");
   if(statEl) {
-    statEl.innerHTML = `<div class="ret-fwd-events">${(payload.model_signal || {}).events || 0} model events · threshold ${threshold}%</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Win</span></div>` +
+    statEl.innerHTML = `<div class="ret-fwd-events">${(payload.model_signal || {}).events || 0} model events · threshold ${threshold}%</div><div class="ret-fwd-head" style="grid-template-columns:42px 72px 72px;justify-content:start"><span>Horizon</span><span>Avg Fwd</span><span>Win</span></div>` +
       washedOutHorizons().map(h => {
         const s = modelStats[h] || {};
-        return `<div class="ret-fwd-row"><span>${h}</span><strong style="color:${(s.avg||0)>=0?"#1D9E75":"#e05050"}">${s.avg==null?"—":fmtPct(s.avg,1)}</strong><em>${s.win_rate==null?"—":s.win_rate.toFixed(0)+"%"}${s.n ? " · " + s.n : ""}</em></div>`;
+        return `<div class="ret-fwd-row" style="grid-template-columns:42px 72px 72px;justify-content:start"><span>${h}</span><strong style="color:${(s.avg||0)>=0?"#1D9E75":"#e05050"}">${s.avg==null?"—":fmtPct(s.avg,1)}</strong><em style="text-align:left">${s.win_rate==null?"—":s.win_rate.toFixed(0)+"%"}${s.n ? " · " + s.n : ""}</em></div>`;
       }).join("");
   }
 }
