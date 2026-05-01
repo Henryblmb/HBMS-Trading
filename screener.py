@@ -2200,14 +2200,13 @@ def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_s
     last_signal_idx = -100000
     for i, row in enumerate(rows):
         val = row["zbt"]
-        if setup_idx is None:
-            if val <= lower:
-                setup_idx = i
-            continue
-        if val < rows[setup_idx]["zbt"]:
+        if val <= lower:
             setup_idx = i
+            continue
+        if setup_idx is None:
+            continue
         if i - setup_idx > window:
-            setup_idx = i if val <= lower else None
+            setup_idx = None
             continue
         if val >= upper:
             if i - last_signal_idx >= min_gap:
@@ -2240,7 +2239,7 @@ def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_s
     return rows, signals, {
         "status": status,
         "source": source,
-        "method": method,
+        "method": method + "; setup window refreshes on every new <= lower reading",
         "lower": lower,
         "upper": upper,
         "window_days": window,
