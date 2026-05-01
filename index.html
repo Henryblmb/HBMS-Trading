@@ -3625,14 +3625,8 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=
     ...maDistanceMonthlyEvents(rows, key, plus2, minus2, "neg").map(e => ({...e, col:e.v <= minus3 ? "#a855f7" : "#e05050"})),
   ].sort((a,b)=>a.i-b.i);
   monthlyMarks.forEach(({i, v, col})=>{
-    const x = toX(i);
-    ctx.save();
-    ctx.strokeStyle = col.includes("e05050") || col.includes("a855f7") ? col + "aa" : "rgba(29,158,117,.72)";
-    ctx.lineWidth = 1.05;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(x, PAD.top + PH); ctx.lineTo(x, PAD.top); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(toX(i), toY(v), 2.8, 0, Math.PI*2); ctx.fill();
   });
   ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [minus2,0,plus2].forEach(v => ctx.fillText(v.toFixed(1)+"%", PAD.left-5, toY(v)+3));
@@ -6738,15 +6732,10 @@ function drawGoldSilverRatio() {
   drawSeries(r => r.ratio, "rgba(216,216,216,.80)", 1.6, [], 1);
   statsRows.forEach(r=>{
     if(!r.signal) return;
-    const x=toX(r.i);
+    const x=toX(r.i), y=toY(r.ratio);
     const col = r.signal === "plus4" || r.signal === "minus4" ? "#38bdf8" : r.signal === "plus3" || r.signal === "minus3" ? "#a855f7" : r.signal === "plus2" ? "#e05050" : "#1D9E75";
-    ctx.save();
-    ctx.strokeStyle = col + "aa";
-    ctx.lineWidth = 1.05;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(x, PAD.top + PH); ctx.lineTo(x, PAD.top); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
+    ctx.beginPath(); ctx.arc(x,y,3.4,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle="#151515"; ctx.lineWidth=1; ctx.stroke();
   });
   if(bandRows.length) {
     const last = bandRows[bandRows.length-1];
