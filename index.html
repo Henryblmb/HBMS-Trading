@@ -40,7 +40,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nav-item:hover{color:#999;background:#111}
 .nav-item.active{color:#eee;background:#131313;border-left-color:#1D9E75}
 .nav-folder{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9.5px;color:#555;padding:10px 14px 5px 22px;text-transform:uppercase;letter-spacing:.11em;font-weight:650;cursor:pointer;user-select:none;transition:color .1s,background .1s}
-.nav-folder.subfolder{font-size:10px;text-transform:none;letter-spacing:.02em;font-weight:520;padding:8px 14px 5px 42px;color:#888}
 .nav-folder:hover{color:#aaa;background:#111}
 .nav-folder-arrow{font-size:10px;color:#555;transition:transform .16s,color .1s}
 .nav-folder.open .nav-folder-arrow{transform:rotate(90deg);color:#1D9E75}
@@ -583,11 +582,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-section">Charts / Graphs</div>
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Breadth</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
-      <div class="nav-folder subfolder" onclick="toggleNavFolder(this)"><span>Breadth Thrust</span><span class="nav-folder-arrow">›</span></div>
-      <div class="nav-group-content">
-        <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
-        <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
-      </div>
+      <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
+      <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-mabreadth',this)">% Stocks above</div>
       <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
     </div>
@@ -2267,12 +2263,11 @@ function toggleNavFolder(folder) {
 }
 
 function showTab(id, el) {
-  let group = el && el.closest(".nav-group-content");
-  while(group) {
+  const group = el && el.closest(".nav-group-content");
+  if(group) {
     group.classList.add("open");
     const folder = group.previousElementSibling;
     if(folder && folder.classList.contains("nav-folder")) folder.classList.add("open");
-    group = folder ? folder.parentElement.closest(".nav-group-content") : null;
   }
   document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
   if(el) el.classList.add("active");
