@@ -5907,7 +5907,7 @@ function drawZweigBreadthThrust() {
     emptyCanvas("zbtPriceCanvas", 240, "S&P 500 daily history unavailable - run screener.py");
   }
   drawZBTBreadthChart(rows, signals, domain);
-  renderBTForwardStats("zbtForwardStats", rawPriceRows, signals, "Zweig thrust confirm", [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"12M",bars:252}]);
+  renderBTForwardStats("zbtForwardStats", rawPriceRows, signals, "Zweig thrust confirm", [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"9M",bars:189},{label:"12M",bars:252}]);
   const priceTitle = document.getElementById("zbtPriceTitle");
   if(priceTitle && priceRows.length) priceTitle.textContent = `S&P 500 — Zweig Breadth Thrust signals · ${priceRows[0].date} to ${priceRows[priceRows.length - 1].date}`;
   const breadthTitle = document.getElementById("zbtBreadthTitle");
