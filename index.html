@@ -502,6 +502,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-bt50 .signal-bar-divider{background:#202020!important}
 #tab-cg-bt50 .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-bt50 .interp-text{color:#a8a8a8!important}
+#tab-cg-zbt .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-zbt .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-zbt .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-zbt .signal-bar-divider{background:#202020!important}
+#tab-cg-zbt .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-zbt .interp-text{color:#a8a8a8!important}
 #tab-cg-rspspy .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-rspspy .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-rspspy .signal-bar-desc{color:#d0d0d0!important}
@@ -584,6 +590,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-bt20',this)">20D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
+      <div class="nav-item sub" onclick="showTab('cg-zbt',this)">Zweig Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-mabreadth',this)">% Stocks above</div>
       <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
     </div>
@@ -1820,6 +1827,69 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- ZWEIG BREADTH THRUST -->
+    <div class="panel cg-page" id="tab-cg-zbt">
+      <div class="cg-header">
+        <div class="cg-title">Zweig Breadth Thrust</div>
+        <div class="cg-sub">Marty Zweig style breadth thrust using a 10-day EMA of advancing stocks divided by advancing plus declining stocks. A signal confirms when the EMA moves from below 0.40 to above 0.65 within 10 trading days.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">ZBT EMA</div>
+          <div class="signal-bar-val" id="zbtVal" style="color:#1D9E75">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Raw A/D Ratio</div>
+          <div class="signal-bar-val" id="zbtRawVal" style="font-size:14px;color:#d8d8d8;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Adv / Dec</div>
+          <div class="signal-bar-val" id="zbtAdvDec" style="font-size:14px;color:#d8d8d8;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Regime</div>
+          <div class="signal-bar-val" id="zbtRegime" style="font-size:14px;color:#777;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc">Signal: 10D EMA of A/(A+D) moves from &lt;0.40 to &gt;0.65 within 10 trading days. Uses current S&amp;P 500 constituents, so older history is survivorship-biased.</div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="zbtPriceTitle">S&amp;P 500 — Daily · Green Dots = Zweig Breadth Thrust</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span style="color:#1D9E75">● Thrust Confirmed</span>
+          </div>
+        </div>
+        <canvas id="zbtPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="zbtBreadthTitle">Zweig Breadth Thrust EMA — Daily History</span>
+          <div class="cg-chart-legend">
+            <span style="color:#e05050">— 0.40 setup</span>
+            <span style="color:#1D9E75">— 0.65 confirm</span>
+            <span style="color:#444">— 0.50 midline</span>
+            <span style="color:#1D9E75">● Thrust Confirmed</span>
+          </div>
+        </div>
+        <canvas id="zbtCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Thrust Confirmed (&lt;0.40 → &gt;0.65)</div><div class="interp-text">A broad internal reversal from washed-out participation to aggressive buying pressure. The confirmation is the move above 0.65, not the low reading alone.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Setup Zone (&lt;0.40)</div><div class="interp-text">Market breadth is deeply washed out. The next 10 trading days decide whether the setup converts into a true Zweig thrust.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">A/D EMA</div><div class="interp-text">Each day counts S&amp;P 500 stocks up versus down, then smooths the advancing ratio with a 10-day EMA to filter single-day noise.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="zbtForwardStats">Waiting for Zweig breadth data.</div></div>
+      </div>
+    </div>
+
     <!-- WASHED OUT BOTTOM PICKER -->
     <div class="panel cg-page" id="tab-cg-washedout">
       <div class="cg-header">
@@ -2298,6 +2368,7 @@ function showTab(id, el) {
   if(id === "cg-bt20") setTimeout(() => { drawBT20Chart(); updateBT20Signal(); }, 60);
   if(id === "cg-washedout") setTimeout(drawWashedOutBottomPicker, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
+  if(id === "cg-zbt") setTimeout(drawZweigBreadthThrust, 60);
   if(id === "cg-rspspy") setTimeout(drawRSPSpyBreadth, 60);
   if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
@@ -2346,6 +2417,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
     if(activePanel && activePanel.id === "tab-cg-peratio") drawPERatioChart();
     if(activePanel && activePanel.id === "tab-cg-washedout") drawWashedOutBottomPicker();
+    if(activePanel && activePanel.id === "tab-cg-zbt") drawZweigBreadthThrust();
     if(activePanel && activePanel.id === "tab-cg-rspspy") drawRSPSpyBreadth();
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
   } catch(e) {
@@ -3920,6 +3992,7 @@ const cgRedraw = {
   "cg-bt20": () => drawBT20Chart(),
   "cg-washedout": () => drawWashedOutBottomPicker(),
   "cg-bt50": () => drawBT50Chart(),
+  "cg-zbt": () => drawZweigBreadthThrust(),
   "cg-rspspy": () => drawRSPSpyBreadth(),
   "cg-mabreadth": () => drawStocksAboveAnalyzer(),
   "cg-oil": () => drawOilCharts(),
@@ -5772,6 +5845,79 @@ function renderBTForwardStats(elId, priceRows, signals, label, horizons) {
   });
   el.innerHTML = `<div class="ret-fwd-events">${sigs.length} historical signals · ${label}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
     rows.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
+}
+
+function drawZBTBreadthChart(rows, signals, domain=null) {
+  const c = mkCanvas("zbtCanvas", 240); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 14, right: 54, bottom: 28, left: 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  const toY = v => PAD.top + PH - (v * PH);
+  ctx.fillStyle="rgba(29,158,117,.07)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(.65)-PAD.top));
+  ctx.fillStyle="rgba(224,80,80,.07)"; ctx.fillRect(PAD.left, toY(.40), PW, Math.max(0, PAD.top + PH - toY(.40)));
+  [[.65,"#1D9E75","0.65"],[.50,"rgba(255,255,255,.08)","0.50"],[.40,"#e05050","0.40"]].forEach(([v,col,lbl]) => {
+    const y = toY(v); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = col; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left"; ctx.fillText(lbl, PAD.left+PW+4, y+3);
+  });
+  if(!rows || rows.length < 20 || !domain) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Zweig breadth history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  ctx.beginPath();
+  rows.forEach((r,i) => {
+    const y = toY(+r.zbt), x = toX(r);
+    if(i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle="#9bbcff"; ctx.lineWidth=1.8; ctx.lineJoin="round"; ctx.stroke();
+  ctx.beginPath();
+  rows.forEach((r,i) => {
+    const y = toY(+r.ratio), x = toX(r);
+    if(i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle="rgba(216,216,216,.28)"; ctx.lineWidth=.9; ctx.stroke();
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [0,.25,.50,.75,1].forEach(v => ctx.fillText(v.toFixed(2), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), toDateX(ms), H-PAD.bottom+14);
+  });
+  drawBTSignalDotsByDate("zbtCanvas", rows, signals, "zbt", false, false, domain);
+}
+
+function drawZweigBreadthThrust() {
+  const md = window._marketData || {};
+  const rawRows = Array.isArray(md.zweig_breadth_thrust_history) ? md.zweig_breadth_thrust_history : [];
+  const signals = Array.isArray(md.zweig_breadth_thrust_signals) ? md.zweig_breadth_thrust_signals : [];
+  const rawPriceRows = marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y");
+  const domain = ensureCGCommonDateControls("cg-zbt", [rawPriceRows, rawRows], "max");
+  const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const latest = rows[rows.length - 1] || {};
+  const zbt = +latest.zbt, raw = +latest.ratio;
+  const regime = zbt >= .65 ? "THRUST ZONE" : zbt <= .40 ? "SETUP" : "NEUTRAL";
+  const color = zbt >= .65 ? "#1D9E75" : zbt <= .40 ? "#e05050" : "#d8d8d8";
+  [["zbtVal", Number.isFinite(zbt) ? zbt.toFixed(3) : "—"], ["zbtRawVal", Number.isFinite(raw) ? raw.toFixed(3) : "—"], ["zbtAdvDec", latest.advancing != null && latest.declining != null ? `${latest.advancing} / ${latest.declining}` : "—"], ["zbtRegime", regime]].forEach(([id, txt]) => {
+    const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
+  });
+  if(priceRows.length > 50) {
+    drawHistoryLineLogByDate("zbtPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
+    drawBTSignalDotsByDate("zbtPriceCanvas", priceRows, signals, "close", false, true, domain);
+  } else {
+    emptyCanvas("zbtPriceCanvas", 240, "S&P 500 daily history unavailable - run screener.py");
+  }
+  drawZBTBreadthChart(rows, signals, domain);
+  renderBTForwardStats("zbtForwardStats", rawPriceRows, signals, "Zweig thrust confirm", [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"12M",bars:252}]);
+  const priceTitle = document.getElementById("zbtPriceTitle");
+  if(priceTitle && priceRows.length) priceTitle.textContent = `S&P 500 — Zweig Breadth Thrust signals · ${priceRows[0].date} to ${priceRows[priceRows.length - 1].date}`;
+  const breadthTitle = document.getElementById("zbtBreadthTitle");
+  if(breadthTitle && rows.length) breadthTitle.textContent = `Zweig Breadth Thrust EMA — Daily History · ${rows[0].date} to ${rows[rows.length - 1].date}`;
 }
 
 function drawBT20BreadthChart(rows, signals, domain=null) {
