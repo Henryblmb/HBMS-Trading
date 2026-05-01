@@ -2095,14 +2095,7 @@ def ma_breadth_compression_from_stock_histories(history_items, years=30, change_
     }
 
 
-ZWEIG_BREADTH_THRUST_SIGNAL_DATES = [
-    "2009-03-18", "2009-07-16", "2010-02-18", "2011-08-31", "2011-10-12",
-    "2013-07-09", "2013-10-18", "2014-02-13", "2015-10-07", "2018-01-08",
-    "2020-05-27", "2023-03-31", "2023-11-03", "2024-08-19", "2025-04-24",
-]
-
-
-def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_start="1996-01-01", lower=0.40, upper=0.65, window=10):
+def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_start="2008-01-01", lower=0.41, upper=0.65, window=15, min_gap=42):
     cutoff = pd.Timestamp(datetime.date.today() - datetime.timedelta(days=int(years * 366)))
     counts = {}
     for item in history_items or []:
@@ -2162,38 +2155,31 @@ def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_s
             "zbt": round(float(row["zbt"]), 4),
         })
 
-    date_to_idx = {row["date"]: i for i, row in enumerate(rows)}
     signals = []
-    for date_s in ZWEIG_BREADTH_THRUST_SIGNAL_DATES:
-        idx = date_to_idx.get(date_s)
-        if idx is None:
-            idx = next((i for i, row in enumerate(rows) if row["date"] >= date_s), None)
-        if idx is None:
-            continue
-        start_i = max(0, idx - window)
-        setup_i = min(range(start_i, idx + 1), key=lambda j: rows[j]["zbt"])
-        signals.append({
-            "start_index": setup_i,
-            "confirm_index": idx,
-            "start_date": rows[setup_i]["date"],
-            "confirm_date": rows[idx]["date"],
-            "start_value": rows[setup_i]["zbt"],
-            "confirm_value": rows[idx]["zbt"],
-        })
-
     setup_idx = None
+    last_signal_idx = -100000
     for i, row in enumerate(rows):
         val = row["zbt"]
         if setup_idx is None:
-            if val < lower:
+            if val <= lower:
                 setup_idx = i
             continue
         if val < rows[setup_idx]["zbt"]:
             setup_idx = i
         if i - setup_idx > window:
-            setup_idx = i if val < lower else None
+            setup_idx = i if val <= lower else None
             continue
         if val >= upper:
+            if i - last_signal_idx >= min_gap:
+                signals.append({
+                    "start_index": setup_idx,
+                    "confirm_index": i,
+                    "start_date": rows[setup_idx]["date"],
+                    "confirm_date": row["date"],
+                    "start_value": rows[setup_idx]["zbt"],
+                    "confirm_value": row["zbt"],
+                })
+                last_signal_idx = i
             setup_idx = None
 
     last = rows[-1] if rows else None
@@ -2214,10 +2200,11 @@ def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_s
     return rows, signals, {
         "status": status,
         "source": "current_sp500_constituent_histories",
-        "method": "Own-version Zweig Breadth Thrust signal list over 10D EMA of advancing/(advancing+declining); current S&P 500 constituent history is survivorship-biased",
+        "method": "Algorithmic own-version Zweig Breadth Thrust over 10D EMA of advancing/(advancing+declining): setup at/below lower threshold, confirmation at/above upper threshold within the window; current S&P 500 constituent history is survivorship-biased",
         "lower": lower,
         "upper": upper,
         "window_days": window,
+        "min_gap_days": min_gap,
         "current": None if last is None else last["zbt"],
         "current_ratio": None if last is None else last["ratio"],
         "current_date": None if last is None else last["date"],
