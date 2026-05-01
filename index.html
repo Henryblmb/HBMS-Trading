@@ -5854,8 +5854,8 @@ function drawZBTBreadthChart(rows, signals, domain=null) {
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
   const toY = v => PAD.top + PH - (v * PH);
-  ctx.fillStyle="rgba(29,158,117,.07)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(.65)-PAD.top));
-  ctx.fillStyle="rgba(224,80,80,.07)"; ctx.fillRect(PAD.left, toY(.40), PW, Math.max(0, PAD.top + PH - toY(.40)));
+  ctx.fillStyle="rgba(29,158,117,.035)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(.65)-PAD.top));
+  ctx.fillStyle="rgba(224,80,80,.035)"; ctx.fillRect(PAD.left, toY(.40), PW, Math.max(0, PAD.top + PH - toY(.40)));
   [[.65,"#1D9E75","0.65"],[.50,"rgba(255,255,255,.08)","0.50"],[.40,"#e05050","0.40"]].forEach(([v,col,lbl]) => {
     const y = toY(v); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
     ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
@@ -5874,13 +5874,7 @@ function drawZBTBreadthChart(rows, signals, domain=null) {
     const y = toY(+r.zbt), x = toX(r);
     if(i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
   });
-  ctx.strokeStyle="#9bbcff"; ctx.lineWidth=1.8; ctx.lineJoin="round"; ctx.stroke();
-  ctx.beginPath();
-  rows.forEach((r,i) => {
-    const y = toY(+r.ratio), x = toX(r);
-    if(i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle="rgba(216,216,216,.28)"; ctx.lineWidth=.9; ctx.stroke();
+  ctx.strokeStyle="rgba(155,188,255,.72)"; ctx.lineWidth=1.35; ctx.lineJoin="round"; ctx.stroke();
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [0,.25,.50,.75,1].forEach(v => ctx.fillText(v.toFixed(2), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#3a3a3a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
