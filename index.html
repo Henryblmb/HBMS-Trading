@@ -1831,7 +1831,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-zbt">
       <div class="cg-header">
         <div class="cg-title">Zweig Breadth Thrust</div>
-        <div class="cg-sub">Marty Zweig style breadth thrust using a 10-day EMA of advancing stocks divided by advancing plus declining stocks. A signal confirms when the EMA moves from below 0.40 to above 0.65 within 10 trading days.</div>
+        <div class="cg-sub">Marty Zweig style breadth thrust using a 10-day EMA of advancing stocks divided by advancing plus declining stocks. A signal confirms when the EMA moves from below 0.40 to above 0.615 within 10 trading days.</div>
       </div>
 
       <div class="signal-bar">
@@ -5854,9 +5854,9 @@ function drawZBTBreadthChart(rows, signals, domain=null) {
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
   const toY = v => PAD.top + PH - (v * PH);
-  ctx.fillStyle="rgba(29,158,117,.035)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(.65)-PAD.top));
+  ctx.fillStyle="rgba(29,158,117,.035)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(.615)-PAD.top));
   ctx.fillStyle="rgba(224,80,80,.035)"; ctx.fillRect(PAD.left, toY(.40), PW, Math.max(0, PAD.top + PH - toY(.40)));
-  [[.65,"#1D9E75","0.65"],[.50,"rgba(255,255,255,.08)","0.50"],[.40,"#e05050","0.40"]].forEach(([v,col,lbl]) => {
+  [[.615,"#1D9E75","0.615"],[.50,"rgba(255,255,255,.08)","0.50"],[.40,"#e05050","0.40"]].forEach(([v,col,lbl]) => {
     const y = toY(v); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
     ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = col; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left"; ctx.fillText(lbl, PAD.left+PW+4, y+3);
@@ -5895,8 +5895,8 @@ function drawZweigBreadthThrust() {
   const rows = filterRowsByDateDomain(rawRows, domain);
   const latest = rows[rows.length - 1] || {};
   const zbt = +latest.zbt, raw = +latest.ratio;
-  const regime = zbt >= .65 ? "THRUST ZONE" : zbt <= .40 ? "SETUP" : "NEUTRAL";
-  const color = zbt >= .65 ? "#1D9E75" : zbt <= .40 ? "#e05050" : "#d8d8d8";
+  const regime = zbt >= .615 ? "THRUST ZONE" : zbt <= .40 ? "SETUP" : "NEUTRAL";
+  const color = zbt >= .615 ? "#1D9E75" : zbt <= .40 ? "#e05050" : "#d8d8d8";
   [["zbtVal", Number.isFinite(zbt) ? zbt.toFixed(3) : "—"], ["zbtRawVal", Number.isFinite(raw) ? raw.toFixed(3) : "—"], ["zbtAdvDec", latest.advancing != null && latest.declining != null ? `${latest.advancing} / ${latest.declining}` : "—"], ["zbtRegime", regime]].forEach(([id, txt]) => {
     const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
   });

@@ -2095,65 +2095,105 @@ def ma_breadth_compression_from_stock_histories(history_items, years=30, change_
     }
 
 
-def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_start="2008-01-01", lower=0.41, upper=0.65, window=15, min_gap=42):
-    cutoff = pd.Timestamp(datetime.date.today() - datetime.timedelta(days=int(years * 366)))
-    counts = {}
-    for item in history_items or []:
-        rows = item.get("rows") or []
-        series = []
-        for r in rows:
-            if len(r) < 4 or r[0] is None or r[3] is None:
-                continue
-            try:
-                dt = pd.Timestamp(r[0])
-                close = float(r[3])
-                if close <= 0:
-                    continue
-                series.append((dt, close))
-            except Exception:
-                continue
-        if len(series) < 260:
-            continue
-        s = pd.Series([x[1] for x in series], index=pd.DatetimeIndex([x[0] for x in series])).sort_index()
-        chg = s.diff()
-        for dt, val in chg.items():
-            if pd.isna(val) or dt < cutoff:
-                continue
-            d = str(pd.Timestamp(dt).date())
-            bucket = counts.setdefault(d, {"date": d, "advancing": 0, "declining": 0})
-            if val > 0:
-                bucket["advancing"] += 1
-            elif val < 0:
-                bucket["declining"] += 1
-
-    base_rows = []
-    for d in sorted(counts):
-        bucket = counts[d]
-        total = bucket["advancing"] + bucket["declining"]
-        if total < 100 or d < display_start:
-            continue
-        base_rows.append({
-            "date": d,
-            "advancing": int(bucket["advancing"]),
-            "declining": int(bucket["declining"]),
-            "universe": int(total),
-            "ratio": bucket["advancing"] / total,
-        })
-    if not base_rows:
-        return [], [], {"status": "unavailable", "source": "current_sp500_constituent_histories"}
-
-    df = pd.DataFrame(base_rows)
-    df["zbt"] = df["ratio"].ewm(span=10, adjust=False).mean()
+def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_start="2008-01-01", lower=0.40, upper=0.615, window=10, min_gap=42):
+    source = "current_sp500_constituent_histories"
+    method = "Algorithmic fallback own-version Zweig Breadth Thrust over 10D EMA of S&P 500 constituent advancing/(advancing+declining); current S&P 500 constituent history is survivorship-biased"
     rows = []
-    for _, row in df.iterrows():
-        rows.append({
-            "date": row["date"],
-            "advancing": int(row["advancing"]),
-            "declining": int(row["declining"]),
-            "universe": int(row["universe"]),
-            "ratio": round(float(row["ratio"]), 4),
-            "zbt": round(float(row["zbt"]), 4),
-        })
+
+    if EODHD.enabled:
+        try:
+            display_dt = datetime.datetime.strptime(display_start, "%Y-%m-%d").date()
+            warmup_start = display_dt - datetime.timedelta(days=120)
+            adv_hist, adv_source = EODHD.eod_history(["ADVN.INDX"], years=years, start_date=warmup_start)
+            dec_hist, dec_source = EODHD.eod_history(["DECN.INDX"], years=years, start_date=warmup_start)
+            if adv_hist is not None and dec_hist is not None and not adv_hist.empty and not dec_hist.empty:
+                df = pd.DataFrame({
+                    "advancing": adv_hist["Close"].astype(float),
+                    "declining": dec_hist["Close"].astype(float),
+                }).dropna().sort_index()
+                df = df[(df["advancing"] >= 0) & (df["declining"] >= 0)]
+                df["universe"] = df["advancing"] + df["declining"]
+                df = df[df["universe"] > 0]
+                df["ratio"] = df["advancing"] / df["universe"]
+                df["zbt"] = df["ratio"].ewm(span=10, adjust=False).mean()
+                visible = df[df.index >= pd.Timestamp(display_start)]
+                rows = [{
+                    "date": str(pd.Timestamp(idx).date()),
+                    "advancing": int(round(row["advancing"])),
+                    "declining": int(round(row["declining"])),
+                    "universe": int(round(row["universe"])),
+                    "ratio": round(float(row["ratio"]), 4),
+                    "zbt": round(float(row["zbt"]), 4),
+                } for idx, row in visible.iterrows()]
+                if rows:
+                    source = f"{adv_source}+{dec_source}"
+                    method = "Classic Zweig Breadth Thrust over 10D EMA of NYSE advancing issues divided by advancing plus declining issues; signal confirms when the EMA moves from <= lower to >= upper within the window"
+        except Exception:
+            rows = []
+
+    if rows:
+        base_rows = []
+    else:
+        base_rows = None
+    cutoff = pd.Timestamp(datetime.date.today() - datetime.timedelta(days=int(years * 366)))
+    if base_rows is None:
+        counts = {}
+        for item in history_items or []:
+            item_rows = item.get("rows") or []
+            series = []
+            for r in item_rows:
+                if len(r) < 4 or r[0] is None or r[3] is None:
+                    continue
+                try:
+                    dt = pd.Timestamp(r[0])
+                    close = float(r[3])
+                    if close <= 0:
+                        continue
+                    series.append((dt, close))
+                except Exception:
+                    continue
+            if len(series) < 260:
+                continue
+            s = pd.Series([x[1] for x in series], index=pd.DatetimeIndex([x[0] for x in series])).sort_index()
+            chg = s.diff()
+            for dt, val in chg.items():
+                if pd.isna(val) or dt < cutoff:
+                    continue
+                d = str(pd.Timestamp(dt).date())
+                bucket = counts.setdefault(d, {"date": d, "advancing": 0, "declining": 0})
+                if val > 0:
+                    bucket["advancing"] += 1
+                elif val < 0:
+                    bucket["declining"] += 1
+
+        base_rows = []
+        for d in sorted(counts):
+            bucket = counts[d]
+            total = bucket["advancing"] + bucket["declining"]
+            if total < 100 or d < display_start:
+                continue
+            base_rows.append({
+                "date": d,
+                "advancing": int(bucket["advancing"]),
+                "declining": int(bucket["declining"]),
+                "universe": int(total),
+                "ratio": bucket["advancing"] / total,
+            })
+        if not base_rows:
+            return [], [], {"status": "unavailable", "source": source}
+
+        df = pd.DataFrame(base_rows)
+        df["zbt"] = df["ratio"].ewm(span=10, adjust=False).mean()
+        rows = []
+        for _, row in df.iterrows():
+            rows.append({
+                "date": row["date"],
+                "advancing": int(row["advancing"]),
+                "declining": int(row["declining"]),
+                "universe": int(row["universe"]),
+                "ratio": round(float(row["ratio"]), 4),
+                "zbt": round(float(row["zbt"]), 4),
+            })
 
     signals = []
     setup_idx = None
@@ -2199,8 +2239,8 @@ def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_s
 
     return rows, signals, {
         "status": status,
-        "source": "current_sp500_constituent_histories",
-        "method": "Algorithmic own-version Zweig Breadth Thrust over 10D EMA of advancing/(advancing+declining): setup at/below lower threshold, confirmation at/above upper threshold within the window; current S&P 500 constituent history is survivorship-biased",
+        "source": source,
+        "method": method,
         "lower": lower,
         "upper": upper,
         "window_days": window,
