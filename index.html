@@ -5382,7 +5382,7 @@ function drawBinaryLongSignalLines(canvasId, rows, signals, domain, valueKey=nul
     const vMin = Math.min(-24, ...vals) * 1.08, vMax = Math.max(24, ...vals) * 1.08;
     toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
   }
-  signals.filter(s => s.type === "bull").forEach(sig => {
+  signals.filter(s => !s.type || s.type === "bull").forEach(sig => {
     const sigMs = rowDateMs({ date: sig.confirm_date || sig.date });
     if(!Number.isFinite(sigMs) || sigMs < domain.startMs || sigMs > domain.endMs) return;
     const idx = firstIndexOnOrAfter(rows, sig.confirm_date || sig.date);
@@ -5882,7 +5882,7 @@ function drawZBTBreadthChart(rows, signals, domain=null) {
     const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
     ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), toDateX(ms), H-PAD.bottom+14);
   });
-  drawBTSignalDotsByDate("zbtCanvas", rows, signals, "zbt", false, false, domain);
+  drawBinaryLongSignalLines("zbtCanvas", rows, signals, domain);
 }
 
 function drawZweigBreadthThrust() {
@@ -5902,7 +5902,7 @@ function drawZweigBreadthThrust() {
   });
   if(priceRows.length > 50) {
     drawHistoryLineLogByDate("zbtPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
-    drawBTSignalDotsByDate("zbtPriceCanvas", priceRows, signals, "close", false, true, domain);
+    drawBinaryLongSignalLines("zbtPriceCanvas", priceRows, signals, domain);
   } else {
     emptyCanvas("zbtPriceCanvas", 240, "S&P 500 daily history unavailable - run screener.py");
   }
