@@ -3222,19 +3222,37 @@ def rsp_spy_breadth_payload(display_start="2004-01-01"):
         })
 
     signals = []
-    prev = None
+    active_state = "neutral"
+    candidate_state = None
+    candidate_streak = 0
     last_signal_i = -10_000
-    for i, (row, state) in enumerate(zip(rows, states)):
-        if state != prev and state in ("bull", "bear") and i - last_signal_i >= 63:
+    for i, row in enumerate(rows):
+        strict_state = "neutral"
+        score = row.get("score")
+        chg = row.get("chg_63d")
+        z = row.get("z_252d")
+        if score is not None and chg is not None and z is not None:
+            if score >= 85 and chg >= 1.0 and z >= 0.5:
+                strict_state = "bull"
+            elif score <= 15 and chg <= -1.0 and z <= -0.5:
+                strict_state = "bear"
+        if strict_state != candidate_state:
+            candidate_state = strict_state
+            candidate_streak = 1
+        else:
+            candidate_streak += 1
+        if strict_state != "neutral" and strict_state != active_state and candidate_streak >= 10 and i - last_signal_i >= 252:
             signals.append({
                 "date": row["date"],
                 "confirm_date": row["date"],
-                "type": state,
+                "type": strict_state,
                 "score": row["score"],
                 "ratio": row["ratio"],
+                "chg_63d": row["chg_63d"],
+                "z_252d": row["z_252d"],
             })
             last_signal_i = i
-        prev = state
+            active_state = strict_state
 
     latest = rows[-1] if rows else {}
     return rows, signals, {
@@ -3246,6 +3264,7 @@ def rsp_spy_breadth_payload(display_start="2004-01-01"):
         "current_z_252d": latest.get("z_252d"),
         "current_date": latest.get("date"),
         "last_signal": signals[-1] if signals else None,
+        "signal_method": "strict regime starts: score extreme, 3M relative move and 252D z-score aligned for 10 trading days, 252-day cooldown",
     }
 
 

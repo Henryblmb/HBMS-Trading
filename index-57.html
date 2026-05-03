@@ -5499,7 +5499,7 @@ function drawBTCBinaryXL() {
   if(oscTitle && rows.length) oscTitle.textContent = `BTC Binary XL · ${rows[0].date} to ${rows[rows.length - 1].date}`;
 }
 
-function drawRSPSpySignalDots(canvasId, rows, signals, valueKey, logScale=false, domain=null) {
+function drawRSPSpySignalDots(canvasId, rows, signals, valueKey, logScale=false, domain=null, alpha=0.72) {
   if(!rows || rows.length < 2 || !signals || !signals.length || !domain) return;
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
@@ -5531,7 +5531,7 @@ function drawRSPSpySignalDots(canvasId, rows, signals, valueKey, logScale=false,
     const col = sig.type === "bear" ? "#e05050" : "#1D9E75";
     const x = toX(row);
     ctx.save();
-    ctx.strokeStyle = col === "#e05050" ? "rgba(224,80,80,.68)" : "rgba(29,158,117,.72)";
+    ctx.strokeStyle = col === "#e05050" ? `rgba(224,80,80,${alpha})` : `rgba(29,158,117,${alpha})`;
     ctx.lineWidth = 1.15;
     ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.moveTo(x, PAD.top + PH); ctx.lineTo(x, PAD.top); ctx.stroke();
@@ -5571,10 +5571,10 @@ function drawRSPSpyRatioChart(rows, signals, domain) {
     });
     ctx.strokeStyle = col; ctx.lineWidth = width; ctx.stroke();
   };
-  drawSeries("ratio", "rgba(216,216,216,.85)", 1.8);
-  drawSeries("ma50", "rgba(29,158,117,.82)", 1.2);
-  drawSeries("ma200", "rgba(239,159,39,.82)", 1.2);
-  drawRSPSpySignalDots("rspSpyRatioCanvas", valid, signals, "ratio", false, domain);
+  drawRSPSpySignalDots("rspSpyRatioCanvas", valid, signals, "ratio", false, domain, 0.28);
+  drawSeries("ma200", "rgba(239,159,39,.70)", 1.25);
+  drawSeries("ma50", "rgba(29,158,117,.48)", 0.9);
+  drawSeries("ratio", "rgba(216,216,216,.68)", 1.15);
   ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [vMin,(vMin+vMax)/2,vMax].forEach(v=>ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
