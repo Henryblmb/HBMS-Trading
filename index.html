@@ -213,6 +213,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .econ-prev{text-align:right;min-width:75px;font-size:10px;color:#444}
 .econ-prev strong{display:block;font-size:11px;color:#888;font-weight:500}
 .no-trade-tag{font-size:8.5px;padding:1px 6px;font-weight:600;background:#e05050;color:#fff}
+.sigcal-wrap{border:1px solid var(--line);background:var(--chart);overflow:auto;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.sigcal-table{width:100%;min-width:780px;border-collapse:collapse;table-layout:fixed}
+.sigcal-table th{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.08em;font-weight:540;text-align:left;padding:8px 10px;border-bottom:1px solid #1a1a1a;white-space:nowrap}
+.sigcal-table td{font-size:11px;color:#aaa;padding:8px 10px;border-bottom:1px solid #111;vertical-align:middle}
+.sigcal-table tr:hover td{background:#111}
+.sigcal-date{color:#f1f1f1!important;font-weight:540}
+.sigcal-model{color:#d8d8d8!important;font-weight:540}
+.sigcal-badge{display:inline-block;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border:1px solid}
+.sigcal-bull{color:var(--sig-green);background:var(--sig-green-bg);border-color:#285f4d}
+.sigcal-bear{color:var(--sig-red);background:var(--sig-red-bg);border-color:#5a2525}
+.sigcal-neut{color:var(--sig-amber);background:var(--sig-amber-bg);border-color:#5a3b16}
 
 /* ── 52W ── */
 .hilo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:2px;margin-bottom:.9rem}
@@ -578,6 +589,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   <div class="sidebar">
     <div class="nav-section">Screener</div>
     <div class="nav-item active" onclick="showTab('os',this)">Oversold</div>
+    <div class="nav-item" onclick="showTab('signal-calendar',this)">Signal Calendar</div>
     <div class="nav-item" onclick="showTab('trend',this)">Trend Strength</div>
     <div class="nav-item" onclick="showTab('sectors',this)">Sector Heatmap</div>
     <div class="nav-item" onclick="showTab('hilo',this)">52W Heatmap</div>
@@ -663,6 +675,41 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   <!-- ─── MAIN ─── -->
   <div class="main">
     <!-- ══════════════════════ SCREENER PANELS ══════════════════════ -->
+
+    <!-- SIGNAL CALENDAR -->
+    <div class="panel" id="tab-signal-calendar">
+      <div class="section-title">Signal Calendar</div>
+      <div class="filter-row" style="margin-bottom:.9rem">
+        <label>Model:</label>
+        <select id="sigCalModel" onchange="renderSignalCalendar()"><option value="all">All Models</option></select>
+        <label>Signal:</label>
+        <select id="sigCalSide" onchange="renderSignalCalendar()">
+          <option value="all">All</option>
+          <option value="bull">Bullish</option>
+          <option value="bear">Bearish</option>
+        </select>
+        <label>Range:</label>
+        <select id="sigCalRange" onchange="renderSignalCalendar()">
+          <option value="max">Max</option>
+          <option value="20">20Y</option>
+          <option value="10">10Y</option>
+          <option value="5">5Y</option>
+          <option value="1">1Y</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:.9rem">
+        <div class="stat"><div class="stat-val" id="sigCalTotal">—</div><div class="stat-lbl">Signals</div></div>
+        <div class="stat"><div class="stat-val" id="sigCalBull" style="color:#1D9E75">—</div><div class="stat-lbl">Bullish</div></div>
+        <div class="stat"><div class="stat-val" id="sigCalBear" style="color:#e05050">—</div><div class="stat-lbl">Bearish</div></div>
+        <div class="stat"><div class="stat-val" id="sigCalLatest">—</div><div class="stat-lbl">Latest</div></div>
+      </div>
+      <div class="sigcal-wrap">
+        <table class="sigcal-table">
+          <thead><tr><th>Date</th><th>Model</th><th>Signal</th><th>Reading</th><th>3M</th><th>6M</th><th>12M</th></tr></thead>
+          <tbody id="sigCalBody"><tr><td colspan="7" style="text-align:center;color:#333;padding:2rem">Run screener.py</td></tr></tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- OVERSOLD -->
     <div class="panel active" id="tab-os">
@@ -2346,6 +2393,7 @@ function showTab(id, el) {
 
   // Tab-specific actions
   if(id === "hilo") renderHiLo();
+  if(id === "signal-calendar") renderSignalCalendar();
   if(id === "momentum") renderMomentum();
   if(id === "seasonality") renderSeasonality();
   if(id === "vix") { window._marketData = window._marketData || {}; setTimeout(renderVIX, 100); }
@@ -2395,7 +2443,7 @@ async function loadData() {
     document.getElementById("stockCount").textContent = "Stocks - " + (json.total || allStocks.length || "—");
     document.getElementById("lastUpd").textContent = "Updated: " + (json.generated || "—");
     filterOS(); filterTrend(); renderSectors();
-    renderHiLo(); renderMomentum(); renderSeasonality();
+    renderHiLo(); renderSignalCalendar(); renderMomentum(); renderSeasonality();
     // Update CG-VIX readings if open
     updateCGVIX2Readings();
     updateBT20Signal();
@@ -2420,6 +2468,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-zbt") drawZweigBreadthThrust();
     if(activePanel && activePanel.id === "tab-cg-rspspy") drawRSPSpyBreadth();
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
+    if(activePanel && activePanel.id === "tab-signal-calendar") renderSignalCalendar();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
     document.getElementById("osGrid").innerHTML = `<div class="empty">Error: ${e.message}<br>Run screener.py</div>`;
@@ -6796,6 +6845,92 @@ function drawVIXChartToCanvas(canvasId,history){
 // ═══════════════════════════════════════════════
 function fmtP(p){return p==null?"—":p<10?p.toFixed(4):p.toLocaleString("en-US",{maximumFractionDigits:2});}
 function fmtChg(c,sfx=""){if(c==null)return'<span style="color:#333">—</span>';return`<span class="${c>=0?"pos":"neg"}">${c>=0?"+":""}${c.toFixed(2)}${sfx}</span>`;}
+function signalCalendarDate(sig){return sig && (sig.confirm_date || sig.date || sig.signal_date || sig.start_date) || "";}
+function signalCalendarPriceRows(asset){
+  const md = window._marketData || {};
+  if(asset === "btc") return (Array.isArray(md.btc_binary_xl_history) ? md.btc_binary_xl_history : []).map(r => ({ date:r.date, close:+r.btc })).filter(r => r.date && Number.isFinite(r.close));
+  let rows = marketHistory("sp500_history_20y");
+  if(!rows.length) rows = marketHistory("sp500_history");
+  return rows.map(r => ({ date:r.date, close:+(r.close ?? r.sp500 ?? r.spy) })).filter(r => r.date && Number.isFinite(r.close));
+}
+function signalCalendarForward(asset, date, bars){
+  const rows = signalCalendarPriceRows(asset);
+  if(!rows.length || !date) return null;
+  const startIdx = rows.findIndex(r => r.date >= date);
+  if(startIdx < 0 || startIdx + bars >= rows.length) return null;
+  const start = rows[startIdx].close, end = rows[startIdx + bars].close;
+  return Number.isFinite(start) && start > 0 && Number.isFinite(end) ? (end / start - 1) * 100 : null;
+}
+function signalCalendarReading(sig, key){
+  const v = sig && sig[key];
+  if(!Number.isFinite(+v)) return "—";
+  if(key === "zbt") return (+v).toFixed(3);
+  return Math.abs(+v) >= 100 ? Math.round(+v).toString() : (+v).toFixed(1);
+}
+function collectSignalCalendarRows(){
+  const md = window._marketData || {};
+  const rows = [];
+  const add = (source, model, side, asset, readKey, readLabel) => {
+    (Array.isArray(source) ? source : []).forEach(sig => {
+      const date = signalCalendarDate(sig);
+      if(!date) return;
+      const type = side || sig.type || "bull";
+      rows.push({
+        date,
+        model,
+        side: type === "bear" ? "bear" : "bull",
+        signal: type === "bear" ? "Bearish" : "Bullish",
+        reading: readLabel ? `${readLabel} ${signalCalendarReading(sig, readKey)}` : signalCalendarReading(sig, readKey),
+        f3: signalCalendarForward(asset, date, 63),
+        f6: signalCalendarForward(asset, date, 126),
+        f12: signalCalendarForward(asset, date, 252)
+      });
+    });
+  };
+  add(md.sp500_rsi_signals, "SPX RSI Momentum", "bull", "spx", "confirm_rsi", "RSI");
+  add(md.bt20_signals, "20D Breadth Thrust", "bull", "spx", "confirm_value", "");
+  add(md.bt50_signals, "50D Breadth Thrust", "bull", "spx", "confirm_value", "");
+  add(md.zweig_breadth_thrust_signals, "Zweig Breadth Thrust", "bull", "spx", "confirm_value", "");
+  add(md.binary_accumulation_signals, "SPY Binary Returns", "bull", "spx", "value", "");
+  add(md.btc_binary_xl_signals, "BTC Binary XL", "bull", "btc", "value", "");
+  add(md.rsp_spy_breadth_signals, "RSP/SPY Breadth", null, "spx", "score", "Score");
+  const washed = md.washed_out_bottom_picker && md.washed_out_bottom_picker.signals;
+  add(washed, "Washed Out Bottom", "bull", "spx", "score", "Score");
+  return rows.sort((a,b) => b.date.localeCompare(a.date));
+}
+function setupSignalCalendarModels(rows){
+  const sel = document.getElementById("sigCalModel"); if(!sel) return;
+  const current = sel.value || "all";
+  const models = [...new Set(rows.map(r => r.model))].sort();
+  sel.innerHTML = `<option value="all">All Models</option>` + models.map(m => `<option value="${m.replace(/"/g,"&quot;")}">${m}</option>`).join("");
+  sel.value = models.includes(current) ? current : "all";
+}
+function renderSignalCalendar(){
+  const rowsAll = collectSignalCalendarRows();
+  setupSignalCalendarModels(rowsAll);
+  const model = document.getElementById("sigCalModel")?.value || "all";
+  const side = document.getElementById("sigCalSide")?.value || "all";
+  const range = document.getElementById("sigCalRange")?.value || "max";
+  const cutoff = range === "max" ? "" : (() => { const d = new Date(); d.setFullYear(d.getFullYear() - Number(range)); return d.toISOString().slice(0,10); })();
+  const rows = rowsAll.filter(r => (model === "all" || r.model === model) && (side === "all" || r.side === side) && (!cutoff || r.date >= cutoff));
+  const totalEl = document.getElementById("sigCalTotal"), bullEl = document.getElementById("sigCalBull"), bearEl = document.getElementById("sigCalBear"), latestEl = document.getElementById("sigCalLatest");
+  if(totalEl) totalEl.textContent = rows.length;
+  if(bullEl) bullEl.textContent = rows.filter(r => r.side === "bull").length;
+  if(bearEl) bearEl.textContent = rows.filter(r => r.side === "bear").length;
+  if(latestEl) latestEl.textContent = rows[0] ? formatSignalDate(rows[0].date) : "—";
+  const body = document.getElementById("sigCalBody"); if(!body) return;
+  if(!rows.length) { body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#333;padding:2rem">No signals in selected range</td></tr>`; return; }
+  const fmtF = v => v == null ? '<span style="color:#444">—</span>' : `<span class="${v >= 0 ? "pos" : "neg"}">${v >= 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
+  body.innerHTML = rows.map(r => `<tr>
+    <td class="sigcal-date">${formatSignalDate(r.date)}</td>
+    <td class="sigcal-model">${r.model}</td>
+    <td><span class="sigcal-badge ${r.side === "bull" ? "sigcal-bull" : "sigcal-bear"}">${r.signal}</span></td>
+    <td>${r.reading || "—"}</td>
+    <td>${fmtF(r.f3)}</td>
+    <td>${fmtF(r.f6)}</td>
+    <td>${fmtF(r.f12)}</td>
+  </tr>`).join("");
+}
 
 function updateSliders(){document.getElementById("rsiWval").textContent=document.getElementById("rsiW").value;document.getElementById("rsiDval").textContent=document.getElementById("rsiD").value;}
 function rsiColor(v){if(v==null)return"#333";if(v<20)return"#e05050";if(v<25)return"#EF9F27";if(v<30)return"#facc15";return"#1D9E75";}
