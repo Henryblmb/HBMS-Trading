@@ -5644,7 +5644,7 @@ function spyTrendPersistenceRows() {
   }).map((row, i, arr) => {
     const past = arr[i - 20];
     const scoreDelta20 = past && Number.isFinite(+past.score) && Number.isFinite(+row.score) ? +row.score - +past.score : null;
-    const divergence = Number.isFinite(+row.price20) && +row.price20 > 1 && Number.isFinite(scoreDelta20) && scoreDelta20 <= -2;
+    const divergence = Number.isFinite(+row.price20) && +row.price20 > 2 && Number.isFinite(scoreDelta20) && scoreDelta20 <= -4 && +row.score <= 2;
     return { ...row, scoreDelta20, confirmed: +row.pos >= 5, divergence };
   });
 }
@@ -5654,13 +5654,14 @@ function spyTrendPersistenceSignals(rows) {
   let lastTrend = -10000, lastDiv = -10000;
   let trendStreak = 0, divStreak = 0;
   rows.forEach((row, i) => {
-    trendStreak = row.confirmed ? trendStreak + 1 : 0;
+    const strongTrend = +row.score === 6;
+    trendStreak = strongTrend ? trendStreak + 1 : 0;
     divStreak = row.divergence ? divStreak + 1 : 0;
-    if(trendStreak === 5 && i - lastTrend >= 63) {
+    if(trendStreak === 10 && i - lastTrend >= 126) {
       signals.push({ date:row.date, confirm_date:row.date, type:"bull", score:row.score, close:row.close });
       lastTrend = i;
     }
-    if(divStreak === 5 && i - lastDiv >= 63) {
+    if(divStreak === 3 && i - lastDiv >= 126) {
       signals.push({ date:row.date, confirm_date:row.date, type:"bear", score:row.score, close:row.close });
       lastDiv = i;
     }
@@ -5674,12 +5675,12 @@ function drawTrendPersistenceLines(canvasId, rows, signals, domain, valueKey=nul
   const ctx = canvas.getContext("2d");
   const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
   const H = canvas.clientHeight || parseFloat(canvas.style.height) || 240;
-  const PAD = { top: valueKey ? 16 : 14, right: 48, bottom: valueKey ? 30 : 28, left: valueKey ? 44 : 42 };
+  const PAD = { top: valueKey ? 24 : 14, right: valueKey ? 58 : 48, bottom: valueKey ? 34 : 28, left: valueKey ? 44 : 42 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const xSpan = domain.endMs - domain.startMs || 1;
   const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
   let toY = () => PAD.top + PH;
-  if(valueKey) toY = v => PAD.top + PH - ((v + 6) / 12) * PH;
+  if(valueKey) toY = v => PAD.top + PH - ((v + 6.5) / 13) * PH;
   signals.forEach(sig => {
     const i = firstIndexOnOrAfter(rows, sig.confirm_date || sig.date);
     const row = rows[i]; if(!row) return;
@@ -5702,7 +5703,7 @@ function drawTrendPersistenceLines(canvasId, rows, signals, domain, valueKey=nul
 function drawTrendPersistenceScore(rows, signals, domain) {
   const c = mkCanvas("trendBinOscCanvas", 250); if(!c) return;
   const { ctx, W, H } = c;
-  const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
+  const PAD = { top: 24, right: 58, bottom: 34, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
   const valid = (rows || []).filter(r => Number.isFinite(+r.score));
@@ -5713,7 +5714,7 @@ function drawTrendPersistenceScore(rows, signals, domain) {
   const xSpan = domain.endMs - domain.startMs || 1;
   const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
   const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
-  const toY = v => PAD.top + PH - ((v + 6) / 12) * PH;
+  const toY = v => PAD.top + PH - ((v + 6.5) / 13) * PH;
   ctx.fillStyle="rgba(29,158,117,.055)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(5)-PAD.top));
   ctx.fillStyle="rgba(224,80,80,.045)"; ctx.fillRect(PAD.left, toY(-5), PW, Math.max(0, PAD.top+PH-toY(-5)));
   ctx.setLineDash([3,4]); ctx.lineWidth=1;
