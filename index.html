@@ -494,6 +494,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-binret .signal-bar-divider{background:#202020!important}
 #tab-cg-binret .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-binret .interp-text{color:#a8a8a8!important}
+#tab-cg-trendbin .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-trendbin .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-trendbin .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-trendbin .signal-bar-divider{background:#202020!important}
+#tab-cg-trendbin .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-trendbin .interp-text{color:#a8a8a8!important}
 #tab-cg-btcbin .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-btcbin .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-btcbin .signal-bar-desc{color:#d0d0d0!important}
@@ -625,6 +631,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Binary Models</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-binret',this)">SPY Binary Returns</div>
+      <div class="nav-item sub" onclick="showTab('cg-trendbin',this)">SPY Trend Persistence</div>
       <div class="nav-item sub" onclick="showTab('cg-btcbin',this)">BTC Binary XL</div>
     </div>
 
@@ -1132,6 +1139,75 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Distribution Reset</div><div class="interp-text">After a strong positive run, a cross below zero means the binary ROC stack has lost broad momentum across windows.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Binary ROC Stack</div><div class="interp-text">Magnitude of each ROC does not matter. Each window only votes positive or negative, which keeps the model focused on direction.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="binRetForwardStats">Waiting for SPY binary data.</div></div>
+      </div>
+    </div>
+
+    <!-- SPY TREND PERSISTENCE -->
+    <div class="panel cg-page" id="tab-cg-trendbin">
+      <div class="cg-header">
+        <div class="cg-title">SPY Binary Trend Persistence</div>
+        <div class="cg-sub">Trend-quality model using binary ROC votes over 5, 10, 20, 40, 60 and 120 trading days. A trend is confirmed when at least 5 of 6 windows are positive; divergence appears when price keeps rising while the binary score falls.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">Binary Score</div>
+          <div class="signal-bar-val" id="trendBinScore">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Positive ROC</div>
+          <div class="signal-bar-val" id="trendBinVotes">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">20D Score Δ</div>
+          <div class="signal-bar-val" id="trendBinDelta" style="font-size:14px;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Regime</div>
+          <div class="signal-bar-val" id="trendBinRegime" style="font-size:14px;padding-top:4px">—</div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="trendBinRange">
+            <button class="hist-btn" onclick="setHistoryRange('trendbin','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('trendbin','5Y',this)">5Y</button>
+            <button class="hist-btn active" onclick="setHistoryRange('trendbin','10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('trendbin','20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="trendBinPriceTitle">SPY — Binary trend persistence markers</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>SPY</span>
+            <span style="color:#1D9E75">Trend confirmed</span>
+            <span style="color:#e05050">Divergence</span>
+          </div>
+        </div>
+        <canvas id="trendBinPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="trendBinOscTitle">Binary Trend Persistence Score</span>
+          <div class="cg-chart-legend">
+            <span style="color:#3ed8d8">Score</span>
+            <span style="color:#1D9E75">+5 confirmed</span>
+            <span style="color:#e05050">Divergence</span>
+          </div>
+        </div>
+        <canvas id="trendBinOscCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Trend Confirmed</div><div class="interp-text">At least 5 of 6 ROC windows are positive. This is a trend-quality confirmation, not a bottom signal.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Divergence</div><div class="interp-text">Price is higher over 20 trading days, but the binary score has fallen by at least 2 votes. Upside is still alive, but participation across timeframes is weakening.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Binary Windows</div><div class="interp-text">Each ROC window votes +1 when positive and -1 when negative. Magnitude is ignored; persistence across windows is what matters.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="trendBinForwardStats">Waiting for trend persistence data.</div></div>
       </div>
     </div>
 
@@ -2418,6 +2494,7 @@ function showTab(id, el) {
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-binret") setTimeout(drawSPYBinaryReturns, 60);
+  if(id === "cg-trendbin") setTimeout(drawSPYTrendPersistence, 60);
   if(id === "cg-btcbin") setTimeout(drawBTCBinaryXL, 60);
   if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
@@ -2467,6 +2544,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-binret") drawSPYBinaryReturns();
+    if(activePanel && activePanel.id === "tab-cg-trendbin") drawSPYTrendPersistence();
     if(activePanel && activePanel.id === "tab-cg-btcbin") drawBTCBinaryXL();
     if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
@@ -4028,6 +4106,7 @@ function emaSeries(values, span) {
 let spxrsiHistoryRange = "10Y";
 let spxemaHistoryRange = "20Y";
 let binRetHistoryRange = "max";
+let trendBinHistoryRange = "10Y";
 let btcBinHistoryRange = "max";
 let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
@@ -4235,6 +4314,13 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#binRetRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawSPYBinaryReturns();
+  }
+  if(chart === "trendbin") {
+    trendBinHistoryRange = range;
+    delete cgDateRanges["cg-trendbin"];
+    document.querySelectorAll("#trendBinRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawSPYTrendPersistence();
   }
   if(chart === "btcbin") {
     btcBinHistoryRange = range;
@@ -5533,6 +5619,177 @@ function drawSPYBinaryReturns() {
   if(priceTitle && rows.length) priceTitle.textContent = `SPY — Binary accumulation regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
   const oscTitle = document.getElementById("binRetOscTitle");
   if(oscTitle && rows.length) oscTitle.textContent = `SPY Binary Accumulation Daily Returns · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+}
+
+function spyTrendPersistenceRows() {
+  const md = window._marketData || {};
+  const raw = Array.isArray(md.binary_accumulation_history) && md.binary_accumulation_history.length
+    ? md.binary_accumulation_history.map(r => ({ date:r.date, close:+r.spy }))
+    : marketHistory("sp500_history_rsi").map(r => ({ date:r.date, close:+r.close }));
+  const rows = raw.filter(r => r.date && Number.isFinite(r.close) && r.close > 0);
+  const windows = [5, 10, 20, 40, 60, 120];
+  return rows.map((row, i) => {
+    let pos = 0, neg = 0;
+    const votes = {};
+    windows.forEach(w => {
+      const prev = rows[i - w];
+      const vote = prev && prev.close > 0 ? (row.close > prev.close ? 1 : row.close < prev.close ? -1 : 0) : null;
+      votes["roc" + w] = vote;
+      if(vote === 1) pos++;
+      if(vote === -1) neg++;
+    });
+    const score = pos + neg === windows.length ? pos - neg : null;
+    const prev20 = rows[i - 20];
+    return { ...row, ...votes, pos, neg, score, price20: prev20 && prev20.close > 0 ? (row.close / prev20.close - 1) * 100 : null };
+  }).map((row, i, arr) => {
+    const past = arr[i - 20];
+    const scoreDelta20 = past && Number.isFinite(+past.score) && Number.isFinite(+row.score) ? +row.score - +past.score : null;
+    const divergence = Number.isFinite(+row.price20) && +row.price20 > 1 && Number.isFinite(scoreDelta20) && scoreDelta20 <= -2;
+    return { ...row, scoreDelta20, confirmed: +row.pos >= 5, divergence };
+  });
+}
+
+function spyTrendPersistenceSignals(rows) {
+  const signals = [];
+  let lastTrend = -10000, lastDiv = -10000;
+  let trendStreak = 0, divStreak = 0;
+  rows.forEach((row, i) => {
+    trendStreak = row.confirmed ? trendStreak + 1 : 0;
+    divStreak = row.divergence ? divStreak + 1 : 0;
+    if(trendStreak === 5 && i - lastTrend >= 63) {
+      signals.push({ date:row.date, confirm_date:row.date, type:"bull", score:row.score, close:row.close });
+      lastTrend = i;
+    }
+    if(divStreak === 5 && i - lastDiv >= 63) {
+      signals.push({ date:row.date, confirm_date:row.date, type:"bear", score:row.score, close:row.close });
+      lastDiv = i;
+    }
+  });
+  return signals;
+}
+
+function drawTrendPersistenceLines(canvasId, rows, signals, domain, valueKey=null) {
+  if(!rows || rows.length < 2 || !signals || !signals.length || !domain) return;
+  const canvas = document.getElementById(canvasId); if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth || 800;
+  const H = canvas.clientHeight || parseFloat(canvas.style.height) || 240;
+  const PAD = { top: valueKey ? 16 : 14, right: 48, bottom: valueKey ? 30 : 28, left: valueKey ? 44 : 42 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  let toY = () => PAD.top + PH;
+  if(valueKey) toY = v => PAD.top + PH - ((v + 6) / 12) * PH;
+  signals.forEach(sig => {
+    const i = firstIndexOnOrAfter(rows, sig.confirm_date || sig.date);
+    const row = rows[i]; if(!row) return;
+    const t = rowDateMs(row);
+    if(!Number.isFinite(t) || t < domain.startMs || t > domain.endMs) return;
+    const x = toX(row);
+    ctx.save();
+    ctx.strokeStyle = sig.type === "bear" ? "rgba(224,80,80,.68)" : "rgba(29,158,117,.70)";
+    ctx.lineWidth = 1.15;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, valueKey ? toY(0) : PAD.top + PH);
+    ctx.lineTo(x, PAD.top);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  });
+}
+
+function drawTrendPersistenceScore(rows, signals, domain) {
+  const c = mkCanvas("trendBinOscCanvas", 250); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  const valid = (rows || []).filter(r => Number.isFinite(+r.score));
+  if(!domain || valid.length < 50) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Trend persistence history unavailable - run screener.py", W/2, H/2); return;
+  }
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((v + 6) / 12) * PH;
+  ctx.fillStyle="rgba(29,158,117,.055)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(5)-PAD.top));
+  ctx.fillStyle="rgba(224,80,80,.045)"; ctx.fillRect(PAD.left, toY(-5), PW, Math.max(0, PAD.top+PH-toY(-5)));
+  ctx.setLineDash([3,4]); ctx.lineWidth=1;
+  [-6,-3,0,3,5,6].forEach(v => {
+    const y = toY(v);
+    ctx.strokeStyle = v === 5 ? "rgba(29,158,117,.48)" : v === 0 ? "rgba(216,211,106,.70)" : "rgba(255,255,255,.045)";
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+    ctx.fillStyle = v === 5 ? "#1D9E75" : v === 0 ? "#d8d36a" : "#555";
+    ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText((v > 0 ? "+" : "") + v, PAD.left+PW+5, y+3);
+  });
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  let started = false;
+  valid.forEach(r => {
+    const x = toX(r), y = toY(+r.score);
+    if(!started) { ctx.moveTo(x,y); started = true; }
+    else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle="#3ed8d8"; ctx.lineWidth=1.8; ctx.stroke();
+  drawTrendPersistenceLines("trendBinOscCanvas", valid, signals, domain, "score");
+  ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [-6,0,6].forEach(v=>ctx.fillText((v>0?"+":"")+v, PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p=>{ const ms=domain.startMs+(domain.endMs-domain.startMs)*p; ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), toDateX(ms), H-PAD.bottom+14); });
+}
+
+function renderTrendPersistenceForward(priceRows, signals, domain) {
+  const el = document.getElementById("trendBinForwardStats"); if(!el) return;
+  const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
+  const sigs = (signals || []).filter(sig => {
+    const t = rowDateMs({ date:sig.confirm_date || sig.date });
+    return !domain || (Number.isFinite(t) && t >= domain.startMs && t <= domain.endMs);
+  });
+  const cellFor = (type, bars) => {
+    const vals = [];
+    sigs.filter(s => s.type === type).forEach(sig => {
+      const i = firstIndexOnOrAfter(prices, sig.confirm_date || sig.date);
+      const start = prices[i], end = prices[i + bars];
+      if(start && end && +start.close > 0) vals.push((+end.close / +start.close - 1) * 100);
+    });
+    if(!vals.length) return `<strong style="color:#555">—</strong><em>0</em>`;
+    const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const win = vals.filter(v=>v>0).length / vals.length * 100;
+    return `<strong style="color:${avg>=0?"#1D9E75":"#e05050"}">${fmtPct(avg,1)}</strong><em>${win.toFixed(0)}% · ${vals.length}</em>`;
+  };
+  el.innerHTML = `<div class="ret-fwd-events">${sigs.length} visible regime events</div><div class="ret-fwd-head"><span>Signal</span><span>3M</span><span>12M</span></div>
+    <div class="ret-fwd-row"><span>Trend</span><span>${cellFor("bull",63)}</span><span>${cellFor("bull",252)}</span></div>
+    <div class="ret-fwd-row"><span>Divergence</span><span>${cellFor("bear",63)}</span><span>${cellFor("bear",252)}</span></div>`;
+}
+
+function drawSPYTrendPersistence() {
+  const rawRows = spyTrendPersistenceRows();
+  const signals = spyTrendPersistenceSignals(rawRows);
+  const domain = ensureCGDateControls("cg-trendbin", [rawRows], trendBinHistoryRange);
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const priceRows = rows.map(r => ({ date:r.date, close:+r.close })).filter(r => Number.isFinite(r.close));
+  const latest = rows[rows.length - 1] || {};
+  const score = Number.isFinite(+latest.score) ? +latest.score : null;
+  const div = !!latest.divergence;
+  const regime = div ? "DIVERGENCE" : +latest.pos >= 5 ? "TREND CONFIRMED" : +latest.pos <= 2 ? "WEAK TREND" : "NEUTRAL";
+  const color = div ? "#e05050" : +latest.pos >= 5 ? "#1D9E75" : +latest.pos <= 2 ? "#e05050" : "#EF9F27";
+  [["trendBinScore", score == null ? "—" : (score > 0 ? "+" : "") + score.toFixed(0)], ["trendBinVotes", Number.isFinite(+latest.pos) ? `${latest.pos}/6` : "—"], ["trendBinDelta", Number.isFinite(+latest.scoreDelta20) ? `${latest.scoreDelta20 > 0 ? "+" : ""}${latest.scoreDelta20.toFixed(0)}` : "—"], ["trendBinRegime", regime]].forEach(([id, txt]) => {
+    const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
+  });
+  if(priceRows.length > 50) {
+    drawHistoryLineLogByDate("trendBinPriceCanvas", priceRows, 240, "SPY", "#d8d8d8", domain, []);
+    drawTrendPersistenceLines("trendBinPriceCanvas", priceRows, signals, domain);
+  } else {
+    emptyCanvas("trendBinPriceCanvas", 240, "SPY history unavailable - run screener.py");
+  }
+  drawTrendPersistenceScore(rows, signals, domain);
+  renderTrendPersistenceForward(rawRows.map(r => ({ date:r.date, close:+r.close })), signals, domain);
+  const priceTitle = document.getElementById("trendBinPriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `SPY — Binary trend persistence markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const oscTitle = document.getElementById("trendBinOscTitle");
+  if(oscTitle && rows.length) oscTitle.textContent = `Binary Trend Persistence Score · ${rows[0].date} to ${rows[rows.length - 1].date}`;
 }
 
 function drawBTCBinaryXL() {
