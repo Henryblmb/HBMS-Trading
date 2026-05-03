@@ -224,6 +224,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .sigcal-bull{color:var(--sig-green);background:var(--sig-green-bg);border-color:#285f4d}
 .sigcal-bear{color:var(--sig-red);background:var(--sig-red-bg);border-color:#5a2525}
 .sigcal-neut{color:var(--sig-amber);background:var(--sig-amber-bg);border-color:#5a3b16}
+.sigcal-page .sigcal-controls{display:flex;align-items:center;gap:22px;margin:0 0 1rem 0;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.sigcal-page .signal-inline-control select{min-width:auto;width:auto;padding:0!important;border:0!important;background:transparent!important;color:#f1f1f1!important;font-size:10.5px;font-weight:600}
+.sigcal-page .signal-inline-control select:hover,.sigcal-page .signal-inline-control select:focus{text-decoration:underline;text-underline-offset:3px}
+.sigcal-page .signal-bar{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin-bottom:1rem}
+.sigcal-page .signal-bar-val{font-size:21px}
 
 /* ── 52W ── */
 .hilo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:2px;margin-bottom:.9rem}
@@ -677,31 +682,40 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <!-- ══════════════════════ SCREENER PANELS ══════════════════════ -->
 
     <!-- SIGNAL CALENDAR -->
-    <div class="panel" id="tab-signal-calendar">
+    <div class="panel sigcal-page" id="tab-signal-calendar">
       <div class="section-title">Signal Calendar</div>
-      <div class="filter-row" style="margin-bottom:.9rem">
-        <label>Model:</label>
-        <select id="sigCalModel" onchange="renderSignalCalendar()"><option value="all">All Models</option></select>
-        <label>Signal:</label>
-        <select id="sigCalSide" onchange="renderSignalCalendar()">
-          <option value="all">All</option>
-          <option value="bull">Bullish</option>
-          <option value="bear">Bearish</option>
-        </select>
-        <label>Range:</label>
-        <select id="sigCalRange" onchange="renderSignalCalendar()">
-          <option value="max">Max</option>
-          <option value="20">20Y</option>
-          <option value="10">10Y</option>
-          <option value="5">5Y</option>
-          <option value="1">1Y</option>
-        </select>
+      <div class="sigcal-controls">
+        <div class="signal-inline-control">
+          <label>Model</label>
+          <select id="sigCalModel" onchange="renderSignalCalendar()"><option value="all">All Models</option></select>
+        </div>
+        <div class="signal-inline-control">
+          <label>Signal</label>
+          <select id="sigCalSide" onchange="renderSignalCalendar()">
+            <option value="all">All</option>
+            <option value="bull">Bullish</option>
+            <option value="bear">Bearish</option>
+          </select>
+        </div>
+        <div class="signal-inline-control">
+          <label>Range</label>
+          <select id="sigCalRange" onchange="renderSignalCalendar()">
+            <option value="max">Max</option>
+            <option value="20">20Y</option>
+            <option value="10">10Y</option>
+            <option value="5">5Y</option>
+            <option value="1">1Y</option>
+          </select>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:.9rem">
-        <div class="stat"><div class="stat-val" id="sigCalTotal">—</div><div class="stat-lbl">Signals</div></div>
-        <div class="stat"><div class="stat-val" id="sigCalBull" style="color:#1D9E75">—</div><div class="stat-lbl">Bullish</div></div>
-        <div class="stat"><div class="stat-val" id="sigCalBear" style="color:#e05050">—</div><div class="stat-lbl">Bearish</div></div>
-        <div class="stat"><div class="stat-val" id="sigCalLatest">—</div><div class="stat-lbl">Latest</div></div>
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Signals</div><div class="signal-bar-val" id="sigCalTotal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Bullish</div><div class="signal-bar-val" id="sigCalBull" style="color:#1D9E75">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Bearish</div><div class="signal-bar-val" id="sigCalBear" style="color:#e05050">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Latest</div><div class="signal-bar-val" id="sigCalLatest">—</div></div>
       </div>
       <div class="sigcal-wrap">
         <table class="sigcal-table">
