@@ -1204,7 +1204,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
 
       <div class="interp-grid ret-forward-grid">
-        <div class="interp-cell bull"><div class="interp-title bull">Trend Confirmed</div><div class="interp-text">At least 5 of 6 ROC windows are positive. This is a trend-quality confirmation, not a bottom signal.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Trend Confirmed</div><div class="interp-text">Visible trend signals require a 6/6 score for 15 days after a prior weak/pullback phase, so ongoing mature trends are filtered out.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Divergence</div><div class="interp-text">Price is higher over 20 trading days, but the binary score has fallen by at least 2 votes. Upside is still alive, but participation across timeframes is weakening.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Binary Windows</div><div class="interp-text">Each ROC window votes +1 when positive and -1 when negative. Magnitude is ignored; persistence across windows is what matters.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="trendBinForwardStats">Waiting for trend persistence data.</div></div>
@@ -5653,11 +5653,23 @@ function spyTrendPersistenceSignals(rows) {
   const signals = [];
   let lastTrend = -10000, lastDiv = -10000;
   let trendStreak = 0, divStreak = 0;
+  const priorPullback = (idx, lookback=126) => {
+    const prior = rows.slice(Math.max(0, idx - lookback), idx);
+    let peak = -Infinity, minDd = 0, hadWeak = false;
+    prior.forEach(r => {
+      if(Number.isFinite(+r.score) && +r.score <= 0) hadWeak = true;
+      if(Number.isFinite(+r.close)) {
+        peak = Math.max(peak, +r.close);
+        if(Number.isFinite(peak) && peak > 0) minDd = Math.min(minDd, (+r.close / peak - 1) * 100);
+      }
+    });
+    return hadWeak && minDd <= -8;
+  };
   rows.forEach((row, i) => {
     const strongTrend = +row.score === 6;
     trendStreak = strongTrend ? trendStreak + 1 : 0;
     divStreak = row.divergence ? divStreak + 1 : 0;
-    if(trendStreak === 10 && i - lastTrend >= 126) {
+    if(trendStreak === 15 && priorPullback(i) && i - lastTrend >= 252) {
       signals.push({ date:row.date, confirm_date:row.date, type:"bull", score:row.score, close:row.close });
       lastTrend = i;
     }
@@ -5680,7 +5692,7 @@ function drawTrendPersistenceLines(canvasId, rows, signals, domain, valueKey=nul
   const xSpan = domain.endMs - domain.startMs || 1;
   const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
   let toY = () => PAD.top + PH;
-  if(valueKey) toY = v => PAD.top + PH - ((v + 6.5) / 13) * PH;
+  if(valueKey) toY = v => PAD.top + PH - ((v + 8) / 16) * PH;
   signals.forEach(sig => {
     const i = firstIndexOnOrAfter(rows, sig.confirm_date || sig.date);
     const row = rows[i]; if(!row) return;
@@ -5714,11 +5726,11 @@ function drawTrendPersistenceScore(rows, signals, domain) {
   const xSpan = domain.endMs - domain.startMs || 1;
   const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
   const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
-  const toY = v => PAD.top + PH - ((v + 6.5) / 13) * PH;
+  const toY = v => PAD.top + PH - ((v + 8) / 16) * PH;
   ctx.fillStyle="rgba(29,158,117,.055)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(5)-PAD.top));
   ctx.fillStyle="rgba(224,80,80,.045)"; ctx.fillRect(PAD.left, toY(-5), PW, Math.max(0, PAD.top+PH-toY(-5)));
   ctx.setLineDash([3,4]); ctx.lineWidth=1;
-  [-6,-3,0,3,5,6].forEach(v => {
+  [-8,-6,-3,0,3,5,6,8].forEach(v => {
     const y = toY(v);
     ctx.strokeStyle = v === 5 ? "rgba(29,158,117,.48)" : v === 0 ? "rgba(216,211,106,.70)" : "rgba(255,255,255,.045)";
     ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
@@ -5736,7 +5748,7 @@ function drawTrendPersistenceScore(rows, signals, domain) {
   ctx.strokeStyle="#3ed8d8"; ctx.lineWidth=1.8; ctx.stroke();
   drawTrendPersistenceLines("trendBinOscCanvas", valid, signals, domain, "score");
   ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
-  [-6,0,6].forEach(v=>ctx.fillText((v>0?"+":"")+v, PAD.left-5, toY(v)+3));
+  [-8,0,8].forEach(v=>ctx.fillText((v>0?"+":"")+v, PAD.left-5, toY(v)+3));
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
   [0,.2,.4,.6,.8,1].forEach(p=>{ const ms=domain.startMs+(domain.endMs-domain.startMs)*p; ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), toDateX(ms), H-PAD.bottom+14); });
 }
