@@ -6863,13 +6863,16 @@ function signalCalendarDate(sig){return sig && (sig.confirm_date || sig.date || 
 function signalCalendarPriceRows(asset){
   const md = window._marketData || {};
   if(asset === "btc") return (Array.isArray(md.btc_binary_xl_history) ? md.btc_binary_xl_history : []).map(r => ({ date:r.date, close:+r.btc })).filter(r => r.date && Number.isFinite(r.close));
-  let rows = marketHistory("sp500_history_20y");
+  let rows = marketHistory("sp500_history_rsi");
+  if(!rows.length) rows = marketHistory("bt50_sp500_history");
+  if(!rows.length) rows = marketHistory("sp500_history_20y");
   if(!rows.length) rows = marketHistory("sp500_history");
   return rows.map(r => ({ date:r.date, close:+(r.close ?? r.sp500 ?? r.spy) })).filter(r => r.date && Number.isFinite(r.close));
 }
 function signalCalendarForward(asset, date, bars){
   const rows = signalCalendarPriceRows(asset);
   if(!rows.length || !date) return null;
+  if(date < rows[0].date) return null;
   const startIdx = rows.findIndex(r => r.date >= date);
   if(startIdx < 0 || startIdx + bars >= rows.length) return null;
   const start = rows[startIdx].close, end = rows[startIdx + bars].close;
