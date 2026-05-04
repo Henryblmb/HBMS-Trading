@@ -1289,7 +1289,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="panel cg-page" id="tab-cg-vixsd">
       <div class="cg-header">
         <div class="cg-title">VIX SD Level</div>
-        <div class="cg-sub">Fixed VIX standard-deviation model using 1H VIX highs: mean 20, each SD is 8 VIX points. Signal starts at VIX 35 and strengthens as intraday volatility reaches higher SD levels.</div>
+        <div class="cg-sub">Fixed VIX standard-deviation model using daily VIX closes: mean 20, each SD is 8 VIX points. Signal starts at VIX 35 and strengthens as volatility reaches higher SD levels.</div>
       </div>
 
       <div class="signal-bar">
@@ -1329,7 +1329,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="vixsdBarsTitle">VIX SD Level — 20Y 1H High by Day</span>
+          <span class="cg-chart-title" id="vixsdBarsTitle">VIX SD Level — 20Y Daily Close by Day</span>
           <div class="cg-chart-legend">
             <span style="color:#777">0 Mean</span>
             <span style="color:#EF9F27">+2 Stress</span>
@@ -4356,19 +4356,20 @@ function drawVIXSDSignal() {
 
   const rawVix = Array.isArray(md.vix_sd_history) ? md.vix_sd_history : [];
   const validVixRows = rawVix.filter(r => r && r.date && Number.isFinite(+r.sd_clamped));
-  const domain = ensureCGDateControls("cg-vixsd", [allPriceRows, validVixRows], vixsdHistoryRange);
+  const domain = ensureCGCommonDateControls("cg-vixsd", [allPriceRows, validVixRows], vixsdHistoryRange);
   const priceRows = filterRowsByDateDomain(allPriceRows, domain);
   const vixRows = filterRowsByDateDomain(validVixRows, domain);
+  const sharedXPad = { top: 14, right: 56, bottom: 28, left: 42 };
 
   if(priceRows.length < 2) emptyCanvas("vixsdPriceCanvas", 240, `S&P 500 ${vixsdHistoryRange} history unavailable - run screener.py`);
-  else drawHistoryLineLogByDate("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
+  else drawHistoryLineLogByDate("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, [], sharedXPad);
 
   drawVIXSDBars("vixsdBarsCanvas", vixRows, 230, domain);
 
   const title = document.getElementById("vixsdPriceTitle");
   if(title) title.textContent = `S&P 500 — ${vixsdHistoryRange} Daily Log Chart`;
   const barsTitle = document.getElementById("vixsdBarsTitle");
-  if(barsTitle) barsTitle.textContent = `VIX SD Level — ${vixsdHistoryRange} 1H High by Day`;
+  if(barsTitle) barsTitle.textContent = `VIX SD Level — ${vixsdHistoryRange} Daily Close by Day`;
 
   const current = md.vix_sd_current || {};
   const latest = rawVix.length ? rawVix[rawVix.length - 1] : {};
