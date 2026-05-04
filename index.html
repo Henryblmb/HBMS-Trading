@@ -500,6 +500,12 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-btcbin .signal-bar-divider{background:#202020!important}
 #tab-cg-btcbin .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-btcbin .interp-text{color:#a8a8a8!important}
+#tab-cg-goldbin .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
+#tab-cg-goldbin .signal-bar-label{color:#c8c8c8!important}
+#tab-cg-goldbin .signal-bar-desc{color:#d0d0d0!important}
+#tab-cg-goldbin .signal-bar-divider{background:#202020!important}
+#tab-cg-goldbin .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
+#tab-cg-goldbin .interp-text{color:#a8a8a8!important}
 #tab-cg-rollret .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-rollret .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-rollret .signal-bar-desc{color:#d0d0d0!important}
@@ -625,6 +631,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Binary Models</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-binret',this)">SPY Binary Returns</div>
+      <div class="nav-item sub" onclick="showTab('cg-goldbin',this)">Gold Binary</div>
       <div class="nav-item sub" onclick="showTab('cg-btcbin',this)">BTC Binary XL</div>
     </div>
 
@@ -1132,6 +1139,72 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Distribution Reset</div><div class="interp-text">After a strong positive run, a cross below zero means the binary ROC stack has lost broad momentum across windows.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Binary ROC Stack</div><div class="interp-text">Magnitude of each ROC does not matter. Each window only votes positive or negative, which keeps the model focused on direction.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="binRetForwardStats">Waiting for SPY binary data.</div></div>
+      </div>
+    </div>
+
+    <!-- GOLD BINARY -->
+    <div class="panel cg-page" id="tab-cg-goldbin">
+      <div class="cg-header">
+        <div class="cg-title">Gold Binary Accumulation — Daily Returns</div>
+        <div class="cg-sub">Gold momentum model combining multiple rate-of-change windows in binary form. Each ROC window contributes +1 when positive and -1 when negative, then the combined score is scaled into an accumulation/distribution oscillator.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div>
+          <div class="signal-bar-label">Binary Value</div>
+          <div class="signal-bar-val" id="goldBinVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Raw Score</div>
+          <div class="signal-bar-val" id="goldBinRawVal">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div>
+          <div class="signal-bar-label">Regime</div>
+          <div class="signal-bar-val" id="goldBinRegimeVal" style="font-size:14px;padding-top:4px">—</div>
+        </div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc">Long signal triggers when the smoothed gold binary line first reached -18, then crosses back above the orange zero line.</div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="goldBinRange">
+            <button class="hist-btn" onclick="setHistoryRange('goldbin','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('goldbin','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('goldbin','10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('goldbin','20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="goldBinPriceTitle">Gold — Binary accumulation regime markers</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Gold</span>
+            <span style="color:#1D9E75">Long signal line</span>
+          </div>
+        </div>
+        <canvas id="goldBinPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="goldBinOscTitle">Gold Binary Accumulation Daily Returns</span>
+          <div class="cg-chart-legend">
+            <span style="color:#facc15">Accumulation</span>
+            <span style="color:#d43ddb">Distribution</span>
+            <span style="color:#e05050">+18</span>
+            <span style="color:#1D9E75">-18</span>
+          </div>
+        </div>
+        <canvas id="goldBinOscCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Accumulation Reset</div><div class="interp-text">After a negative washout, a cross back above zero means the combined gold ROC stack has flipped positive again.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Distribution Reset</div><div class="interp-text">After a strong positive run, a cross below zero means the gold ROC stack has lost momentum across windows.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Binary ROC Stack</div><div class="interp-text">Magnitude of each ROC does not matter. Each window only votes positive or negative, which keeps the model focused on direction.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="goldBinForwardStats">Waiting for gold binary data.</div></div>
       </div>
     </div>
 
@@ -2418,6 +2491,7 @@ function showTab(id, el) {
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
   if(id === "cg-binret") setTimeout(drawSPYBinaryReturns, 60);
+  if(id === "cg-goldbin") setTimeout(drawGoldBinary, 60);
   if(id === "cg-btcbin") setTimeout(drawBTCBinaryXL, 60);
   if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
@@ -2467,6 +2541,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-spxrsi") drawSPXRSIReversal();
     if(activePanel && activePanel.id === "tab-cg-spxema") drawSPXWeeklyEMA();
     if(activePanel && activePanel.id === "tab-cg-binret") drawSPYBinaryReturns();
+    if(activePanel && activePanel.id === "tab-cg-goldbin") drawGoldBinary();
     if(activePanel && activePanel.id === "tab-cg-btcbin") drawBTCBinaryXL();
     if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
@@ -4028,6 +4103,7 @@ function emaSeries(values, span) {
 let spxrsiHistoryRange = "10Y";
 let spxemaHistoryRange = "20Y";
 let binRetHistoryRange = "max";
+let goldBinHistoryRange = "max";
 let btcBinHistoryRange = "max";
 let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
@@ -4042,6 +4118,7 @@ const cgRedraw = {
   "cg-spxrsi": () => drawSPXRSIReversal(),
   "cg-spxema": () => drawSPXWeeklyEMA(),
   "cg-binret": () => drawSPYBinaryReturns(),
+  "cg-goldbin": () => drawGoldBinary(),
   "cg-btcbin": () => drawBTCBinaryXL(),
   "cg-rollret": () => drawRollingReturnModel(),
   "cg-vixsd": () => drawVIXSDSignal(),
@@ -4235,6 +4312,13 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#binRetRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawSPYBinaryReturns();
+  }
+  if(chart === "goldbin") {
+    goldBinHistoryRange = range;
+    delete cgDateRanges["cg-goldbin"];
+    document.querySelectorAll("#goldBinRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawGoldBinary();
   }
   if(chart === "btcbin") {
     btcBinHistoryRange = range;
@@ -5534,6 +5618,33 @@ function drawSPYBinaryReturns() {
   if(priceTitle && rows.length) priceTitle.textContent = `SPY — Binary accumulation regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
   const oscTitle = document.getElementById("binRetOscTitle");
   if(oscTitle && rows.length) oscTitle.textContent = `SPY Binary Accumulation Daily Returns · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+}
+
+function drawGoldBinary() {
+  const md = window._marketData || {};
+  const rawRows = Array.isArray(md.gold_binary_history) ? md.gold_binary_history : [];
+  const signals = binaryLongSignalsFromRows(rawRows, -18, 21, "gold");
+  const domain = ensureCGDateControls("cg-goldbin", [rawRows], goldBinHistoryRange);
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const priceRows = rows.map(r => ({ date:r.date, close:+r.gold })).filter(r => Number.isFinite(r.close));
+  const latest = rows[rows.length - 1] || {};
+  const color = +latest.value > 0 ? "#1D9E75" : +latest.value < 0 ? "#e05050" : "#d8d8d8";
+  const regime = +latest.value > 0 ? "ACCUMULATION" : +latest.value < 0 ? "DISTRIBUTION" : "NEUTRAL";
+  [["goldBinVal", Number.isFinite(+latest.value) ? (+latest.value).toFixed(0) : "—"], ["goldBinRawVal", Number.isFinite(+latest.raw) ? (+latest.raw).toFixed(0) : "—"], ["goldBinRegimeVal", regime]].forEach(([id, txt]) => {
+    const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
+  });
+  if(priceRows.length > 50) {
+    drawHistoryLineLogByDate("goldBinPriceCanvas", priceRows, 240, "Gold", "#d8d8d8", domain, []);
+    drawBinaryLongSignalLines("goldBinPriceCanvas", priceRows, signals, domain);
+  } else {
+    emptyCanvas("goldBinPriceCanvas", 240, "Gold history unavailable - run screener.py");
+  }
+  drawBinaryReturnsOscillator(rows, signals, domain, "goldBinOscCanvas", { lineColor:"#facc15", posLevel:18, negLevel:-18, emptyLabel:"Gold Binary unavailable - run screener.py" });
+  renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.gold })), signals, domain, "goldBinForwardStats");
+  const priceTitle = document.getElementById("goldBinPriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `Gold — Binary accumulation regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const oscTitle = document.getElementById("goldBinOscTitle");
+  if(oscTitle && rows.length) oscTitle.textContent = `Gold Binary Accumulation Daily Returns · ${rows[0].date} to ${rows[rows.length - 1].date}`;
 }
 
 function drawBTCBinaryXL() {
@@ -6864,6 +6975,7 @@ function signalCalendarDate(sig){return sig && (sig.confirm_date || sig.date || 
 function signalCalendarPriceRows(asset){
   const md = window._marketData || {};
   if(asset === "btc") return (Array.isArray(md.btc_binary_xl_history) ? md.btc_binary_xl_history : []).map(r => ({ date:r.date, close:+r.btc })).filter(r => r.date && Number.isFinite(r.close));
+  if(asset === "gold") return (Array.isArray(md.gold_binary_history) ? md.gold_binary_history : []).map(r => ({ date:r.date, close:+r.gold })).filter(r => r.date && Number.isFinite(r.close));
   let rows = marketHistory("sp500_history_rsi");
   if(!rows.length) rows = marketHistory("bt50_sp500_history");
   if(!rows.length) rows = marketHistory("sp500_history_20y");
@@ -6909,6 +7021,7 @@ function collectSignalCalendarRows(){
   add(md.bt50_signals, "50D Breadth Thrust", "bull", "spx", "confirm_value", "");
   add(md.zweig_breadth_thrust_signals, "Zweig Breadth Thrust", "bull", "spx", "confirm_value", "");
   add(md.binary_accumulation_signals, "SPY Binary Returns", "bull", "spx", "value", "");
+  add(md.gold_binary_signals, "Gold Binary", "bull", "gold", "value", "");
   add(md.btc_binary_xl_signals, "BTC Binary XL", "bull", "btc", "value", "");
   add(md.rsp_spy_breadth_signals, "RSP/SPY Breadth", null, "spx", "score", "Score");
   const washed = md.washed_out_bottom_picker && md.washed_out_bottom_picker.signals;
