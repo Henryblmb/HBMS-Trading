@@ -610,6 +610,9 @@ canvas{background-color:var(--chart)!important}
 table,.rs-table,.sigcal-table,.season-table,.valuation-table,.ma-stock-table{background:var(--surface)!important;color:var(--text)!important}
 th{background:#252a30!important;color:#d7dde4!important;border-color:var(--line)!important}
 td{color:#dce1e6!important;border-color:#343b43!important}
+.ma-stock-table td.z-extreme-neg{color:#b978ff!important}
+.ma-stock-table td.z-neg{color:#f07a7a!important}
+.ma-stock-table td.z-pos{color:#45d49f!important}
 tr:hover td{background:#2a3037!important}
 input,select,button,.hist-btn,.range-btn,.mini-btn,.control-btn{
   background:#252a30!important;
@@ -3503,6 +3506,7 @@ function renderMAStockDistance() {
   body.innerHTML = filtered.map(s => {
     const m = maStockMetric(s, ma);
     const zCol = m.z >= 2 ? "#1D9E75" : m.z <= -3 ? "#a855f7" : m.z <= -2 ? "#e05050" : "#888";
+    const zClass = m.z <= -3 ? "z-extreme-neg" : m.z <= -2 ? "z-neg" : m.z >= 2 ? "z-pos" : "";
     const distCol = m.dist >= 0 ? "#5DCAA5" : "#e05050";
     const posTxt = m.pos52 == null ? "—" : Math.max(0, Math.min(100, m.pos52)).toFixed(0) + "%";
     return `<tr onclick="document.getElementById('maStockSearch').value='${seasonEscape(s.ticker)}';renderMAStockDistance()">
@@ -3511,7 +3515,7 @@ function renderMAStockDistance() {
       <td>${seasonEscape(s.group || "SP500")}</td>
       <td>$${(+s.price || 0).toLocaleString("en-US",{maximumFractionDigits:2})}</td>
       <td style="color:${distCol};font-weight:600">${fmtPct(m.dist,2)}</td>
-      <td style="color:${zCol};font-weight:700">${m.z == null ? "—" : (m.z >= 0 ? "+" : "") + m.z.toFixed(2) + "σ"}</td>
+      <td class="${zClass}" style="color:${zCol};font-weight:700">${m.z == null ? "—" : (m.z >= 0 ? "+" : "") + m.z.toFixed(2) + "σ"}</td>
       <td>${m.pct == null ? "—" : m.pct.toFixed(0) + "th"}</td>
       <td>${posTxt}</td>
     </tr>`;
