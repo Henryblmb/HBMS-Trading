@@ -4165,7 +4165,8 @@ def run_once(upload=True, include_insider=True):
 
     trending_results = run_parallel("[2/5] Trending Assets", assets, process_trending, "asset")
     stock_results = run_parallel("[3/5] Stocks (S&P 500, DAX, HSI)", universe, process_stock, "stock")
-    ma_stock_history = run_parallel("[3b/5] MA Distance Stock History (Full S&P 500)", sp500, process_ma_stock_history, "ma_history")
+    ma_stock_universe = sp500 + dax + hsi
+    ma_stock_history = run_parallel("[3b/5] MA Distance Stock History (S&P 500, DAX, HSI)", ma_stock_universe, process_ma_stock_history, "ma_history")
 
     print("\n[4/5] Market Breadth...")
     breadth = calc_breadth(stock_results)

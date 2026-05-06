@@ -1744,8 +1744,8 @@ input::placeholder{color:#8c96a2!important}
     <!-- MA DISTANCE STOCKS -->
     <div class="panel cg-page" id="tab-cg-madist-stocks">
       <div class="cg-header">
-        <div class="cg-title">MA Distance Stocks — S&amp;P 500 Extension Model</div>
-        <div class="cg-sub">Current S&amp;P 500 stock distance from the selected moving average. Z-score and percentile are calculated from each stock's own recent distance history, so stretched and washed-out names can be compared across sectors.</div>
+        <div class="cg-title">MA Distance Stocks — Global Extension Model</div>
+        <div class="cg-sub">Current S&amp;P 500, DAX and Hang Seng stock distance from the selected moving average. Z-score and percentile are calculated from each stock's own recent distance history, so stretched and washed-out names can be compared across markets.</div>
       </div>
 
       <div class="signal-bar">
@@ -1755,8 +1755,12 @@ input::placeholder{color:#8c96a2!important}
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Percentile</div><div class="signal-bar-val" id="maStockPctile" style="color:#777">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc" id="maStockDesc">Search S&amp;P 500 stocks by ticker or name.</div>
+        <div class="signal-bar-desc" id="maStockDesc">Search S&amp;P 500, DAX and Hang Seng stocks by ticker or name.</div>
         <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Market</label>
+            <select id="maStockMarket" onchange="renderMAStockDistance()"><option value="all" selected>All</option><option value="SP500">S&amp;P 500</option><option value="DAX">DAX</option><option value="HSI">Hang Seng</option></select>
+          </div>
           <div class="signal-inline-control">
             <label>Ticker</label>
             <input id="maStockSearch" list="maStockOptions" placeholder="Ticker or name" oninput="renderMAStockDistance()">
@@ -1779,7 +1783,7 @@ input::placeholder{color:#8c96a2!important}
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="maStockBoardTitle">S&amp;P 500 MA Distance Ranking</span>
+          <span class="cg-chart-title" id="maStockBoardTitle">Global MA Distance Ranking</span>
           <div class="cg-chart-legend">
             <span style="color:#1D9E75">Extended +2σ</span>
             <span style="color:#e05050">Washed out −2σ</span>
@@ -3387,7 +3391,12 @@ function renderMADistance() {
 }
 
 function maStockUniverse() {
-  return (allStocks || []).filter(s => s && s.group === "SP500" && s.ma_ext && (s.ma_ext["50"] || s.ma_ext["200"]));
+  const market = document.getElementById("maStockMarket")?.value || "all";
+  return (allStocks || []).filter(s => {
+    if(!s || !s.ma_ext || !(s.ma_ext["50"] || s.ma_ext["200"])) return false;
+    if(!["SP500", "DAX", "HSI"].includes(s.group)) return false;
+    return market === "all" || s.group === market;
+  });
 }
 
 function ensureMAStockOptions(stocks) {
@@ -3492,7 +3501,9 @@ function renderMAStockDistance() {
   }
   renderMAStockHistoryChart(match, ma);
   const title = document.getElementById("maStockBoardTitle");
-  if(title) title.textContent = `S&P 500 Stock Distance From ${ma}D Moving Average`;
+  const market = document.getElementById("maStockMarket")?.value || "all";
+  const marketLabel = market === "SP500" ? "S&P 500" : market === "DAX" ? "DAX" : market === "HSI" ? "Hang Seng" : "Global";
+  if(title) title.textContent = `${marketLabel} Stock Distance From ${ma}D Moving Average`;
   const filtered = stocks
     .filter(s => !query || s.ticker.toUpperCase().includes(query) || (s.name || "").toUpperCase().includes(query))
     .sort((a,b)=>Math.abs(maStockMetric(b,ma).z || 0)-Math.abs(maStockMetric(a,ma).z || 0))
@@ -3500,7 +3511,7 @@ function renderMAStockDistance() {
   const body = document.getElementById("maStockRows");
   if(!body) return;
   if(!filtered.length) {
-    body.innerHTML = `<tr><td colspan="8">No S&P 500 stocks match the search.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="8">No stocks match the selected market/search.</td></tr>`;
     return;
   }
   body.innerHTML = filtered.map(s => {
