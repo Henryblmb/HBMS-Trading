@@ -132,15 +132,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .tf-btn{font-size:10px;padding:3px 11px;border:1px solid #222;background:#141414;color:#666;cursor:pointer;transition:all .1s}
 .tf-btn.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
 .hist-range{display:flex;gap:4px;align-items:center;justify-content:flex-end;margin-top:10px}
-.hist-btn{font-size:10px;padding:4px 10px;border:1px solid #202020;background:#1f2328;color:#8a8a8a;cursor:pointer;transition:all .1s}
-.hist-btn:hover{color:#e0e0e0;background:#22262b}
+.hist-btn{font-size:10px;padding:4px 10px;border:1px solid #202020;background:#13161a;color:#8a8a8a;cursor:pointer;transition:all .1s}
+.hist-btn:hover{color:#e0e0e0;background:#171b20}
 .hist-btn.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
 .cg-date-range{grid-column:2;grid-row:3;display:flex;gap:5px;align-items:center;justify-content:flex-end;margin-top:8px;white-space:nowrap}
 .cg-date-range label{font-size:8.5px;color:#666;text-transform:uppercase;letter-spacing:.06em}
-.cg-date-range input{width:116px;height:24px;border:1px solid #202020;background:#1f2328;color:#9a9a9a;font-size:10px;padding:2px 5px;outline:none;color-scheme:dark}
+.cg-date-range input{width:116px;height:24px;border:1px solid #202020;background:#13161a;color:#9a9a9a;font-size:10px;padding:2px 5px;outline:none;color-scheme:dark}
 .cg-date-range input:focus{border-color:#2f9a79;color:#e0e0e0}
-.cg-date-range button{height:24px;border:1px solid #202020;background:#1f2328;color:#777;font-size:9px;padding:0 8px;cursor:pointer}
-.cg-date-range button:hover{color:#e0e0e0;background:#22262b}
+.cg-date-range button{height:24px;border:1px solid #202020;background:#13161a;color:#777;font-size:9px;padding:0 8px;cursor:pointer}
+.cg-date-range button:hover{color:#e0e0e0;background:#171b20}
 .sector-detail-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:6px}
 .sec-card{background:#111;border:1px solid #1a1a1a;padding:9px 11px}
 .sec-name{font-size:11px;font-weight:600;color:#fff;margin-bottom:5px}
@@ -246,7 +246,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .season-table{width:100%;border-collapse:collapse;min-width:760px;table-layout:fixed}
 .season-table th,.season-table td{border:1px solid rgba(255,255,255,.045);height:34px;text-align:center;font-size:10px}
 .season-table th{color:#777;background:#111;font-weight:540;text-transform:uppercase;letter-spacing:.06em}
-.season-table th:first-child,.season-table td:first-child{width:54px;color:#777;background:#1f2328;font-weight:540}
+.season-table th:first-child,.season-table td:first-child{width:54px;color:#777;background:#13161a;font-weight:540}
 .season-cell{font-weight:600;color:#d8d8d8;transition:filter .12s,transform .12s}
 .season-cell:hover{filter:brightness(1.35);transform:scale(1.02)}
 .season-summary{display:grid;grid-template-columns:repeat(12,minmax(118px,1fr));gap:5px;margin:.15rem 0 .75rem;overflow-x:auto;padding-bottom:2px}
@@ -302,7 +302,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .signal-inline-control{display:flex;align-items:center;gap:7px;white-space:nowrap}
 .signal-inline-control label{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.07em}
 .signal-inline-control select{appearance:none;-webkit-appearance:none;border:0;border-radius:0;background:transparent!important;box-shadow:none;color:#f1f1f1;font-size:10.5px;font-weight:600;padding:0;outline:none;color-scheme:dark}
-.signal-inline-control select option{background:#1f2328;color:#f1f1f1}
+.signal-inline-control select option{background:#13161a;color:#f1f1f1}
 #maDistTicker{width:220px}
 #maDistAvg{width:44px}
 #retHistTicker{width:220px}
@@ -384,7 +384,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
   --surface:#111111;
   --surface-soft:#171717;
   --surface-muted:#222222;
-  --chart:#22262b;
+  --chart:#171b20;
   --chart-deep:#0c0c0c;
   --line:#242424;
   --line-strong:#343434;
@@ -416,7 +416,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 .pos,.score-card.bull-strong .ticker,.score-card.bull-med .ticker,.rrg-chip.leading,.mom-signal.bull,.interp-title.bull,.regime-bull{color:var(--accent)!important}.neg,.rrg-chip.lagging,.mom-signal.bear,.interp-title.bear,.regime-bear{color:var(--bad)!important}.gp-label,.rrg-chip.weakening,.mom-signal.warn,.interp-title.neut,.regime-neut{color:var(--warn)!important}.interp-title.info,.rrg-chip.improving{color:var(--info)!important}
 .sig-52w,.mom-signal.bull,.regime-bull,.rrg-chip.leading{background:var(--accent-soft)!important;border-color:#1d4f41!important}.sig-ytd,.rrg-chip.improving,.interp-cell.info{background:var(--info-soft)!important;border-color:#263f58!important}.mom-signal.warn,.regime-neut,.rrg-chip.weakening{background:var(--warn-soft)!important;border-color:#4e3411!important}.mom-signal.bear,.regime-bear,.rrg-chip.lagging{background:var(--bad-soft)!important;border-color:#522020!important}
 .score-card.bull-strong,.score-card.bull-med,.mom-card,.interp-cell.bull{border-left-color:var(--accent)!important}.score-card.bear-strong,.score-card.bear-med,.interp-cell.bear{border-left-color:var(--bad)!important}.interp-cell.neut{border-left-color:var(--warn)!important}.no-trade{background:var(--warn-soft)!important;border-color:#4e3411!important;color:var(--warn)!important}
-.rs-table th{color:var(--muted)!important;border-bottom-color:var(--line)!important;font-weight:540!important}.rs-table td{color:#bababa!important;border-bottom-color:#22262b!important}.rs-table tr:hover td{background:#22262b!important}.empty{color:var(--muted)!important}.ma-bar-line50{background:var(--line-strong)!important}
+.rs-table th{color:var(--muted)!important;border-bottom-color:var(--line)!important;font-weight:540!important}.rs-table td{color:#bababa!important;border-bottom-color:#171b20!important}.rs-table tr:hover td{background:#171b20!important}.empty{color:var(--muted)!important}.ma-bar-line50{background:var(--line-strong)!important}
 .heat-cell{border-color:rgba(255,255,255,.04)!important}.cg-chart-legend,.spx-strip-label{color:#555!important}
 ::-webkit-scrollbar-track{background:var(--bg)!important}::-webkit-scrollbar-thumb{background:#2a2a2a!important}::-webkit-scrollbar-thumb:hover{background:#444!important}
 
@@ -574,7 +574,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
   --surface:#202327;
   --surface-soft:#262a2f;
   --surface-muted:#30353b;
-  --chart:#22262b;
+  --chart:#171b20;
   --chart-deep:#1b1f24;
   --line:#3a4149;
   --line-strong:#4e5863;
@@ -627,6 +627,91 @@ input::placeholder{color:#8c96a2!important}
 ::-webkit-scrollbar-track{background:#171a1d!important}
 ::-webkit-scrollbar-thumb{background:#4a535d!important;border-color:#252a30!important}
 ::-webkit-scrollbar-thumb:hover{background:#5d6874!important}
+/* Professional contrast theme: restrained light hierarchy, dark chart canvas */
+:root{
+  --bg:#101316;
+  --surface:#1b2026;
+  --surface-soft:#20262d;
+  --surface-muted:#28313a;
+  --chart:#171b20;
+  --chart-deep:#111418;
+  --line:#303842;
+  --line-strong:#46515d;
+  --text:#edf1f5;
+  --muted:#a5b0bb;
+  --faint:#74808c;
+  --accent:#3f9f83;
+  --accent-soft:#152c25;
+  --warn:#c58c3c;
+  --warn-soft:#2d2112;
+  --bad:#cf6b6b;
+  --bad-soft:#351d1f;
+  --info:#719dc5;
+  --info-soft:#172638;
+}
+html,body{background:var(--bg)!important;color:var(--text)!important}
+.app,.main{background:var(--bg)!important}
+.header,header{background:#12161a!important;border-bottom:1px solid var(--line)!important;box-shadow:0 10px 28px rgba(0,0,0,.28)!important}
+.sidebar{background:#0c0f12!important;border-right:1px solid #252c33!important}
+.nav-section{color:#7d8791!important;font-weight:650!important;letter-spacing:.18em!important}
+.nav-item,.nav-social,.nav-folder{color:#a0a8b1!important}
+.nav-item:hover,.nav-social:hover,.nav-folder:hover{background:#171c21!important;color:#eef2f5!important}
+.nav-item.active{background:#1e252b!important;color:#fff!important;border-left-color:var(--accent)!important}
+.card,.panel,.signal-card,.hist-card,.cg-card,.fg-panel,.ma-stock-card,.valuation-card,.season-card,.heat-card,.bt-card,.spx-card,.rs-card,.scard,.score-card,.sec-card,.vix-metric,.mom-card,.regime-card,.filter-row,.interp-cell{
+  background:var(--surface)!important;
+  border-color:var(--line)!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.cg-chart-box,.chart-container,.chart-box,.spx-strip,.fg-chart-wrap,.bt-chart-wrap,.canvas-wrap,.histogram-chart,.ma-distance-chart,.season-chart{
+  background:var(--chart)!important;
+  border-color:#2d353e!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+}
+canvas{background-color:var(--chart)!important}
+.cg-header,.section-title,.cg-title{color:#f2f5f7!important}
+.cg-sub,.signal-bar-desc,.interp-text,.sname,.lock-sub,.last-upd{color:var(--muted)!important}
+.signal-bar,.cg-page .signal-bar{
+  background:#181d23!important;
+  border:1px solid #2b333c!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+  padding-left:12px!important;
+  padding-right:12px!important;
+}
+.signal-bar-label,.cg-page .signal-bar-label{color:#98a3ae!important}
+.signal-bar-val,.stat-val,.price,.vix-metric-val{color:#f4f6f8!important;font-weight:650!important}
+.signal-bar-divider,.cg-page .signal-bar-divider{background:#303842!important}
+table,.rs-table,.sigcal-table,.season-table,.valuation-table,.ma-stock-table{background:#1a1f25!important;color:var(--text)!important}
+th{background:#222932!important;color:#cbd4dd!important;border-color:#3a434d!important}
+td{color:#d8dee5!important;border-color:#303840!important}
+tr:hover td{background:#222932!important}
+.ma-stock-table .name{color:#a7b0ba!important}
+.ma-stock-table .ticker,.ticker,.heat-name,.sec-name,.econ-name{color:#f1f4f7!important}
+input,select,button,.hist-btn,.range-btn,.mini-btn,.control-btn{
+  background:#20272f!important;
+  border-color:#3b4652!important;
+  color:#edf1f5!important;
+}
+input:focus,select:focus{border-color:#5b6b7b!important;outline:none!important}
+input::placeholder{color:#818c98!important}
+.hist-btn.active,.range-btn.active,.mini-btn.active,.control-btn.active{background:#2a343e!important;border-color:#5a6876!important;color:#fff!important}
+.pill,.badge,.tag,.stag,.tf-chip,.econ-time,.econ-cat{background:#242b33!important;border-color:#39434e!important;color:#d8dee5!important}
+.green,.pos,.positive{color:#57b58f!important}.red,.neg,.negative{color:#dc7777!important}.yellow,.warn{color:#d39a4b!important}
+.ma-stock-table td.z-extreme-neg{color:#b88cf0!important}.ma-stock-table td.z-neg{color:#dc7777!important}.ma-stock-table td.z-pos{color:#57b58f!important}
+.interp-cell,.cg-page .interp-cell{
+  background:#181d23!important;
+  border-color:#2b333c!important;
+  padding:12px!important;
+}
+.interp-cell.bull{background:linear-gradient(90deg,rgba(63,159,131,.10),#181d23 38%)!important;border-left-color:#57b58f!important}
+.interp-cell.bear{background:linear-gradient(90deg,rgba(207,107,107,.10),#181d23 38%)!important;border-left-color:#dc7777!important}
+.interp-cell.neut{background:linear-gradient(90deg,rgba(197,140,60,.10),#181d23 38%)!important;border-left-color:#d39a4b!important}
+.interp-cell.info{background:linear-gradient(90deg,rgba(113,157,197,.10),#181d23 38%)!important;border-left-color:#719dc5!important}
+.interp-title.bull{color:#57b58f!important}.interp-title.bear{color:#dc7777!important}.interp-title.neut{color:#d39a4b!important}.interp-title.info{color:#719dc5!important}
+.cg-chart-legend,.spx-strip-label,.axis-label,.tick-label,.chart-note{color:#9ca7b2!important}
+.empty,.muted,.small,.note,.legend,.subtitle,.metric-label,.stat-label{color:#9ea9b4!important}
+::-webkit-scrollbar-track{background:#0d1013!important}
+::-webkit-scrollbar-thumb{background:#3b444e!important;border-color:#20272f!important}
+::-webkit-scrollbar-thumb:hover{background:#515d69!important}
 </style>
 </head>
 <body>
@@ -2651,7 +2736,7 @@ function emptyCanvas(canvasId, h, msg) {
   const c = mkCanvas(canvasId, h); if(!c) return;
   const { ctx, W, H } = c;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "#555"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
   ctx.fillText(msg, W / 2, H / 2);
 }
@@ -2749,7 +2834,7 @@ function filteredSeasonRows(item) {
 }
 
 function seasonColor(v, maxAbs) {
-  if(!Number.isFinite(v)) return "#1f2328";
+  if(!Number.isFinite(v)) return "#13161a";
   const x = Math.min(1, Math.abs(v) / Math.max(maxAbs, 1));
   const a = 0.18 + x * 0.62;
   return v >= 0 ? `rgba(29,158,117,${a.toFixed(3)})` : `rgba(224,80,80,${a.toFixed(3)})`;
@@ -2935,7 +3020,7 @@ function drawReturnHistogramChart(vals, mean, sigma, plus2, minus2) {
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 52, bottom: 42, left: 48 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#1f2328"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#13161a"; ctx.fillRect(0,0,W,H);
   let min = Math.min(...vals, minus2), max = Math.max(...vals, plus2);
   const pad = Math.max((max - min) * .08, 1);
   min -= pad; max += pad;
@@ -2985,7 +3070,7 @@ function drawReturnSeriesChart(rows, mean, plus2, minus2, hoverIndex=null) {
   const PAD = { top: 14, right: 62, bottom: 28, left: 48 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const vals = rows.map(r => +r.ret);
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#1f2328"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#13161a"; ctx.fillRect(0,0,W,H);
   const abs = Math.max(5, Math.abs(Math.min(...vals, minus2)), Math.abs(Math.max(...vals, plus2)));
   const min = -abs * 1.1, max = abs * 1.1;
   const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
@@ -3020,8 +3105,8 @@ function drawReturnSeriesChart(rows, mean, plus2, minus2, hoverIndex=null) {
     let bx = Math.max(PAD.left + 2, Math.min(W - PAD.right - boxW - 2, x - boxW / 2));
     let by = Math.max(PAD.top + 4, y - boxH - 10);
     if(v >= 0 && by < PAD.top + 4) by = y + 10;
-    ctx.fillStyle = "rgba(28,32,36,.96)";
-    ctx.strokeStyle = "#58616c";
+    ctx.fillStyle = "rgba(19,23,28,.96)";
+    ctx.strokeStyle = "#3f4a55";
     ctx.lineWidth = 1;
     ctx.fillRect(bx, by, boxW, boxH);
     ctx.strokeRect(bx, by, boxW, boxH);
@@ -3249,7 +3334,7 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null, sideF
   const toRetY = v => botTop + botH - ((v - rMin) / ((rMax - rMin) || 1)) * botH;
   const zeroY = toRetY(0);
   ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0,0,W,H);
 
   const posEvents = sideFilter === "bearish" ? [] : rollingReturnMonthlyEvents(rows, upper, lower, "pos");
   const negEvents = sideFilter === "bullish" ? [] : rollingReturnMonthlyEvents(rows, upper, lower, "neg");
@@ -3320,7 +3405,7 @@ function drawRollingReturnChart(rows, mean, upper, lower, hoverIndex=null, sideF
     const boxW = tw + 14, boxH = 21;
     let bx = Math.max(PAD.left + 2, Math.min(W - PAD.right - boxW - 2, x - boxW / 2));
     const by = Math.max(PAD.top + 6, Math.min(H - PAD.bottom - boxH - 4, y - boxH - 10));
-    ctx.fillStyle = "rgba(28,32,36,.96)"; ctx.strokeStyle = "#58616c";
+    ctx.fillStyle = "rgba(19,23,28,.96)"; ctx.strokeStyle = "#3f4a55";
     ctx.fillRect(bx, by, boxW, boxH); ctx.strokeRect(bx, by, boxW, boxH);
     ctx.fillStyle = color; ctx.textAlign = "left"; ctx.fillText(label, bx + 7, by + 14);
   }
@@ -3787,7 +3872,7 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=
   const PAD = { top: 20, right: 64, bottom: 34, left: 50 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const vals = rows.map(r => +r[key]);
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#1f2328"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#13161a"; ctx.fillRect(0,0,W,H);
   const plus3 = Number.isFinite(mean) && Number.isFinite(plus2) ? mean + 3 * statsFromLines(mean, plus2) : null;
   const scaleVals = [...vals, plus2, plus3, minus2, minus3].filter(Number.isFinite);
   const quantile = (arr, q) => {
@@ -3854,7 +3939,7 @@ function drawMADistanceChart(rows, key, mean, plus2, minus2, minus3, hoverIndex=
     ctx.font="bold 10px sans-serif"; const boxW=ctx.measureText(label).width+16, boxH=22;
     const bx=Math.max(PAD.left+2, Math.min(W-PAD.right-boxW-2, x-boxW/2));
     const by=Math.max(PAD.top+4, Math.min(H-PAD.bottom-boxH-4, y-boxH-10));
-    ctx.fillStyle="rgba(28,32,36,.96)"; ctx.strokeStyle="#58616c"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
+    ctx.fillStyle="rgba(19,23,28,.96)"; ctx.strokeStyle="#3f4a55"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
     ctx.fillStyle=col; ctx.textAlign="left"; ctx.fillText(label,bx+8,by+14);
   }
   const canvas=document.getElementById(canvasId);
@@ -3883,7 +3968,7 @@ function drawSPXMini(canvasId, chgId) {
   const { ctx, W, H } = c;
   const PAD = { top: 20, right: 8, bottom: 6, left: 8 };
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   const vMin = Math.min(...closes) * 0.996, vMax = Math.max(...closes) * 1.004;
   const toX = i => PAD.left + (i / (closes.length-1)) * (W - PAD.left - PAD.right);
   const toY = v => PAD.top + (H - PAD.top - PAD.bottom) - ((v - vMin) / (vMax - vMin)) * (H - PAD.top - PAD.bottom);
@@ -3940,7 +4025,7 @@ function drawSPYHYGCompare(canvasId, chgId) {
   const toSpyY = v => PAD.top + PH - ((v - spyLo) / ((spyHi - spyLo) || 1)) * PH;
   const toHygY = v => PAD.top + PH - ((v - hygLo) / ((hygHi - hygLo) || 1)) * PH;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
 
   ctx.setLineDash([2, 4]);
   ctx.strokeStyle = "rgba(0,0,0,.25)";
@@ -4021,7 +4106,7 @@ function drawHistoryLine(canvasId, hist, h, label, lineColor, zones=[]) {
   const toX = i => PAD.left + (i / (data.length - 1)) * PW;
   const toY = v => PAD.top + PH - ((v - vMin) / span) * PH;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   zones.forEach(z => {
     const x1 = toX(Math.max(0, z.start));
     const x2 = toX(Math.min(data.length - 1, z.end));
@@ -4071,7 +4156,7 @@ function drawHistoryLineLog(canvasId, hist, h, label, lineColor, zones=[]) {
   const toX = i => PAD.left + (i / (data.length - 1)) * PW;
   const toY = v => PAD.top + PH - ((Math.log(v) - vMin) / span) * PH;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   zones.forEach(z => {
     const x1 = toX(Math.max(0, z.start));
     const x2 = toX(Math.min(data.length - 1, z.end));
@@ -4122,7 +4207,7 @@ function drawHistoryLineLogByDate(canvasId, hist, h, label, lineColor, domain, z
   const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
   const toY = v => PAD.top + PH - ((Math.log(v) - vMin) / span) * PH;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   zones.forEach(z => {
     const x1 = toDateX(z.startMs);
     const x2 = toDateX(z.endMs);
@@ -4461,7 +4546,7 @@ function drawVIXSDBars(canvasId, rows, h=230, domain=null) {
   const zeroY = toY(0);
 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "rgba(224,80,80,.055)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(signalSD) - PAD.top));
   ctx.fillStyle = "rgba(29,158,117,.045)"; ctx.fillRect(PAD.left, zeroY, PW, Math.max(0, H - PAD.bottom - zeroY));
 
@@ -4577,7 +4662,7 @@ function drawVIXRVChart(canvasId, rows, h=260, domain=null) {
   const zeroY = toPremY(0);
 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   ctx.setLineDash([4, 5]); ctx.lineWidth = 1;
   for(let level = 0; level <= 100; level += 10) {
     const y = toVolY(level);
@@ -4708,7 +4793,7 @@ function drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr) {
   const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
   const clamp = v => Math.max(vMin, Math.min(vMax, v));
   const zeroY = toY(0);
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   ctx.fillStyle="rgba(224,80,80,.06)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(upThr) - PAD.top));
   ctx.fillStyle="rgba(29,158,117,.055)"; ctx.fillRect(PAD.left, toY(lowThr), PW, Math.max(0, PAD.top + PH - toY(lowThr)));
   ctx.strokeStyle="rgba(255,255,255,.07)"; ctx.lineWidth=1; ctx.setLineDash([3,4]);
@@ -4880,7 +4965,7 @@ function drawSPXWeeklyEMA() {
   const toY = v => PAD.top + PH - ((Math.log(v) - minLog) / span) * PH;
 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
 
   let regimeStart = 0;
   let regime = null;
@@ -5006,7 +5091,7 @@ function drawRSIChart(canvasId, hist, rsi, h, zones) {
   const toX = i => PAD.left + (i / Math.max(n - 1, 1)) * PW;
   const toY = v => PAD.top + PH - ((Math.min(Math.max(v, RSI_MIN), RSI_MAX) - RSI_MIN) / (RSI_MAX - RSI_MIN)) * PH;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   // Signal zones (red boxes)
   zones.forEach(z => {
     ctx.fillStyle = z.color || "rgba(212,80,80,.10)";
@@ -5306,7 +5391,7 @@ function drawHYGNhnlChart() {
   const toX = i => PAD.left + (i / Math.max(1, hist.length - 1)) * PW;
   const toY = v => PAD.top + PH - ((v - vMin) / ((vMax - vMin) || 1)) * PH;
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
   ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,.25)";
   for(let i = 0; i <= 4; i++) {
     const y = PAD.top + (PH / 4) * i;
@@ -5348,7 +5433,7 @@ function drawPlaceholderChart(canvasId, h, label, lineColor, isBars=false, isRSI
   ctx.clearRect(0, 0, W, H);
 
   // Background
-  ctx.fillStyle = "#22262b"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#171b20"; ctx.fillRect(0, 0, W, H);
 
   // Grid lines
   ctx.setLineDash([2, 4]); ctx.strokeStyle = "rgba(0,0,0,0.22)"; ctx.lineWidth = 1;
@@ -5629,7 +5714,7 @@ function drawBinaryReturnsOscillator(rows, signals, domain, canvasId="binRetOscC
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const valid = (rows || []).filter(r => Number.isFinite(+r.ma20));
   if(!domain || valid.length < 50) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
@@ -5794,7 +5879,7 @@ function drawRSPSpyRatioChart(rows, signals, domain) {
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 48, bottom: 30, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const valid = (rows || []).filter(r => Number.isFinite(+r.ratio));
   if(!domain || valid.length < 50) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
@@ -5938,7 +6023,7 @@ function drawMABreadthPrice(priceRows, breadthRows, key, domain, threshold=maBre
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 34, bottom: 32, left: 46 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   if(!domain || priceRows.length < 40) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center"; ctx.fillText("S&P 500 30Y history unavailable - run screener.py", W/2, H/2); return;
   }
@@ -5982,7 +6067,7 @@ function drawMABreadthPctChart(rows, key, domain, threshold=maBreadthThresholdPc
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 48, bottom: 34, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const valid = (rows || []).filter(r => Number.isFinite(+r[`pct_${key}`]));
   if(!domain || valid.length < 40) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center"; ctx.fillText("Breadth analyzer history unavailable - run screener.py", W/2, H/2); return;
@@ -6101,7 +6186,7 @@ function drawZBTBreadthChart(rows, signals, domain=null) {
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 54, bottom: 28, left: 42 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const toY = v => PAD.top + PH - (v * PH);
   ctx.fillStyle="rgba(29,158,117,.035)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(.615)-PAD.top));
   ctx.fillStyle="rgba(224,80,80,.035)"; ctx.fillRect(PAD.left, toY(.40), PW, Math.max(0, PAD.top + PH - toY(.40)));
@@ -6168,7 +6253,7 @@ function drawBT20BreadthChart(rows, signals, domain=null) {
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const toY=v=>PAD.top+PH-(v/100)*PH;
   ctx.fillStyle="rgba(29,158,117,0.07)";ctx.fillRect(PAD.left,PAD.top,PW,toY(80)-PAD.top);
   ctx.fillStyle="rgba(212,80,80,0.07)";ctx.fillRect(PAD.left,toY(15),PW,PH-(toY(15)-PAD.top));
@@ -6301,7 +6386,7 @@ function drawWashedOutScoreChart(rows, signals, domain, threshold) {
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 48, bottom: 30, left: 42 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const valid = (rows || []).filter(r => Number.isFinite(+r.score) && Number.isFinite(rowDateMs(r)));
   if(!domain || valid.length < 20) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
@@ -6394,7 +6479,7 @@ function drawBT50BreadthChart(rows, signals, domain=null) {
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 48, bottom: 28, left: 42 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const toY=v=>PAD.top+PH-(v/100)*PH;
   ctx.fillStyle="rgba(29,158,117,0.07)";ctx.fillRect(PAD.left,PAD.top,PW,toY(80)-PAD.top);
   ctx.fillStyle="rgba(212,80,80,0.07)";ctx.fillRect(PAD.left,toY(10),PW,PH-(toY(10)-PAD.top));
@@ -6468,7 +6553,7 @@ function drawOilPriceChart(rows) {
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 54, bottom: 28, left: 46 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   if(!rows || rows.length < 50) {
     ctx.fillStyle="rgba(255,255,255,.08)";ctx.font="10px sans-serif";ctx.textAlign="center";
     ctx.fillText("Oil history unavailable - run screener.py",W/2,H/2);return;
@@ -6505,7 +6590,7 @@ function drawOilSpreadChart(rows) {
   const { ctx, W, H } = c;
   const PAD = { top: 14, right: 68, bottom: 28, left: 46 };
   const PW = W-PAD.left-PAD.right, PH = H-PAD.top-PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   const spreadVal = r => Number.isFinite(+r.cl1_cl2_spread) ? +r.cl1_cl2_spread : +r.wti_brent_spread;
   const valid=(rows||[]).filter(r=>Number.isFinite(spreadVal(r)));
   if(valid.length<50){ctx.fillStyle="rgba(255,255,255,.08)";ctx.font="10px sans-serif";ctx.textAlign="center";ctx.fillText("Oil spread unavailable - run screener.py",W/2,H/2);return;}
@@ -6660,7 +6745,7 @@ function drawForwardPEChart() {
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 86, bottom: 34, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   if(rows.length < 24) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
     ctx.fillText("Forward P/E data unavailable - run screener.py", W/2, H/2);
@@ -6719,7 +6804,7 @@ function drawForwardPEChart() {
   });
   const lx = toX(rows.length - 1), ly = toY(+last.pe);
   ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI*2); ctx.fillStyle=regimeColor; ctx.fill();
-  ctx.strokeStyle="#22262b"; ctx.lineWidth=1; ctx.stroke();
+  ctx.strokeStyle="#171b20"; ctx.lineWidth=1; ctx.stroke();
   const d = new Date(last.date + "T12:00:00");
   ctx.fillStyle=regimeColor; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
   ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"numeric"}) + " · " + fmtX(last.pe), Math.min(lx + 7, PAD.left + PW - 82), ly - 7);
@@ -6796,7 +6881,7 @@ function drawPERatioChart() {
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 86, bottom: 34, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   if(rows.length < 24) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
     ctx.fillText("P/E ratio data unavailable - run screener.py", W/2, H/2);
@@ -6856,7 +6941,7 @@ function drawPERatioChart() {
   });
   const lx = toX(rows.length - 1), ly = toY(+last.pe);
   ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI*2); ctx.fillStyle=regimeColor; ctx.fill();
-  ctx.strokeStyle="#22262b"; ctx.lineWidth=1; ctx.stroke();
+  ctx.strokeStyle="#171b20"; ctx.lineWidth=1; ctx.stroke();
   const d = new Date(last.date + "T12:00:00");
   ctx.fillStyle=regimeColor; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
   ctx.fillText(d.toLocaleString("en-US",{month:"short",year:"numeric"}) + " · " + fmtX(last.pe), Math.min(lx + 7, PAD.left + PW - 82), ly - 7);
@@ -6941,7 +7026,7 @@ function drawGoldSilverRatio() {
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 70, bottom: 30, left: 46 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  ctx.clearRect(0,0,W,H); ctx.fillStyle="#22262b"; ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#171b20"; ctx.fillRect(0,0,W,H);
   if(displayRows.length < 80) {
     ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
     ctx.fillText("Gold/Silver ratio unavailable - run screener.py", W/2, H/2);
@@ -6984,7 +7069,7 @@ function drawGoldSilverRatio() {
     const x=toX(r.i), y=toY(r.ratio);
     const col = r.signal === "plus4" || r.signal === "minus4" ? "#38bdf8" : r.signal === "plus3" || r.signal === "minus3" ? "#a855f7" : r.signal === "plus2" ? "#e05050" : "#1D9E75";
     ctx.beginPath(); ctx.arc(x,y,3.4,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
-    ctx.strokeStyle="#22262b"; ctx.lineWidth=1; ctx.stroke();
+    ctx.strokeStyle="#171b20"; ctx.lineWidth=1; ctx.stroke();
   });
   if(bandRows.length) {
     const last = bandRows[bandRows.length-1];
@@ -7280,7 +7365,7 @@ function renderBreadth(){
   document.getElementById("nh").textContent=b.new_highs??0;document.getElementById("nl").textContent=b.new_lows??0;
   document.getElementById("nhlPct").textContent=`NH: ${b.nh_pct??0}% · NL: ${b.nl_pct??0}% · Universe: ${b.universe_size}`;
 }
-function hiloColor(d){if(d==null)return"#22262b";if(d<=5)return"#123229";if(d<=10)return"#102b24";if(d<=20)return"#0f241f";if(d<=30)return"#241818";if(d<=40)return"#2c1a1a";return"#351d1d";}
+function hiloColor(d){if(d==null)return"#171b20";if(d<=5)return"#123229";if(d<=10)return"#102b24";if(d<=20)return"#0f241f";if(d<=30)return"#241818";if(d<=40)return"#2c1a1a";return"#351d1d";}
 function renderHiLo(){
   const idx=document.getElementById("hiloIdx").value,sort=document.getElementById("hiloSort").value,minDist=parseInt(document.getElementById("hiloMin").value);
   let stocks=allStocks.filter(s=>{if(idx!=="all"&&s.group!==idx)return false;if(s.dist_from_hi==null)return false;if(s.dist_from_hi<minDist)return false;return true;});
