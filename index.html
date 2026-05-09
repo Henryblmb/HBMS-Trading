@@ -622,6 +622,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
+      <div class="nav-item sub" onclick="showTab('cg-dailychg',this)">1-Day % Change</div>
       <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
@@ -1556,6 +1557,75 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell info"><div class="interp-title info">Adaptive Threshold</div><div class="interp-text">Thresholds are recalculated on the selected history window, so 1Y reacts faster while 20Y uses a full-cycle distribution.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Bearish Threshold Forward</div><div class="interp-text" id="vixSpikeBearForward">Waiting for VIX spike data.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Bullish Threshold Forward</div><div class="interp-text" id="vixSpikeBullForward">Waiting for VIX compression data.</div></div>
+      </div>
+    </div>
+
+    <!-- 1-DAY % CHANGE -->
+    <div class="panel cg-page" id="tab-cg-dailychg">
+      <div class="cg-header">
+        <div class="cg-title">1-Day % Change — Index ETF Momentum</div>
+        <div class="cg-sub">Daily percent-change history for SPY, QQQ, IWM and DIA. Bars show each one-day return against the selected-history mean and ±2σ bands.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Latest 1D</div><div class="signal-bar-val" id="dailyChgLatest">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Mean</div><div class="signal-bar-val" id="dailyChgMean" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Sigma</div><div class="signal-bar-val" id="dailyChgSigma" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Percentile</div><div class="signal-bar-val" id="dailyChgPctile">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="dailyChgZ" style="font-size:15px;padding-top:4px">—</div></div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Ticker</label>
+            <select id="dailyChgTicker" onchange="renderDailyChange()">
+              <option value="SPY">SPY</option>
+              <option value="QQQ">QQQ</option>
+              <option value="IWM">IWM</option>
+              <option value="DIA">DIA</option>
+            </select>
+          </div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="dailyChgRange">
+            <button class="hist-btn" onclick="setDailyChangeRange('1Y',this)">1Y</button>
+            <button class="hist-btn active" onclick="setDailyChangeRange('5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setDailyChangeRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setDailyChangeRange('20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="dailyChgPriceTitle">SPY — Daily Close (Log)</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Close</span>
+          </div>
+        </div>
+        <canvas id="dailyChgPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="dailyChgBarsTitle">SPY — 1-Day % Change</span>
+          <div class="cg-chart-legend">
+            <span style="color:#1D9E75">Positive</span>
+            <span style="color:#e05050">Negative</span>
+            <span style="color:#EF9F27">Mean</span>
+            <span style="color:#777">±2σ</span>
+          </div>
+        </div>
+        <canvas id="dailyChgBarsCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Positive Day</div><div class="interp-text">Green bars show one-day upside pressure. Large positive bars near the upper band usually mark momentum bursts or relief rallies.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Negative Day</div><div class="interp-text">Red bars show one-day downside pressure. Lower-tail days help separate normal pullbacks from stress sessions.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Distribution Bands</div><div class="interp-text">Mean and ±2σ are recalculated on the selected window, so the chart adapts between short-term and long-cycle volatility regimes.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Current Read</div><div class="interp-text" id="dailyChgRead">Waiting for daily change data.</div></div>
       </div>
     </div>
 
@@ -2499,6 +2569,7 @@ function showTab(id, el) {
   if(id === "cg-binret") setTimeout(drawSPYBinaryReturns, 60);
   if(id === "cg-goldbin") setTimeout(drawGoldBinary, 60);
   if(id === "cg-btcbin") setTimeout(drawBTCBinaryXL, 60);
+  if(id === "cg-dailychg") setTimeout(renderDailyChange, 60);
   if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
@@ -2550,6 +2621,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-goldbin") drawGoldBinary();
     if(activePanel && activePanel.id === "tab-cg-btcbin") drawBTCBinaryXL();
     if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
+    if(activePanel && activePanel.id === "tab-cg-dailychg") renderDailyChange();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
     if(activePanel && activePanel.id === "tab-cg-madist-stocks") renderMAStockDistance();
@@ -2601,6 +2673,11 @@ function emptyCanvas(canvasId, h, msg) {
 function returnHistogramData() {
   const md = window._marketData || {};
   return md.return_histograms || {};
+}
+
+function dailyChangeData() {
+  const md = window._marketData || {};
+  return md.daily_change_history || {};
 }
 
 function maDistanceData() {
@@ -2788,6 +2865,115 @@ function retStats(vals) {
 function normalPdf(x, mean, sigma) {
   if(!sigma) return 0;
   return Math.exp(-0.5 * Math.pow((x - mean) / sigma, 2)) / (sigma * Math.sqrt(2 * Math.PI));
+}
+
+function dailyChangeColor(v, mean=null, sigma=null) {
+  if(!Number.isFinite(v)) return "#777";
+  if(Number.isFinite(mean) && Number.isFinite(sigma) && sigma > 0) {
+    if(v >= mean + 2 * sigma) return "#5DCAA5";
+    if(v <= mean - 2 * sigma) return "#e05050";
+  }
+  return v >= 0 ? "#1D9E75" : "#c55555";
+}
+
+function drawDailyChangeBars(rows, mean, sigma) {
+  const c = mkCanvas("dailyChgBarsCanvas", 300); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 62, bottom: 28, left: 44 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const vals = rows.map(r => +r.ret).filter(Number.isFinite);
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  if(vals.length < 2) {
+    ctx.fillStyle = "#555"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("Daily change history unavailable", W / 2, H / 2);
+    return;
+  }
+  const upper = mean + 2 * sigma;
+  const lower = mean - 2 * sigma;
+  const absMax = Math.max(1, Math.abs(upper), Math.abs(lower), ...vals.map(v => Math.abs(v)));
+  const vMin = -absMax * 1.08, vMax = absMax * 1.08;
+  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
+  const zeroY = toY(0);
+
+  ctx.setLineDash([4, 5]);
+  [[upper, "#777", "+2σ"], [mean, "#EF9F27", "Mean"], [0, "rgba(255,255,255,.10)", "0"], [lower, "#777", "−2σ"]].forEach(([v, color, label]) => {
+    if(!Number.isFinite(v)) return;
+    const y = toY(v);
+    ctx.strokeStyle = color; ctx.lineWidth = label === "0" ? 1.2 : 1;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+    ctx.fillStyle = color; ctx.font = "8px sans-serif"; ctx.textAlign = "left";
+    ctx.fillText(label, PAD.left + PW + 5, y + 3);
+  });
+  ctx.setLineDash([]);
+
+  const barW = Math.max(1, PW / rows.length - .35);
+  rows.forEach((row, i) => {
+    const v = +row.ret;
+    if(!Number.isFinite(v)) return;
+    const x = toX(i), y = toY(v);
+    ctx.fillStyle = dailyChangeColor(v, mean, sigma) + (Math.abs(v) >= Math.abs(upper) ? "ee" : "aa");
+    if(v >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
+    else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
+  });
+
+  ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [vMin, lower, 0, upper, vMax].forEach(v => ctx.fillText((v > 0 ? "+" : "") + v.toFixed(v === 0 ? 0 : 1) + "%", PAD.left - 5, toY(v) + 3));
+  ctx.fillStyle = "#4a4a4a"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
+    const d = rows[i] && rows[i].date ? new Date(rows[i].date + "T12:00:00") : null;
+    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", toX(i), H - PAD.bottom + 12);
+  });
+}
+
+function renderDailyChange() {
+  const data = dailyChangeData();
+  const sel = document.getElementById("dailyChgTicker");
+  if(!sel) return;
+  const ticker = sel.value || "SPY";
+  const item = data[ticker];
+  const rawRows = (item && item.returns || []).filter(r => r.date && Number.isFinite(+r.ret) && Number.isFinite(+r.close));
+  if(!item || rawRows.length < 30) {
+    emptyCanvas("dailyChgPriceCanvas", 230, "Daily change data unavailable - run screener.py");
+    emptyCanvas("dailyChgBarsCanvas", 300, "Daily change data unavailable - run screener.py");
+    ["dailyChgLatest","dailyChgMean","dailyChgSigma","dailyChgPctile","dailyChgZ"].forEach(id => {
+      const el = document.getElementById(id); if(el) el.textContent = "—";
+    });
+    const read = document.getElementById("dailyChgRead");
+    if(read) read.textContent = "Run screener.py to load daily percent-change history.";
+    return;
+  }
+  const domain = ensureCGDateControls("cg-dailychg", [rawRows], dailyChgHistoryRange);
+  const rows = filterRowsByDateDomain(rawRows, domain);
+  const vals = rows.map(r => +r.ret).filter(Number.isFinite);
+  const stats = retStats(vals);
+  const latest = +rawRows[rawRows.length - 1].ret;
+  const latestInWindow = +rows[rows.length - 1].ret;
+  const latestForStats = Number.isFinite(latestInWindow) ? latestInWindow : latest;
+  const z = stats.sigma ? (latestForStats - stats.mean) / stats.sigma : NaN;
+  const pctile = vals.length ? vals.filter(v => v <= latestForStats).length / vals.length * 100 : NaN;
+  const col = dailyChangeColor(latestForStats, stats.mean, stats.sigma);
+  const set = (id, txt, color) => {
+    const el = document.getElementById(id);
+    if(el) { el.textContent = txt; if(color) el.style.color = color; }
+  };
+  set("dailyChgLatest", fmtPct(latestForStats, 2), col);
+  set("dailyChgMean", stats.mean == null ? "—" : fmtPct(stats.mean, 2), "#d8d8d8");
+  set("dailyChgSigma", stats.sigma == null ? "—" : stats.sigma.toFixed(2) + "%", "#d8d8d8");
+  set("dailyChgPctile", Number.isFinite(pctile) ? pctile.toFixed(0) + "th" : "—", pctile >= 90 ? "#1D9E75" : pctile <= 10 ? "#e05050" : "#777");
+  set("dailyChgZ", Number.isFinite(z) ? (z >= 0 ? "+" : "") + z.toFixed(2) + "σ" : "—", Math.abs(z) >= 2 ? col : "#777");
+  const priceTitle = document.getElementById("dailyChgPriceTitle");
+  if(priceTitle) priceTitle.textContent = `${ticker} — Daily Close (Log)`;
+  const barsTitle = document.getElementById("dailyChgBarsTitle");
+  if(barsTitle) barsTitle.textContent = `${ticker} — 1-Day % Change`;
+  const desc = document.getElementById("dailyChgRead");
+  if(desc) {
+    const side = latestForStats >= stats.mean + 2 * stats.sigma ? "upper-tail momentum day" : latestForStats <= stats.mean - 2 * stats.sigma ? "lower-tail stress day" : latestForStats >= 0 ? "positive but inside normal range" : "negative but inside normal range";
+    desc.textContent = `${ticker} latest 1D move is ${fmtPct(latestForStats, 2)} (${Number.isFinite(z) ? (z >= 0 ? "+" : "") + z.toFixed(2) + "σ" : "—"}), a ${side}. Window: ${rows[0].date} to ${rows[rows.length - 1].date} · ${rows.length} sessions.`;
+  }
+  drawHistoryLineLogByDate("dailyChgPriceCanvas", rows, 230, `${ticker} Daily`, "#d8d8d8", domain);
+  drawDailyChangeBars(rows, stats.mean, stats.sigma);
 }
 
 function forwardReturn(rows, startIdx, months) {
@@ -4124,6 +4310,7 @@ let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
 let vixspikeHistoryRange = "5Y";
 let maDistHistoryRange = "5Y";
+let dailyChgHistoryRange = "5Y";
 let retHistHistoryRange = "max";
 let rollRetHistoryRange = "10Y";
 const cgDateRanges = {};
@@ -4135,6 +4322,7 @@ const cgRedraw = {
   "cg-binret": () => drawSPYBinaryReturns(),
   "cg-goldbin": () => drawGoldBinary(),
   "cg-btcbin": () => drawBTCBinaryXL(),
+  "cg-dailychg": () => renderDailyChange(),
   "cg-rollret": () => drawRollingReturnModel(),
   "cg-vixsd": () => drawVIXSDSignal(),
   "cg-vixrv": () => drawVIXRealizedVol(),
@@ -4363,6 +4551,14 @@ function setHistoryRange(chart, range, btn) {
     if(btn) btn.classList.add("active");
     drawVIXSpikeModel();
   }
+}
+
+function setDailyChangeRange(range, btn) {
+  dailyChgHistoryRange = range || dailyChgHistoryRange;
+  delete cgDateRanges["cg-dailychg"];
+  document.querySelectorAll("#dailyChgRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  renderDailyChange();
 }
 
 function vixSDColor(sd, signal=false) {
