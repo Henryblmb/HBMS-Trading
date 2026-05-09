@@ -3129,19 +3129,19 @@ function drawVIXRatioChart(hoverIndex=null) {
   ctx.setLineDash([4, 5]);
   const levels = [
     [min, "#2b2b2b", min.toFixed(2)],
-    [0.8, "#242424", "0.80"],
+    [0.8, "#1D9E75", "Deep Contango"],
     [1.0, "#8a8a8a", "1.00"],
-    [1.2, "#242424", "1.20"],
+    [1.2, "#e05050", "Panic"],
     [max, "#2b2b2b", max.toFixed(2)]
   ];
   levels.forEach(([v, color, label]) => {
     if(v < min || v > max) return;
     const y = toY(v);
     ctx.strokeStyle = color;
-    ctx.lineWidth = v === 1 ? 1.25 : 1;
+    ctx.lineWidth = (v === 0.8 || v === 1.2) ? 1.35 : (v === 1 ? 1.25 : 1);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
-    ctx.fillStyle = v === 1 ? "#9a9a9a" : "#4a4a4a";
-    ctx.font = v === 1 ? "bold 8px sans-serif" : "8px sans-serif";
+    ctx.fillStyle = (v === 0.8 || v === 1.2 || v === 1) ? color : "#4a4a4a";
+    ctx.font = (v === 0.8 || v === 1.2 || v === 1) ? "bold 8px sans-serif" : "8px sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(label, PAD.left + PW + 6, y + 3);
   });
@@ -3151,28 +3151,6 @@ function drawVIXRatioChart(hoverIndex=null) {
   ctx.fillText("BACKWARDATION", PAD.left + 4, PAD.top + 14);
   ctx.fillStyle = "#555";
   ctx.fillText("CONTANGO", PAD.left + 4, PAD.top + PH - 8);
-
-  rows.forEach(row => {
-    const ratioHigh = Math.max(+row.ratio, +row.ratioOpen);
-    if(!Number.isFinite(ratioHigh) || ratioHigh <= 1) return;
-    const x = toX(row);
-    ctx.fillStyle = "rgba(224,80,80,.45)";
-    ctx.fillRect(x - 0.7, toY(ratioHigh), 1.4, Math.max(1, yOne - toY(ratioHigh)));
-  });
-
-  const stemW = Math.max(1, Math.min(3, PW / rows.length * 1.2));
-  rows.forEach(row => {
-    const open = +row.ratioOpen;
-    const close = +row.ratio;
-    if(!Number.isFinite(open) || !Number.isFinite(close)) return;
-    const x = toX(row), yO = toY(open), yC = toY(close);
-    ctx.strokeStyle = close >= open ? "rgba(29,158,117,.48)" : "rgba(224,80,80,.48)";
-    ctx.lineWidth = stemW;
-    ctx.beginPath();
-    ctx.moveTo(x, yO);
-    ctx.lineTo(x, yC);
-    ctx.stroke();
-  });
 
   ctx.beginPath();
   rows.forEach((row, i) => {
