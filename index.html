@@ -3153,7 +3153,7 @@ function vixRatioForwardSummary(events, priceRows) {
   return out;
 }
 
-function renderVIXRatioForwardStats(rows) {
+function renderVIXRatioForwardStats(rows, domain=null) {
   const priceRows = vixRatioSPYRows();
   const panicEvents = vixRatioThresholdEvents(rows, "high", 1.2);
   const contangoEvents = vixRatioThresholdEvents(rows, "low", 0.8);
@@ -3169,7 +3169,8 @@ function renderVIXRatioForwardStats(rows) {
       const col = avg >= 0 ? "#5DCAA5" : "#e05050";
       return `<div class="ret-fwd-row"><span>${h}M</span><b style="color:${col}">${fmtPct(avg, 1)}</b><em>${win.toFixed(0)}% Profit</em></div>`;
     }).join("");
-    return `<div class="ret-fwd-events">${events.length} threshold events</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>${body}`;
+    const windowLabel = domain && rows.length ? ` · ${rows[0].date} to ${rows[rows.length - 1].date}` : "";
+    return `<div class="ret-fwd-events">${events.length} threshold events${windowLabel}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>${body}`;
   };
   const panicEl = document.getElementById("vixRatioForwardPanic");
   const contangoEl = document.getElementById("vixRatioForwardContango");
@@ -3301,7 +3302,7 @@ function drawVIXRatioChart(hoverIndex=null) {
   if(read && latest) {
     read.textContent = `${latest.date}: VIX/VIX3M opened at ${latestOpenRatio.toFixed(3)} and closed at ${latestRatio.toFixed(3)}, so the curve is in ${latestRegime}. Above 1.0 means spot volatility trades over 3-month volatility.`;
   }
-  renderVIXRatioForwardStats(rawRows);
+  renderVIXRatioForwardStats(rows, domain);
 
   const canvas = document.getElementById("vixRatioCanvas");
   if(canvas) {
