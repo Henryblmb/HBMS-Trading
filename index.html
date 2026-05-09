@@ -2023,6 +2023,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Backwardation</div><div class="interp-text">Ratio above 1 means spot VIX is above VIX3M. This is a fear regime and often appears around equity stress or panic lows.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Contango</div><div class="interp-text">Ratio below 1 means the curve is upward sloping. This is the normal volatility regime and generally supports trend-following conditions.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Line At 1.0</div><div class="interp-text">The horizontal 1.0 line separates the regimes. The further above 1.0, the more acute near-term fear is versus 3-month volatility.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">SPY Forward After Panic ≥ 1.2</div><div class="interp-text" id="vixRatioForwardPanic">Waiting for VIX/VIX3M data.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">SPY Forward After Deep Contango ≤ 0.8</div><div class="interp-text" id="vixRatioForwardContango">Waiting for VIX/VIX3M data.</div></div>
       </div>
     </div>
 
@@ -3095,6 +3097,86 @@ function vixRatioRows() {
     });
 }
 
+function vixRatioSPYRows() {
+  const spy = dailyChangeData().SPY;
+  const rows = (spy && Array.isArray(spy.returns) ? spy.returns : [])
+    .filter(r => r && r.date && Number.isFinite(+r.close))
+    .map(r => ({ date: r.date, close: +r.close }));
+  if(rows.length) return rows;
+  return marketHistory("sp500_history_20y")
+    .filter(r => r && r.date && Number.isFinite(+r.close))
+    .map(r => ({ date: r.date, close: +r.close }));
+}
+
+function addMonthsISO(dateStr, months) {
+  const d = new Date(dateStr + "T12:00:00");
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if(d.getDate() !== day) d.setDate(0);
+  return d.getTime();
+}
+
+function firstRowAtOrAfter(rows, targetMs, start=0) {
+  for(let i = Math.max(0, start); i < rows.length; i++) {
+    if(rowDateMs(rows[i]) >= targetMs) return { row: rows[i], index: i };
+  }
+  return null;
+}
+
+function vixRatioThresholdEvents(rows, side, threshold) {
+  const events = [];
+  let wasInside = false;
+  rows.forEach(row => {
+    const stress = Math.max(+row.ratio, +row.ratioOpen);
+    if(!Number.isFinite(stress)) return;
+    const inside = side === "high" ? stress >= threshold : stress <= threshold;
+    if(inside && !wasInside) events.push({ date: row.date, value: stress });
+    wasInside = inside;
+  });
+  return events;
+}
+
+function vixRatioForwardSummary(events, priceRows) {
+  const horizons = [1, 3, 6, 12];
+  const out = {};
+  horizons.forEach(h => out[h] = []);
+  if(!events.length || priceRows.length < 50) return out;
+  events.forEach(ev => {
+    const start = firstRowAtOrAfter(priceRows, rowDateMs(ev));
+    if(!start || !Number.isFinite(+start.row.close)) return;
+    horizons.forEach(h => {
+      const target = firstRowAtOrAfter(priceRows, addMonthsISO(start.row.date, h), start.index + 1);
+      if(!target || !Number.isFinite(+target.row.close)) return;
+      out[h].push((+target.row.close / +start.row.close - 1) * 100);
+    });
+  });
+  return out;
+}
+
+function renderVIXRatioForwardStats(rows) {
+  const priceRows = vixRatioSPYRows();
+  const panicEvents = vixRatioThresholdEvents(rows, "high", 1.2);
+  const contangoEvents = vixRatioThresholdEvents(rows, "low", 0.8);
+  const panic = vixRatioForwardSummary(panicEvents, priceRows);
+  const contango = vixRatioForwardSummary(contangoEvents, priceRows);
+  const html = (events, summary) => {
+    if(!priceRows.length) return "SPY history unavailable.";
+    const body = [1, 3, 6, 12].map(h => {
+      const vals = summary[h] || [];
+      if(!vals.length) return `<div class="ret-fwd-row"><span>${h}M</span><b>—</b><em>—</em></div>`;
+      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+      const win = vals.filter(v => v > 0).length / vals.length * 100;
+      const col = avg >= 0 ? "#5DCAA5" : "#e05050";
+      return `<div class="ret-fwd-row"><span>${h}M</span><b style="color:${col}">${fmtPct(avg, 1)}</b><em>${win.toFixed(0)}% Profit</em></div>`;
+    }).join("");
+    return `<div class="ret-fwd-events">${events.length} threshold events</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>${body}`;
+  };
+  const panicEl = document.getElementById("vixRatioForwardPanic");
+  const contangoEl = document.getElementById("vixRatioForwardContango");
+  if(panicEl) panicEl.innerHTML = html(panicEvents, panic);
+  if(contangoEl) contangoEl.innerHTML = html(contangoEvents, contango);
+}
+
 function drawVIXRatioChart(hoverIndex=null) {
   const rawRows = vixRatioRows();
   const domain = ensureCGDateControls("cg-vixratio", [rawRows], vixRatioHistoryRange);
@@ -3219,6 +3301,7 @@ function drawVIXRatioChart(hoverIndex=null) {
   if(read && latest) {
     read.textContent = `${latest.date}: VIX/VIX3M opened at ${latestOpenRatio.toFixed(3)} and closed at ${latestRatio.toFixed(3)}, so the curve is in ${latestRegime}. Above 1.0 means spot volatility trades over 3-month volatility.`;
   }
+  renderVIXRatioForwardStats(rawRows);
 
   const canvas = document.getElementById("vixRatioCanvas");
   if(canvas) {
