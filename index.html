@@ -3148,9 +3148,9 @@ function drawVIXRatioChart(hoverIndex=null) {
   ctx.setLineDash([]);
 
   ctx.fillStyle = "#666"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("BACKWARDATION", PAD.left + 4, Math.max(PAD.top + 14, yOne - 12));
+  ctx.fillText("BACKWARDATION", PAD.left + 4, PAD.top + 14);
   ctx.fillStyle = "#555";
-  ctx.fillText("CONTANGO", PAD.left + 4, Math.min(H - PAD.bottom - 8, yOne + 20));
+  ctx.fillText("CONTANGO", PAD.left + 4, PAD.top + PH - 8);
 
   rows.forEach(row => {
     const ratioHigh = Math.max(+row.ratio, +row.ratioOpen);
@@ -3176,7 +3176,8 @@ function drawVIXRatioChart(hoverIndex=null) {
 
   ctx.beginPath();
   rows.forEach((row, i) => {
-    const x = toX(row), y = toY(+row.ratio);
+    const stressRatio = Math.max(+row.ratio, +row.ratioOpen);
+    const x = toX(row), y = toY(stressRatio);
     if(i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
@@ -3193,10 +3194,11 @@ function drawVIXRatioChart(hoverIndex=null) {
 
   if(hoverIndex != null && rows[hoverIndex]) {
     const r = rows[hoverIndex];
-    const x = toX(r), y = toY(+r.ratio);
-    const col = +r.ratio >= 1 ? "#e05050" : "#1D9E75";
+    const stressRatio = Math.max(+r.ratio, +r.ratioOpen);
+    const x = toX(r), y = toY(stressRatio);
+    const col = stressRatio >= 1 ? "#e05050" : "#1D9E75";
     const dt = new Date(r.date + "T12:00:00");
-    const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · O ${(+r.ratioOpen).toFixed(3)} / C ${(+r.ratio).toFixed(3)}`;
+    const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · Stress ${stressRatio.toFixed(3)} · O ${(+r.ratioOpen).toFixed(3)} / C ${(+r.ratio).toFixed(3)}`;
     ctx.strokeStyle = col; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
     ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
