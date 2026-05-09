@@ -2876,12 +2876,13 @@ function dailyChangeColor(v, mean=null, sigma=null) {
   return v >= 0 ? "#1D9E75" : "#c55555";
 }
 
-function drawDailyChangeBars(rows, mean, sigma, hoverIndex=null) {
+function drawDailyChangeBars(rows, mean, sigma, domain, hoverIndex=null) {
   const c = mkCanvas("dailyChgBarsCanvas", 300); if(!c) return;
   const { ctx, W, H } = c;
   const PAD = { top: 18, right: 62, bottom: 28, left: 44 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
   const vals = rows.map(r => +r.ret).filter(Number.isFinite);
+  const xSpan = domain ? (domain.endMs - domain.startMs || 1) : 1;
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
   if(vals.length < 2) {
@@ -2893,7 +2894,8 @@ function drawDailyChangeBars(rows, mean, sigma, hoverIndex=null) {
   const lower = mean - 2 * sigma;
   const absMax = Math.max(1, Math.abs(upper), Math.abs(lower), ...vals.map(v => Math.abs(v)));
   const vMin = -absMax * 1.08, vMax = absMax * 1.08;
-  const toX = i => PAD.left + (i / Math.max(1, rows.length - 1)) * PW;
+  const toX = row => domain ? PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW : PAD.left;
+  const toDateX = ms => domain ? PAD.left + ((ms - domain.startMs) / xSpan) * PW : PAD.left;
   const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
   const zeroY = toY(0);
 
@@ -2908,11 +2910,11 @@ function drawDailyChangeBars(rows, mean, sigma, hoverIndex=null) {
   });
   ctx.setLineDash([]);
 
-  const barW = Math.max(1, PW / rows.length - .35);
+  const barW = Math.max(1, Math.min(4, PW / rows.length * 1.25));
   rows.forEach((row, i) => {
     const v = +row.ret;
     if(!Number.isFinite(v)) return;
-    const x = toX(i), y = toY(v);
+    const x = toX(row), y = toY(v);
     ctx.fillStyle = dailyChangeColor(v, mean, sigma) + (Math.abs(v) >= Math.abs(upper) ? "ee" : "aa");
     if(v >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
     else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
@@ -2921,15 +2923,17 @@ function drawDailyChangeBars(rows, mean, sigma, hoverIndex=null) {
   ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
   [vMin, lower, 0, upper, vMax].forEach(v => ctx.fillText((v > 0 ? "+" : "") + v.toFixed(v === 0 ? 0 : 1) + "%", PAD.left - 5, toY(v) + 3));
   ctx.fillStyle = "#4a4a4a"; ctx.textAlign = "center";
-  [0, .2, .4, .6, .8, 1].map(p => Math.round((rows.length - 1) * p)).forEach(i => {
-    const d = rows[i] && rows[i].date ? new Date(rows[i].date + "T12:00:00") : null;
-    ctx.fillText(d ? d.toLocaleString("en-US", { year: "2-digit" }) : "", toX(i), H - PAD.bottom + 12);
+  [0, .2, .4, .6, .8, 1].forEach(p => {
+    if(!domain) return;
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    const d = new Date(ms);
+    ctx.fillText(d.toLocaleString("en-US", { year: "2-digit" }), toDateX(ms), H - PAD.bottom + 12);
   });
 
   if(hoverIndex != null && rows[hoverIndex]) {
     const r = rows[hoverIndex];
     const v = +r.ret;
-    const x = toX(hoverIndex), y = toY(v);
+    const x = toX(r), y = toY(v);
     const dt = new Date(r.date + "T12:00:00");
     const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · ${fmtPct(v, 2)}`;
     const col = dailyChangeColor(v, mean, sigma);
@@ -2957,13 +2961,18 @@ function drawDailyChangeBars(rows, mean, sigma, hoverIndex=null) {
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       if(x < PAD.left || x > PAD.left + PW || !rows.length) {
-        drawDailyChangeBars(rows, mean, sigma, null);
+        drawDailyChangeBars(rows, mean, sigma, domain, null);
         return;
       }
-      const idx = Math.max(0, Math.min(rows.length - 1, Math.round(((x - PAD.left) / PW) * (rows.length - 1))));
-      drawDailyChangeBars(rows, mean, sigma, idx);
+      const targetMs = domain ? domain.startMs + ((x - PAD.left) / PW) * xSpan : rowDateMs(rows[0]);
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawDailyChangeBars(rows, mean, sigma, domain, idx);
     };
-    canvas.onmouseleave = () => drawDailyChangeBars(rows, mean, sigma, null);
+    canvas.onmouseleave = () => drawDailyChangeBars(rows, mean, sigma, domain, null);
   }
 }
 
@@ -3013,7 +3022,7 @@ function renderDailyChange() {
     desc.textContent = `${ticker} latest 1D move is ${fmtPct(latestForStats, 2)} (${Number.isFinite(z) ? (z >= 0 ? "+" : "") + z.toFixed(2) + "σ" : "—"}), a ${side}. Window: ${rows[0].date} to ${rows[rows.length - 1].date} · ${rows.length} sessions.`;
   }
   drawHistoryLineLogByDate("dailyChgPriceCanvas", rows, 230, `${ticker} Daily`, "#d8d8d8", domain);
-  drawDailyChangeBars(rows, stats.mean, stats.sigma);
+  drawDailyChangeBars(rows, stats.mean, stats.sigma, domain);
 }
 
 function forwardReturn(rows, startIdx, months) {
