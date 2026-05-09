@@ -3953,24 +3953,28 @@ def fetch_market_indicators():
 
     # ── VIX History ──────────────────────────────────────────────
     if vix_hist is not None and not vix_hist.empty:
-        vix_s = vix_hist["Close"].copy()
+        vix_s = vix_hist[["Open", "Close"]].copy()
         vix_s.index = pd.to_datetime(vix_s.index).normalize()
-        vix_s = vix_s.rename("vix")
+        vix_s = vix_s.rename(columns={"Open": "vix_open", "Close": "vix"})
         if v3m_hist is not None and not v3m_hist.empty:
-            v3m_s = v3m_hist["Close"].copy()
+            v3m_s = v3m_hist[["Open", "Close"]].copy()
             v3m_s.index = pd.to_datetime(v3m_s.index).normalize()
-            v3m_s = v3m_s.rename("vix3m")
+            v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "Close": "vix3m"})
             merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna()
             if len(merged) < 10:
                 merged = pd.concat([vix_s, v3m_s], axis=1, join="outer", sort=False).ffill().dropna()
         else:
-            df = vix_s.to_frame()
+            df = vix_s.copy()
             df["vix3m"] = df["vix"].rolling(20).mean() + df["vix"].rolling(20).std()
+            df["vix3m_open"] = df["vix3m"]
             merged = df.dropna()
         merged["spread"] = merged["vix3m"] - merged["vix"]
         result["vix_history"] = [
             {"date": str(i.date()), "vix": round(float(r["vix"]),2),
-             "vix3m": round(float(r["vix3m"]),2), "spread": round(float(r["spread"]),2)}
+             "vix_open": round(float(r["vix_open"]),2),
+             "vix3m": round(float(r["vix3m"]),2),
+             "vix3m_open": round(float(r["vix3m_open"]),2),
+             "spread": round(float(r["spread"]),2)}
             for i, r in merged.iterrows()
         ]
         print(f"  VIX history: {len(result['vix_history'])} days | Spread: {result['vix_spread']}")
@@ -3997,17 +4001,20 @@ def fetch_market_indicators():
             if result["vix"] and result["vix3m"]:
                 result["vix_spread"] = round(result["vix3m"] - result["vix"], 2)
             if vix_hist is not None and not vix_hist.empty and v3m_hist is not None and not v3m_hist.empty:
-                vix_s = vix_hist["Close"].copy()
+                vix_s = vix_hist[["Open", "Close"]].copy()
                 vix_s.index = pd.to_datetime(vix_s.index).normalize()
-                vix_s = vix_s.rename("vix")
-                v3m_s = v3m_hist["Close"].copy()
+                vix_s = vix_s.rename(columns={"Open": "vix_open", "Close": "vix"})
+                v3m_s = v3m_hist[["Open", "Close"]].copy()
                 v3m_s.index = pd.to_datetime(v3m_s.index).normalize()
-                v3m_s = v3m_s.rename("vix3m")
+                v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "Close": "vix3m"})
                 merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna()
                 merged["spread"] = merged["vix3m"] - merged["vix"]
                 result["vix_history"] = [
                     {"date": str(i.date()), "vix": round(float(r["vix"]), 2),
-                     "vix3m": round(float(r["vix3m"]), 2), "spread": round(float(r["spread"]), 2)}
+                     "vix_open": round(float(r["vix_open"]), 2),
+                     "vix3m": round(float(r["vix3m"]), 2),
+                     "vix3m_open": round(float(r["vix3m_open"]), 2),
+                     "spread": round(float(r["spread"]), 2)}
                     for i, r in merged.iterrows()
                 ]
                 print(f"  VIX history EODHD: {len(result['vix_history'])} days | Spread: {result['vix_spread']}")
