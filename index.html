@@ -352,6 +352,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .ret-fwd-row{font-size:10px;color:#888;padding:3px 0;border-top:1px solid rgba(255,255,255,.04)}
 .ret-fwd-row b{font-size:11px;font-weight:600;text-align:right}
 .ret-fwd-row em{font-style:normal;text-align:right;color:#777}
+.vix-ratio-forward .interp-title{min-height:24px;display:flex;align-items:flex-start}
+.vix-ratio-forward .ret-fwd-events{min-height:24px}
 .ma-forward-title{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
 .ma-sigma-toggle{margin-left:auto;border:0;background:transparent;color:#f1f1f1;font:inherit;font-size:9.5px;font-weight:600;cursor:pointer;padding:0;text-transform:none;letter-spacing:.02em;text-align:right}
 .ma-sigma-toggle:hover{color:#fff;text-decoration:underline;text-underline-offset:2px}
@@ -2023,8 +2025,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Backwardation</div><div class="interp-text">Ratio above 1 means spot VIX is above VIX3M. This is a fear regime and often appears around equity stress or panic lows.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Contango</div><div class="interp-text">Ratio below 1 means the curve is upward sloping. This is the normal volatility regime and generally supports trend-following conditions.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Line At 1.0</div><div class="interp-text">The horizontal 1.0 line separates the regimes. The further above 1.0, the more acute near-term fear is versus 3-month volatility.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear">SPY Forward After Panic ≥ 1.2</div><div class="interp-text" id="vixRatioForwardPanic">Waiting for VIX/VIX3M data.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">SPY Forward After Deep Contango ≤ 0.8</div><div class="interp-text" id="vixRatioForwardContango">Waiting for VIX/VIX3M data.</div></div>
+        <div class="interp-cell bear vix-ratio-forward"><div class="interp-title bear">SPY Forward After Panic ≥ 1.2</div><div class="interp-text" id="vixRatioForwardPanic">Waiting for VIX/VIX3M data.</div></div>
+        <div class="interp-cell bull vix-ratio-forward"><div class="interp-title bull">SPY Forward After Deep Contango ≤ 0.8</div><div class="interp-text" id="vixRatioForwardContango">Waiting for VIX/VIX3M data.</div></div>
       </div>
     </div>
 
