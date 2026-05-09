@@ -84,6 +84,13 @@ RETURN_HISTOGRAM_SYMBOLS = [
     {"t": "XRT", "n": "Retail ETF", "g": "Industry ETF"},
 ]
 
+DAILY_CHANGE_SYMBOLS = [
+    {"t": "SPY", "n": "S&P 500 ETF", "g": "Index ETF"},
+    {"t": "QQQ", "n": "Nasdaq 100 ETF", "g": "Index ETF"},
+    {"t": "IWM", "n": "Russell 2000 ETF", "g": "Index ETF"},
+    {"t": "DIA", "n": "Dow Jones ETF", "g": "Index ETF"},
+]
+
 WASHED_OUT_HORIZONS = {
     "1M": 21,
     "3M": 63,
@@ -1471,6 +1478,58 @@ def return_histogram_payload(symbols=None, years=25):
             }
         except Exception as e:
             print(f"  Return histogram {symbol}: {e}")
+    return payload
+
+
+def daily_change_payload(symbols=None, years=25, limit=6500):
+    payload = {}
+    for meta in symbols or DAILY_CHANGE_SYMBOLS:
+        symbol = meta["t"]
+        try:
+            hist = yf_df(symbol, period="max", interval="1d")
+            source = "yfinance:max" if hist is not None and not hist.empty else "none"
+            if hist is None or hist.empty or len(hist) < 120:
+                hist, source = history_df(symbol, years=years, period="max")
+            if hist is None or hist.empty or "Close" not in hist.columns:
+                continue
+            close = hist["Close"].astype(float).dropna().sort_index()
+            if len(close) < 60:
+                continue
+            daily_ret = close.pct_change().dropna() * 100
+            rows = []
+            for idx, ret in daily_ret.tail(limit).items():
+                px = close.loc[idx]
+                if pd.isna(px):
+                    continue
+                rows.append({
+                    "date": str(pd.Timestamp(idx).date()),
+                    "close": round(float(px), 4),
+                    "ret": round(float(ret), 4),
+                })
+            vals = daily_ret.astype(float)
+            mean = float(vals.mean())
+            sigma = float(vals.std(ddof=1)) if len(vals) > 1 else 0.0
+            last_price = float(close.iloc[-1])
+            prev_close = float(close.iloc[-2]) if len(close) > 1 else last_price
+            payload[symbol] = {
+                "ticker": symbol,
+                "name": meta.get("n", symbol),
+                "group": meta.get("g", "ETF"),
+                "source": source,
+                "frequency": "daily",
+                "start": str(pd.Timestamp(daily_ret.index[0]).date()),
+                "end": str(pd.Timestamp(daily_ret.index[-1]).date()),
+                "last_price": round(last_price, 4),
+                "last_day_chg": round((last_price / prev_close - 1) * 100, 2) if prev_close else None,
+                "mean": round(mean, 4),
+                "sigma": round(sigma, 4),
+                "plus_2sigma": round(mean + 2 * sigma, 4),
+                "minus_2sigma": round(mean - 2 * sigma, 4),
+                "observations": int(len(rows)),
+                "returns": rows,
+            }
+        except Exception as e:
+            print(f"  Daily change {symbol}: {e}")
     return payload
 
 
@@ -3763,6 +3822,7 @@ def fetch_market_indicators():
         "pe_ratio_status": {},
         "sp500_monthly_price_history": [],
         "return_histograms": {},
+        "daily_change_history": {},
         "ma_distance": {},
         "pc_total_history": [],
         "pc_equity_history": [],
@@ -3819,6 +3879,7 @@ def fetch_market_indicators():
         result["hyg_price"] = hyg_price_history[-1]["close"]
     result["hyg_nhnl_history"], result["hyg_nhnl_current"] = high_yield_nhnl_history()
     result["return_histograms"] = return_histogram_payload()
+    result["daily_change_history"] = daily_change_payload()
     result["ma_distance"] = ma_distance_payload()
     result["washed_out_bottom_picker"] = washed_out_bottom_picker_payload()
     print(f"  S&P/EODHD history: {len(result['sp500_history'])} days ({sp500_source})")
@@ -3843,6 +3904,7 @@ def fetch_market_indicators():
     print(f"  HYG total-return history: {len(result['hyg_history'])} days")
     print(f"  HYG NH-NL history: {len(result['hyg_nhnl_history'])} days")
     print(f"  Return histograms: {len(result['return_histograms'])} symbols")
+    print(f"  Daily change history: {len(result['daily_change_history'])} symbols")
     print(f"  MA distance: {len(result['ma_distance'])} symbols")
     wobp_status = result["washed_out_bottom_picker"].get("status", {})
     print(f"  Washed-out bottom picker: score {wobp_status.get('score')} | state {wobp_status.get('state')} | model {wobp_status.get('model_signal_status')}")
@@ -3850,7 +3912,7 @@ def fetch_market_indicators():
     # ── VIX 30D ──────────────────────────────────────────────────
     try:
         tk = yf.Ticker("^VIX")
-        vix_hist = yf_history(tk, "15mo", "1d")
+        vix_hist = yf_history(tk, "20y", "1d")
         if vix_hist is not None and not vix_hist.empty:
             result["vix"] = round(float(vix_hist["Close"].iloc[-1]), 2)
             if len(vix_hist) >= 20:
@@ -3863,7 +3925,7 @@ def fetch_market_indicators():
     for sym in ["^VIX3M", "VXMT", "^VXV"]:
         try:
             tk3 = yf.Ticker(sym)
-            v3m_hist = yf_history(tk3, "15mo", "1d")
+            v3m_hist = yf_history(tk3, "20y", "1d")
             if v3m_hist is not None and not v3m_hist.empty:
                 result["vix3m"] = round(float(v3m_hist["Close"].iloc[-1]), 2)
                 print(f"  VIX3M ({sym}): {result['vix3m']}")
@@ -3905,7 +3967,6 @@ def fetch_market_indicators():
             df = vix_s.to_frame()
             df["vix3m"] = df["vix"].rolling(20).mean() + df["vix"].rolling(20).std()
             merged = df.dropna()
-        merged = merged.tail(252)
         merged["spread"] = merged["vix3m"] - merged["vix"]
         result["vix_history"] = [
             {"date": str(i.date()), "vix": round(float(r["vix"]),2),
@@ -3917,8 +3978,8 @@ def fetch_market_indicators():
     # ── EODHD VIX override: yfinance can occasionally return stale/flat index history.
     if EODHD.enabled:
         try:
-            e_vix, e_vix_src = EODHD.eod_history(["VIX.INDX"], years=4)
-            e_v3m, e_v3m_src = EODHD.eod_history(["VIX3M.INDX"], years=4)
+            e_vix, e_vix_src = EODHD.eod_history(["VIX.INDX"], years=20)
+            e_v3m, e_v3m_src = EODHD.eod_history(["VIX3M.INDX"], years=20)
             e_v9d, e_v9d_src = EODHD.eod_history(["VIX9D.INDX"], years=1)
             if e_vix is not None and not e_vix.empty:
                 vix_hist = e_vix
@@ -3942,7 +4003,7 @@ def fetch_market_indicators():
                 v3m_s = v3m_hist["Close"].copy()
                 v3m_s.index = pd.to_datetime(v3m_s.index).normalize()
                 v3m_s = v3m_s.rename("vix3m")
-                merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna().tail(756)
+                merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna()
                 merged["spread"] = merged["vix3m"] - merged["vix"]
                 result["vix_history"] = [
                     {"date": str(i.date()), "vix": round(float(r["vix"]), 2),
