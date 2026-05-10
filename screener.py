@@ -3987,13 +3987,15 @@ def fetch_market_indicators():
 
     # ── VIX History ──────────────────────────────────────────────
     if vix_hist is not None and not vix_hist.empty:
-        vix_s = vix_hist[["Open", "Close"]].copy()
+        vix_s = vix_hist[["Open", "High", "Low", "Close"]].copy()
         vix_s.index = pd.to_datetime(vix_s.index).normalize()
-        vix_s = vix_s.rename(columns={"Open": "vix_open", "Close": "vix"})
+        vix_s = vix_s.rename(columns={"Open": "vix_open", "High": "vix_high", "Low": "vix_low", "Close": "vix_close"})
+        vix_s["vix"] = vix_s[["vix_open", "vix_high", "vix_close"]].max(axis=1)
         if v3m_hist is not None and not v3m_hist.empty:
-            v3m_s = v3m_hist[["Open", "Close"]].copy()
+            v3m_s = v3m_hist[["Open", "High", "Low", "Close"]].copy()
             v3m_s.index = pd.to_datetime(v3m_s.index).normalize()
-            v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "Close": "vix3m"})
+            v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "High": "vix3m_high", "Low": "vix3m_low", "Close": "vix3m_close"})
+            v3m_s["vix3m"] = v3m_s[["vix3m_open", "vix3m_high", "vix3m_close"]].max(axis=1)
             merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna()
             if len(merged) < 10:
                 merged = pd.concat([vix_s, v3m_s], axis=1, join="outer", sort=False).ffill().dropna()
@@ -4006,8 +4008,14 @@ def fetch_market_indicators():
         result["vix_history"] = [
             {"date": str(i.date()), "vix": round(float(r["vix"]),2),
              "vix_open": round(float(r["vix_open"]),2),
+             "vix_high": round(float(r["vix_high"]),2),
+             "vix_low": round(float(r["vix_low"]),2),
+             "vix_close": round(float(r["vix_close"]),2),
              "vix3m": round(float(r["vix3m"]),2),
              "vix3m_open": round(float(r["vix3m_open"]),2),
+             "vix3m_high": round(float(r["vix3m_high"]),2) if "vix3m_high" in r else round(float(r["vix3m"]),2),
+             "vix3m_low": round(float(r["vix3m_low"]),2) if "vix3m_low" in r else round(float(r["vix3m"]),2),
+             "vix3m_close": round(float(r["vix3m_close"]),2) if "vix3m_close" in r else round(float(r["vix3m"]),2),
              "spread": round(float(r["spread"]),2)}
             for i, r in merged.iterrows()
         ]
@@ -4035,19 +4043,27 @@ def fetch_market_indicators():
             if result["vix"] and result["vix3m"]:
                 result["vix_spread"] = round(result["vix3m"] - result["vix"], 2)
             if vix_hist is not None and not vix_hist.empty and v3m_hist is not None and not v3m_hist.empty:
-                vix_s = vix_hist[["Open", "Close"]].copy()
+                vix_s = vix_hist[["Open", "High", "Low", "Close"]].copy()
                 vix_s.index = pd.to_datetime(vix_s.index).normalize()
-                vix_s = vix_s.rename(columns={"Open": "vix_open", "Close": "vix"})
-                v3m_s = v3m_hist[["Open", "Close"]].copy()
+                vix_s = vix_s.rename(columns={"Open": "vix_open", "High": "vix_high", "Low": "vix_low", "Close": "vix_close"})
+                vix_s["vix"] = vix_s[["vix_open", "vix_high", "vix_close"]].max(axis=1)
+                v3m_s = v3m_hist[["Open", "High", "Low", "Close"]].copy()
                 v3m_s.index = pd.to_datetime(v3m_s.index).normalize()
-                v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "Close": "vix3m"})
+                v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "High": "vix3m_high", "Low": "vix3m_low", "Close": "vix3m_close"})
+                v3m_s["vix3m"] = v3m_s[["vix3m_open", "vix3m_high", "vix3m_close"]].max(axis=1)
                 merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna()
                 merged["spread"] = merged["vix3m"] - merged["vix"]
                 result["vix_history"] = [
                     {"date": str(i.date()), "vix": round(float(r["vix"]), 2),
                      "vix_open": round(float(r["vix_open"]), 2),
+                     "vix_high": round(float(r["vix_high"]), 2),
+                     "vix_low": round(float(r["vix_low"]), 2),
+                     "vix_close": round(float(r["vix_close"]), 2),
                      "vix3m": round(float(r["vix3m"]), 2),
                      "vix3m_open": round(float(r["vix3m_open"]), 2),
+                     "vix3m_high": round(float(r["vix3m_high"]), 2),
+                     "vix3m_low": round(float(r["vix3m_low"]), 2),
+                     "vix3m_close": round(float(r["vix3m_close"]), 2),
                      "spread": round(float(r["spread"]), 2)}
                     for i, r in merged.iterrows()
                 ]

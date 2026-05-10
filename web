@@ -7779,7 +7779,10 @@ function mirrorVIXCharts() {
 }
 function updateCGVIX2Readings() {
   const md=window._marketData||{};
-  const vix=md.vix,vix3m=md.vix3m,spread=md.vix_spread;
+  const hist = Array.isArray(md.vix_history) && md.vix_history.length ? md.vix_history[md.vix_history.length - 1] : null;
+  const vix = hist && Number.isFinite(+hist.vix) ? +hist.vix : md.vix;
+  const vix3m = hist && Number.isFinite(+hist.vix3m) ? +hist.vix3m : md.vix3m;
+  const spread = hist && Number.isFinite(+hist.spread) ? +hist.spread : md.vix_spread;
   const vixEl=document.getElementById("cgvix2Vix"),v3mEl=document.getElementById("cgvix2V3m"),spEl=document.getElementById("cgvix2Spread");
   const pEl=document.getElementById("cgvix2Pill");
   if(vixEl&&vix!=null){vixEl.textContent=vix.toFixed(1);vixEl.style.color=vix>25?"#e05050":vix>18?"#EF9F27":"#60a5fa";}
