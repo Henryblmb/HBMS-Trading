@@ -5207,7 +5207,32 @@ function vixSDLevelColor(level) {
   return "rgba(125,22,22,.88)";
 }
 
-function drawVIXSDBars(canvasId, rows, h=230, domain=null) {
+function formatHoverDate(dateStr) {
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "");
+}
+
+function drawCanvasTooltip(ctx, W, H, PAD, x, y, lines, color="#d8d8d8") {
+  ctx.font = "bold 10px sans-serif";
+  const widths = lines.map(line => ctx.measureText(line).width);
+  const boxW = Math.max(...widths) + 16;
+  const boxH = 10 + lines.length * 14;
+  const bx = Math.max(PAD.left + 2, Math.min(W - PAD.right - boxW - 2, x - boxW / 2));
+  let by = Math.max(PAD.top + 4, Math.min(H - PAD.bottom - boxH - 4, y - boxH - 10));
+  if(by < PAD.top + 5) by = Math.min(H - PAD.bottom - boxH - 4, y + 10);
+  ctx.fillStyle = "rgba(8,8,8,.94)";
+  ctx.strokeStyle = "#303030";
+  ctx.lineWidth = 1;
+  ctx.fillRect(bx, by, boxW, boxH);
+  ctx.strokeRect(bx, by, boxW, boxH);
+  ctx.textAlign = "left";
+  lines.forEach((line, i) => {
+    ctx.fillStyle = i === 0 ? color : "#d8d8d8";
+    ctx.fillText(line, bx + 8, by + 15 + i * 14);
+  });
+}
+
+function drawVIXSDBars(canvasId, rows, h=230, domain=null, hoverIndex=null) {
   if(!rows || rows.length < 2 || !domain) {
     emptyCanvas(canvasId, h, "VIX SD history unavailable - run screener.py");
     return;
@@ -5268,6 +5293,41 @@ function drawVIXSDBars(canvasId, rows, h=230, domain=null) {
     ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
     ctx.fillText(`${(+last.sd).toFixed(1)} SD`, PAD.left + PW + 4, y + 3);
   }
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex];
+    const sdRaw = +r.sd;
+    const sd = Math.max(vMin, Math.min(vMax, +r.sd_clamped));
+    const x = toX(r), y = toY(sd);
+    const col = vixSDColor(sdRaw, !!r.signal);
+    ctx.strokeStyle = col; ctx.lineWidth = 1.15;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
+    const vixLine = Number.isFinite(+r.vix_close) && +r.vix_close !== +r.vix
+      ? `VIX ${(+r.vix).toFixed(2)} · Close ${(+r.vix_close).toFixed(2)}`
+      : `VIX ${(+r.vix).toFixed(2)}`;
+    drawCanvasTooltip(ctx, W, H, PAD, x, y, [
+      `${formatHoverDate(r.date)} · ${sdRaw >= 0 ? "+" : ""}${sdRaw.toFixed(2)} SD`,
+      vixLine
+    ], col);
+  }
+
+  const canvas = document.getElementById(canvasId);
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) { drawVIXSDBars(canvasId, rows, h, domain, null); return; }
+      const targetMs = domain.startMs + ((x - PAD.left) / PW) * xSpan;
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawVIXSDBars(canvasId, rows, h, domain, idx);
+    };
+    canvas.onmouseleave = () => drawVIXSDBars(canvasId, rows, h, domain, null);
+  }
 }
 
 function drawVIXSDSignal() {
@@ -5312,7 +5372,7 @@ function drawVIXSDSignal() {
   }
 }
 
-function drawVIXRVChart(canvasId, rows, h=260, domain=null) {
+function drawVIXRVChart(canvasId, rows, h=260, domain=null, hoverIndex=null) {
   if(!rows || rows.length < 2 || !domain) {
     emptyCanvas(canvasId, h, "VIX vs RV20 history unavailable - run screener.py");
     return;
@@ -5393,6 +5453,38 @@ function drawVIXRVChart(canvasId, rows, h=260, domain=null) {
     const d = new Date(ms);
     ctx.fillText(d.toLocaleString("en-US", { year: "2-digit" }), toDateX(ms), H - PAD.bottom + 12);
   });
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex];
+    const x = toX(r);
+    const y = toPremY(+r.premium);
+    const col = +r.premium >= 10 || r.signal ? "#EF9F27" : (+r.premium >= 0 ? "#5DCAA5" : "#e05050");
+    ctx.strokeStyle = col; ctx.lineWidth = 1.15;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, H - PAD.bottom); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
+    drawCanvasTooltip(ctx, W, H, PAD, x, y, [
+      `${formatHoverDate(r.date)} · Premium ${(+r.premium >= 0 ? "+" : "")}${(+r.premium).toFixed(2)}`,
+      `VIX ${(+r.vix).toFixed(2)} · RV20 ${(+r.rv20).toFixed(2)}%`,
+      `Ratio ${(+r.ratio).toFixed(2)}x`
+    ], col);
+  }
+
+  const canvas = document.getElementById(canvasId);
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) { drawVIXRVChart(canvasId, rows, h, domain, null); return; }
+      const targetMs = domain.startMs + ((x - PAD.left) / PW) * xSpan;
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawVIXRVChart(canvasId, rows, h, domain, idx);
+    };
+    canvas.onmouseleave = () => drawVIXRVChart(canvasId, rows, h, domain, null);
+  }
 }
 
 function drawVIXRealizedVol() {
@@ -5452,7 +5544,7 @@ function vixSpikeThresholds(rows, upperPct) {
   return { up, low };
 }
 
-function drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr) {
+function drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr, hoverIndex=null) {
   if(!rows || rows.length < 20 || !domain || !Number.isFinite(upThr) || !Number.isFinite(lowThr)) {
     emptyCanvas(canvasId, h, "VIX spike history unavailable - run screener.py");
     return;
@@ -5494,6 +5586,42 @@ function drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr) {
   ctx.fillStyle="#1D9E75"; ctx.fillText("Lower " + lowThr.toFixed(1)+"%", PAD.left+PW+4, toY(lowThr)+3);
   ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
   [0,.2,.4,.6,.8,1].forEach(p=>{const ms=domain.startMs+(domain.endMs-domain.startMs)*p;const d=new Date(ms);ctx.fillText(d.toLocaleString("en-US",{year:"2-digit"}),toDateX(ms),H-PAD.bottom+12);});
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex];
+    const raw = +r.chg_pct;
+    const v = clamp(raw);
+    const x = toX(r), y = toY(v);
+    const col = raw >= upThr ? "#e05050" : raw <= lowThr ? "#1D9E75" : raw >= 0 ? "#9aa7b5" : "#888";
+    ctx.strokeStyle = col; ctx.lineWidth = 1.15;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
+    const vixLine = Number.isFinite(+r.vix_close) && +r.vix_close !== +r.vix
+      ? `VIX ${(+r.vix).toFixed(2)} · Close ${(+r.vix_close).toFixed(2)}`
+      : `VIX ${(+r.vix).toFixed(2)}`;
+    drawCanvasTooltip(ctx, W, H, PAD, x, y, [
+      `${formatHoverDate(r.date)} · ${raw >= 0 ? "+" : ""}${raw.toFixed(2)}%`,
+      vixLine,
+      `Abs ${(+r.chg_abs >= 0 ? "+" : "")}${(+r.chg_abs).toFixed(2)}`
+    ], col);
+  }
+
+  const canvas = document.getElementById(canvasId);
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) { drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr, null); return; }
+      const targetMs = domain.startMs + ((x - PAD.left) / PW) * xSpan;
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr, idx);
+    };
+    canvas.onmouseleave = () => drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr, null);
+  }
 }
 
 function vixSpikeForwardSummary(priceRows, spikeRows, predicate) {
