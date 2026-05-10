@@ -625,7 +625,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
       <div class="nav-item sub" onclick="showTab('cg-dailychg',this)">1-Day % Change</div>
-      <div class="nav-item sub" onclick="showTab('cg-spxspybb',this)">SPX/SPY Bollinger</div>
+      <div class="nav-item sub" onclick="showTab('cg-spxspybb',this)">SPY/QQQ Bollinger</div>
       <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
@@ -1633,11 +1633,11 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
-    <!-- SPX OR SPY BOLLINGER -->
+    <!-- SPY / QQQ BOLLINGER -->
     <div class="panel cg-page" id="tab-cg-spxspybb">
       <div class="cg-header">
-        <div class="cg-title">SPX / SPY Bollinger Bands — Momentum Extension</div>
-        <div class="cg-sub">SPX or SPY price chart with 20-period Bollinger Bands. Switch between daily and weekly closes, and select 3σ, 4σ or 5σ extension bands.</div>
+        <div class="cg-title">SPY / QQQ Bollinger Bands — Momentum Extension</div>
+        <div class="cg-sub">SPY or QQQ price chart with 20-period Bollinger Bands. Switch between daily and weekly closes, and select 2σ, 3σ or 4σ extension bands.</div>
       </div>
 
       <div class="signal-bar">
@@ -1652,8 +1652,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <div class="signal-inline-control">
             <label>Symbol</label>
             <select id="spxSpyBBSymbol" onchange="setSPXSpyBBSymbol(this.value)">
-              <option value="SPX">SPX</option>
               <option value="SPY">SPY</option>
+              <option value="QQQ">QQQ</option>
             </select>
           </div>
           <div class="signal-inline-control">
@@ -1666,9 +1666,9 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         </div>
         <div class="signal-range-controls" data-cg-date-host>
           <div class="hist-range" id="spxSpyBBSD">
-            <button class="hist-btn active" onclick="setSPXSpyBBSD(3,this)">3σ</button>
+            <button class="hist-btn active" onclick="setSPXSpyBBSD(2,this)">2σ</button>
+            <button class="hist-btn" onclick="setSPXSpyBBSD(3,this)">3σ</button>
             <button class="hist-btn" onclick="setSPXSpyBBSD(4,this)">4σ</button>
-            <button class="hist-btn" onclick="setSPXSpyBBSD(5,this)">5σ</button>
           </div>
           <div class="hist-range" id="spxSpyBBRange">
             <button class="hist-btn" onclick="setSPXSpyBBRange('1Y',this)">1Y</button>
@@ -1681,7 +1681,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="spxSpyBBTitle">SPX — 20D Bollinger Bands</span>
+          <span class="cg-chart-title" id="spxSpyBBTitle">SPY — 20D Bollinger Bands</span>
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Close</span>
             <span style="color:#EF9F27">20P Mean</span>
@@ -3148,14 +3148,10 @@ function renderDailyChange() {
 }
 
 function spxSpyBBRawRows(symbol) {
-  if(symbol === "SPY") {
-    const spy = dailyChangeData().SPY;
-    return (spy && Array.isArray(spy.returns) ? spy.returns : [])
-      .filter(r => r && r.date && Number.isFinite(+r.close))
-      .map(r => ({ date: r.date, close: +r.close }));
-  }
-  const spx = marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history_rsi");
-  return spx.filter(r => r && r.date && Number.isFinite(+r.close)).map(r => ({ date: r.date, close: +r.close }));
+  const item = dailyChangeData()[symbol === "QQQ" ? "QQQ" : "SPY"];
+  return (item && Array.isArray(item.returns) ? item.returns : [])
+    .filter(r => r && r.date && Number.isFinite(+r.close))
+    .map(r => ({ date: r.date, close: +r.close }));
 }
 
 function bollingerRows(rows, sdMult=3, lookback=20) {
@@ -3176,7 +3172,7 @@ function bollingerRows(rows, sdMult=3, lookback=20) {
 }
 
 function drawSPXSpyBollinger(hoverIndex=null) {
-  const symbol = spxSpyBBSymbol || "SPX";
+  const symbol = spxSpyBBSymbol === "QQQ" ? "QQQ" : "SPY";
   const tf = spxSpyBBTimeframe === "weekly" ? "weekly" : "daily";
   const symbolSel = document.getElementById("spxSpyBBSymbol");
   if(symbolSel) symbolSel.value = symbol;
@@ -4901,9 +4897,9 @@ let vixRatioHistoryRange = "3Y";
 let maDistHistoryRange = "5Y";
 let dailyChgHistoryRange = "5Y";
 let spxSpyBBHistoryRange = "5Y";
-let spxSpyBBSD = 3;
+let spxSpyBBSD = 2;
 let spxSpyBBTimeframe = "daily";
-let spxSpyBBSymbol = "SPX";
+let spxSpyBBSymbol = "SPY";
 let retHistHistoryRange = "max";
 let rollRetHistoryRange = "10Y";
 const cgDateRanges = {};
@@ -5157,7 +5153,7 @@ function setDailyChangeRange(range, btn) {
 }
 
 function setSPXSpyBBSymbol(symbol) {
-  spxSpyBBSymbol = symbol === "SPY" ? "SPY" : "SPX";
+  spxSpyBBSymbol = symbol === "QQQ" ? "QQQ" : "SPY";
   delete cgDateRanges["cg-spxspybb"];
   drawSPXSpyBollinger();
 }
