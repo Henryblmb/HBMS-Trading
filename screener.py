@@ -1597,11 +1597,9 @@ def _safe_float(value):
 def vix_sd_payload(years=20):
     hist = None
     source = "none"
-    use_high = False
     if EODHD.enabled:
         hist, source = EODHD.intraday_history(["VIX.INDX"], years=years, interval="1h")
         if hist is not None and not hist.empty:
-            use_high = True
             source = f"{source}_daily_high"
         else:
             hist, source = EODHD.eod_history(["VIX.INDX"], years=years)
@@ -1620,13 +1618,23 @@ def vix_sd_payload(years=20):
 
     rows = []
     hist = hist.sort_index()
-    if use_high and "High" in hist.columns:
-        vix_series = hist["High"].dropna().astype(float)
-        vix_series.index = pd.to_datetime(vix_series.index).normalize()
-        vix_series = vix_series.groupby(vix_series.index).max()
-    else:
-        vix_series = hist["Close"].dropna().astype(float)
-    for idx, vix in vix_series.items():
+    vix_ohlc = pd.DataFrame(index=pd.to_datetime(hist.index).normalize())
+    vix_ohlc["close"] = pd.to_numeric(hist["Close"], errors="coerce")
+    vix_ohlc["open"] = pd.to_numeric(hist["Open"] if "Open" in hist.columns else hist["Close"], errors="coerce")
+    vix_ohlc["high"] = pd.to_numeric(hist["High"] if "High" in hist.columns else hist["Close"], errors="coerce")
+    vix_ohlc["low"] = pd.to_numeric(hist["Low"] if "Low" in hist.columns else hist["Close"], errors="coerce")
+    vix_ohlc = vix_ohlc.groupby(vix_ohlc.index).agg({
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+    }).dropna(subset=["close"])
+    for idx, row in vix_ohlc.iterrows():
+        close = float(row["close"])
+        open_v = float(row["open"]) if np.isfinite(row["open"]) else close
+        high = float(row["high"]) if np.isfinite(row["high"]) else close
+        low = float(row["low"]) if np.isfinite(row["low"]) else close
+        vix = max(open_v, high, close)
         if not np.isfinite(vix) or vix <= 0:
             continue
         sd = (float(vix) - 20.0) / 8.0
@@ -1634,12 +1642,16 @@ def vix_sd_payload(years=20):
         rows.append({
             "date": str(pd.Timestamp(idx).date()),
             "vix": round(float(vix), 2),
+            "vix_open": round(open_v, 2),
+            "vix_high": round(high, 2),
+            "vix_low": round(low, 2),
+            "vix_close": round(close, 2),
             "sd": round(sd, 2),
             "sd_clamped": round(sd_clamped, 2),
             "signal": bool(vix >= 35.0),
             "source": source,
-            "interval": "1h" if use_high else "1d",
-            "method": "daily_intraday_high" if use_high else "daily_close",
+            "interval": "1h" if "daily_high" in source else "1d",
+            "method": "daily_open_high_close_stress",
         })
 
     current = rows[-1] if rows else {}
@@ -1727,20 +1739,42 @@ def vix_spike_payload(years=20):
     if hist is None or hist.empty or "Close" not in hist.columns:
         return [], {"source": source, "status": "unavailable"}
 
-    close = hist.sort_index()["Close"].dropna().astype(float)
-    close.index = pd.to_datetime(close.index).normalize()
-    close = close[~close.index.duplicated(keep="last")]
-    pct = close.pct_change() * 100.0
-    abs_change = close.diff()
-    df = pd.DataFrame({"vix": close, "chg_pct": pct, "chg_abs": abs_change}).dropna()
+    hist = hist.sort_index()
+    vix_ohlc = pd.DataFrame(index=pd.to_datetime(hist.index).normalize())
+    vix_ohlc["close"] = pd.to_numeric(hist["Close"], errors="coerce")
+    vix_ohlc["open"] = pd.to_numeric(hist["Open"] if "Open" in hist.columns else hist["Close"], errors="coerce")
+    vix_ohlc["high"] = pd.to_numeric(hist["High"] if "High" in hist.columns else hist["Close"], errors="coerce")
+    vix_ohlc["low"] = pd.to_numeric(hist["Low"] if "Low" in hist.columns else hist["Close"], errors="coerce")
+    vix_ohlc = vix_ohlc.groupby(vix_ohlc.index).agg({
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+    }).dropna(subset=["close"])
+    vix_ohlc["vix"] = vix_ohlc[["open", "high", "close"]].max(axis=1)
+    prev_close = vix_ohlc["close"].shift(1)
+    close_pct = vix_ohlc["close"].pct_change() * 100.0
+    stress_pct = (vix_ohlc["vix"] / prev_close - 1.0) * 100.0
+    vix_ohlc["chg_pct"] = np.where(stress_pct > close_pct, stress_pct, close_pct)
+    vix_ohlc["chg_abs"] = np.where(
+        stress_pct > close_pct,
+        vix_ohlc["vix"] - prev_close,
+        vix_ohlc["close"].diff(),
+    )
+    df = vix_ohlc.dropna(subset=["chg_pct", "chg_abs"])
     rows = []
     for idx, row in df.iterrows():
         chg = float(row["chg_pct"])
         rows.append({
             "date": str(pd.Timestamp(idx).date()),
             "vix": round(float(row["vix"]), 2),
+            "vix_open": round(float(row["open"]), 2),
+            "vix_high": round(float(row["high"]), 2),
+            "vix_low": round(float(row["low"]), 2),
+            "vix_close": round(float(row["close"]), 2),
             "chg_pct": round(chg, 3),
             "chg_abs": round(float(row["chg_abs"]), 3),
+            "method": "max_open_high_close_vs_prior_close",
         })
 
     vals = np.array([r["chg_pct"] for r in rows], dtype=float)

@@ -352,6 +352,8 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .ret-fwd-row{font-size:10px;color:#888;padding:3px 0;border-top:1px solid rgba(255,255,255,.04)}
 .ret-fwd-row b{font-size:11px;font-weight:600;text-align:right}
 .ret-fwd-row em{font-style:normal;text-align:right;color:#777}
+.vix-ratio-forward .interp-title{min-height:24px;display:flex;align-items:flex-start}
+.vix-ratio-forward .ret-fwd-events{min-height:24px}
 .ma-forward-title{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
 .ma-sigma-toggle{margin-left:auto;border:0;background:transparent;color:#f1f1f1;font:inherit;font-size:9.5px;font-weight:600;cursor:pointer;padding:0;text-transform:none;letter-spacing:.02em;text-align:right}
 .ma-sigma-toggle:hover{color:#fff;text-decoration:underline;text-underline-offset:2px}
@@ -623,6 +625,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
       <div class="nav-item sub" onclick="showTab('cg-dailychg',this)">1-Day % Change</div>
+      <div class="nav-item sub" onclick="showTab('cg-spxspybb',this)">Bollinger Bands</div>
       <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
@@ -1630,6 +1633,72 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- SPY / QQQ BOLLINGER -->
+    <div class="panel cg-page" id="tab-cg-spxspybb">
+      <div class="cg-header">
+        <div class="cg-title">SPY / QQQ Bollinger Bands — Momentum Extension</div>
+        <div class="cg-sub">SPY or QQQ price chart with 20-period Bollinger Bands. Switch between daily and weekly closes, and select 2σ, 3σ or 4σ extension bands.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Close</div><div class="signal-bar-val" id="spxSpyBBRatio">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Mean</div><div class="signal-bar-val" id="spxSpyBBMean" style="color:#d8d8d8">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="spxSpyBBZ">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Band</div><div class="signal-bar-val" id="spxSpyBBBand" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Symbol</label>
+            <select id="spxSpyBBSymbol" onchange="setSPXSpyBBSymbol(this.value)">
+              <option value="SPY">SPY</option>
+              <option value="QQQ">QQQ</option>
+            </select>
+          </div>
+          <div class="signal-inline-control">
+            <label>Timeframe</label>
+            <select id="spxSpyBBTF" onchange="setSPXSpyBBTimeframe(this.value)">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="spxSpyBBSD">
+            <button class="hist-btn active" onclick="setSPXSpyBBSD(2,this)">2σ</button>
+            <button class="hist-btn" onclick="setSPXSpyBBSD(3,this)">3σ</button>
+            <button class="hist-btn" onclick="setSPXSpyBBSD(4,this)">4σ</button>
+          </div>
+          <div class="hist-range" id="spxSpyBBRange">
+            <button class="hist-btn" onclick="setSPXSpyBBRange('1Y',this)">1Y</button>
+            <button class="hist-btn active" onclick="setSPXSpyBBRange('5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setSPXSpyBBRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setSPXSpyBBRange('20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="spxSpyBBTitle">SPY — 20D Bollinger Bands</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Close</span>
+            <span style="color:#EF9F27">20P Mean</span>
+            <span style="color:#1D9E75">Upper Band</span>
+            <span style="color:#e05050">Lower Band</span>
+          </div>
+        </div>
+        <canvas id="spxSpyBBCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Upper Band</div><div class="interp-text">A close above the selected upper band marks unusually strong upside extension versus the recent 20-period trend.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Lower Band</div><div class="interp-text">A close below the selected lower band marks unusually strong downside extension or stress versus the recent 20-period trend.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Model</div><div class="interp-text">Bands use a fixed 20-period lookback. Daily uses 20 trading days; Weekly uses 20 weekly closes.</div></div>
+      </div>
+    </div>
+
     <!-- RETURN HISTOGRAM -->
     <div class="panel cg-page" id="tab-cg-rethist">
       <div class="cg-header">
@@ -2023,6 +2092,8 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell bear"><div class="interp-title bear">Backwardation</div><div class="interp-text">Ratio above 1 means spot VIX is above VIX3M. This is a fear regime and often appears around equity stress or panic lows.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Contango</div><div class="interp-text">Ratio below 1 means the curve is upward sloping. This is the normal volatility regime and generally supports trend-following conditions.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Line At 1.0</div><div class="interp-text">The horizontal 1.0 line separates the regimes. The further above 1.0, the more acute near-term fear is versus 3-month volatility.</div></div>
+        <div class="interp-cell bear vix-ratio-forward"><div class="interp-title bear">SPY Forward After Panic ≥ 1.2</div><div class="interp-text" id="vixRatioForwardPanic">Waiting for VIX/VIX3M data.</div></div>
+        <div class="interp-cell bull vix-ratio-forward"><div class="interp-title bull">SPY Forward After Deep Contango ≤ 0.8</div><div class="interp-text" id="vixRatioForwardContango">Waiting for VIX/VIX3M data.</div></div>
       </div>
     </div>
 
@@ -2617,6 +2688,7 @@ function showTab(id, el) {
   if(id === "cg-goldbin") setTimeout(drawGoldBinary, 60);
   if(id === "cg-btcbin") setTimeout(drawBTCBinaryXL, 60);
   if(id === "cg-dailychg") setTimeout(renderDailyChange, 60);
+  if(id === "cg-spxspybb") setTimeout(drawSPXSpyBollinger, 60);
   if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
@@ -2670,6 +2742,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-btcbin") drawBTCBinaryXL();
     if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
     if(activePanel && activePanel.id === "tab-cg-dailychg") renderDailyChange();
+    if(activePanel && activePanel.id === "tab-cg-spxspybb") drawSPXSpyBollinger();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
     if(activePanel && activePanel.id === "tab-cg-madist-stocks") renderMAStockDistance();
@@ -3074,6 +3147,170 @@ function renderDailyChange() {
   drawDailyChangeBars(rows, stats.mean, stats.sigma, domain);
 }
 
+function spxSpyBBRawRows(symbol) {
+  const item = dailyChangeData()[symbol === "QQQ" ? "QQQ" : "SPY"];
+  return (item && Array.isArray(item.returns) ? item.returns : [])
+    .filter(r => r && r.date && Number.isFinite(+r.close))
+    .map(r => ({ date: r.date, close: +r.close }));
+}
+
+function bollingerRows(rows, sdMult=3, lookback=20) {
+  return (rows || []).map((row, i) => {
+    const out = { ...row, mean:null, upper:null, lower:null, z:null };
+    if(i < lookback - 1) return out;
+    const slice = rows.slice(i - lookback + 1, i + 1).map(r => +r.close).filter(Number.isFinite);
+    if(slice.length < lookback) return out;
+    const mean = slice.reduce((a,b)=>a+b,0) / slice.length;
+    const variance = slice.reduce((a,b)=>a + Math.pow(b - mean, 2), 0) / slice.length;
+    const sigma = Math.sqrt(variance);
+    out.mean = mean;
+    out.upper = mean + sdMult * sigma;
+    out.lower = mean - sdMult * sigma;
+    out.z = sigma > 0 ? (+row.close - mean) / sigma : 0;
+    return out;
+  });
+}
+
+function drawSPXSpyBollinger(hoverIndex=null) {
+  const symbol = spxSpyBBSymbol === "QQQ" ? "QQQ" : "SPY";
+  const tf = spxSpyBBTimeframe === "weekly" ? "weekly" : "daily";
+  const symbolSel = document.getElementById("spxSpyBBSymbol");
+  if(symbolSel) symbolSel.value = symbol;
+  const tfSel = document.getElementById("spxSpyBBTF");
+  if(tfSel) tfSel.value = tf;
+
+  let rawRows = spxSpyBBRawRows(symbol).sort((a,b)=>rowDateMs(a)-rowDateMs(b));
+  if(tf === "weekly") rawRows = weeklyFromDaily(rawRows);
+  const domain = ensureCGDateControls("cg-spxspybb", [rawRows], spxSpyBBHistoryRange);
+  const visibleBase = filterRowsByDateDomain(rawRows, domain);
+  const firstVisible = visibleBase[0];
+  const firstIdx = firstVisible ? rawRows.findIndex(r => r.date === firstVisible.date) : 0;
+  const calcRows = bollingerRows(rawRows.slice(Math.max(0, firstIdx - 25)), spxSpyBBSD, 20);
+  const rows = visibleBase.map(r => calcRows.find(x => x.date === r.date) || r);
+  const c = mkCanvas("spxSpyBBCanvas", 430); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 70, bottom: 30, left: 52 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#151515"; ctx.fillRect(0, 0, W, H);
+  if(rows.length < 30 || !domain) {
+    ctx.fillStyle = "#555"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(`${symbol} Bollinger history unavailable - run screener.py`, W / 2, H / 2);
+    return;
+  }
+
+  const vals = rows.flatMap(r => [+r.close, +r.upper, +r.lower]).filter(Number.isFinite);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max((hi - lo) * .08, hi * .004);
+  const yMin = lo - pad, yMax = hi + pad;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((v - yMin) / (yMax - yMin || 1)) * PH;
+
+  ctx.setLineDash([2, 4]);
+  ctx.strokeStyle = "rgba(255,255,255,.045)";
+  for(let i = 0; i <= 5; i++) {
+    const y = PAD.top + (PH / 5) * i;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  const line = (key, color, width=1.4, dash=null) => {
+    ctx.beginPath();
+    let started = false;
+    rows.forEach(row => {
+      const v = +row[key];
+      if(!Number.isFinite(v)) return;
+      const x = toX(row), y = toY(v);
+      if(!started) { ctx.moveTo(x, y); started = true; }
+      else ctx.lineTo(x, y);
+    });
+    if(dash) ctx.setLineDash(dash);
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+    if(dash) ctx.setLineDash([]);
+  };
+
+  ctx.beginPath();
+  let started = false;
+  rows.forEach(row => {
+    if(!Number.isFinite(+row.upper)) return;
+    const x = toX(row), y = toY(+row.upper);
+    if(!started) { ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  });
+  [...rows].reverse().forEach(row => {
+    if(Number.isFinite(+row.lower)) ctx.lineTo(toX(row), toY(+row.lower));
+  });
+  ctx.closePath();
+  ctx.fillStyle = "rgba(93,202,165,.055)";
+  ctx.fill();
+
+  line("upper", "rgba(93,202,165,.88)", 1.25, [5, 4]);
+  line("lower", "rgba(224,80,80,.86)", 1.25, [5, 4]);
+  line("mean", "rgba(239,159,39,.85)", 1.2, [3, 4]);
+  line("close", "#d8d8d8", 1.85);
+
+  ctx.fillStyle = "#555"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+  [yMin, (yMin + yMax) / 2, yMax].forEach(v => ctx.fillText(v.toFixed(symbol === "SPY" ? 1 : 0), PAD.left - 5, toY(v) + 3));
+  ctx.fillStyle = "#4a4a4a"; ctx.textAlign = "center";
+  [0, .2, .4, .6, .8, 1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    const d = new Date(ms);
+    ctx.fillText(d.toLocaleString("en-US", { year: "2-digit" }), toDateX(ms), H - PAD.bottom + 12);
+  });
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r), y = toY(+r.close);
+    const col = Number.isFinite(+r.z) ? (+r.z >= spxSpyBBSD ? "#1D9E75" : +r.z <= -spxSpyBBSD ? "#e05050" : "#d8d8d8") : "#d8d8d8";
+    const dt = new Date(r.date + "T12:00:00");
+    const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · ${(+r.close).toFixed(symbol === "SPY" ? 2 : 1)} · ${Number.isFinite(+r.z) ? ((+r.z >= 0 ? "+" : "") + (+r.z).toFixed(2) + "σ") : "—"}`;
+    ctx.strokeStyle = col; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.font = "bold 10px sans-serif";
+    const boxW = ctx.measureText(label).width + 16, boxH = 22;
+    const bx = Math.max(PAD.left + 2, Math.min(W - PAD.right - boxW - 2, x - boxW / 2));
+    const by = Math.max(PAD.top + 4, Math.min(H - PAD.bottom - boxH - 4, y - boxH - 10));
+    ctx.fillStyle = "rgba(8,8,8,.94)"; ctx.strokeStyle = "#303030";
+    ctx.fillRect(bx, by, boxW, boxH); ctx.strokeRect(bx, by, boxW, boxH);
+    ctx.fillStyle = col; ctx.textAlign = "left"; ctx.fillText(label, bx + 8, by + 14);
+  }
+
+  const latest = [...rows].reverse().find(r => Number.isFinite(+r.close));
+  const band = latest && Number.isFinite(+latest.z)
+    ? (+latest.z >= spxSpyBBSD ? "Above Upper" : +latest.z <= -spxSpyBBSD ? "Below Lower" : "Inside Bands")
+    : "—";
+  const bandColor = band === "Above Upper" ? "#1D9E75" : band === "Below Lower" ? "#e05050" : "#777";
+  const set = (id, txt, color) => {
+    const el = document.getElementById(id);
+    if(el) { el.textContent = txt; if(color) el.style.color = color; }
+  };
+  set("spxSpyBBRatio", latest ? (+latest.close).toFixed(symbol === "SPY" ? 2 : 1) : "—", "#d8d8d8");
+  set("spxSpyBBMean", latest && Number.isFinite(+latest.mean) ? (+latest.mean).toFixed(symbol === "SPY" ? 2 : 1) : "—", "#d8d8d8");
+  set("spxSpyBBZ", latest && Number.isFinite(+latest.z) ? ((+latest.z >= 0 ? "+" : "") + (+latest.z).toFixed(2) + "σ") : "—", bandColor);
+  set("spxSpyBBBand", band, bandColor);
+  const title = document.getElementById("spxSpyBBTitle");
+  if(title) title.textContent = `${symbol} — 20${tf === "weekly" ? "W" : "D"} Bollinger Bands (${spxSpyBBSD}σ)`;
+
+  const canvas = document.getElementById("spxSpyBBCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) { drawSPXSpyBollinger(null); return; }
+      const targetMs = domain.startMs + ((x - PAD.left) / PW) * xSpan;
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawSPXSpyBollinger(idx);
+    };
+    canvas.onmouseleave = () => drawSPXSpyBollinger(null);
+  }
+}
+
 function vixRatioRows() {
   const md = window._marketData || {};
   return (Array.isArray(md.vix_history) ? md.vix_history : [])
@@ -3093,6 +3330,87 @@ function vixRatioRows() {
         ratioOpen: vixOpen / vix3mOpen
       };
     });
+}
+
+function vixRatioSPYRows() {
+  const spy = dailyChangeData().SPY;
+  const rows = (spy && Array.isArray(spy.returns) ? spy.returns : [])
+    .filter(r => r && r.date && Number.isFinite(+r.close))
+    .map(r => ({ date: r.date, close: +r.close }));
+  if(rows.length) return rows;
+  return marketHistory("sp500_history_20y")
+    .filter(r => r && r.date && Number.isFinite(+r.close))
+    .map(r => ({ date: r.date, close: +r.close }));
+}
+
+function addMonthsISO(dateStr, months) {
+  const d = new Date(dateStr + "T12:00:00");
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if(d.getDate() !== day) d.setDate(0);
+  return d.getTime();
+}
+
+function firstRowAtOrAfter(rows, targetMs, start=0) {
+  for(let i = Math.max(0, start); i < rows.length; i++) {
+    if(rowDateMs(rows[i]) >= targetMs) return { row: rows[i], index: i };
+  }
+  return null;
+}
+
+function vixRatioThresholdEvents(rows, side, threshold) {
+  const events = [];
+  let wasInside = false;
+  rows.forEach(row => {
+    const stress = Math.max(+row.ratio, +row.ratioOpen);
+    if(!Number.isFinite(stress)) return;
+    const inside = side === "high" ? stress >= threshold : stress <= threshold;
+    if(inside && !wasInside) events.push({ date: row.date, value: stress });
+    wasInside = inside;
+  });
+  return events;
+}
+
+function vixRatioForwardSummary(events, priceRows) {
+  const horizons = [1, 3, 6, 12];
+  const out = {};
+  horizons.forEach(h => out[h] = []);
+  if(!events.length || priceRows.length < 50) return out;
+  events.forEach(ev => {
+    const start = firstRowAtOrAfter(priceRows, rowDateMs(ev));
+    if(!start || !Number.isFinite(+start.row.close)) return;
+    horizons.forEach(h => {
+      const target = firstRowAtOrAfter(priceRows, addMonthsISO(start.row.date, h), start.index + 1);
+      if(!target || !Number.isFinite(+target.row.close)) return;
+      out[h].push((+target.row.close / +start.row.close - 1) * 100);
+    });
+  });
+  return out;
+}
+
+function renderVIXRatioForwardStats(rows, domain=null) {
+  const priceRows = vixRatioSPYRows();
+  const panicEvents = vixRatioThresholdEvents(rows, "high", 1.2);
+  const contangoEvents = vixRatioThresholdEvents(rows, "low", 0.8);
+  const panic = vixRatioForwardSummary(panicEvents, priceRows);
+  const contango = vixRatioForwardSummary(contangoEvents, priceRows);
+  const html = (events, summary) => {
+    if(!priceRows.length) return "SPY history unavailable.";
+    const body = [1, 3, 6, 12].map(h => {
+      const vals = summary[h] || [];
+      if(!vals.length) return `<div class="ret-fwd-row"><span>${h}M</span><b>—</b><em>—</em></div>`;
+      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+      const win = vals.filter(v => v > 0).length / vals.length * 100;
+      const col = avg >= 0 ? "#5DCAA5" : "#e05050";
+      return `<div class="ret-fwd-row"><span>${h}M</span><b style="color:${col}">${fmtPct(avg, 1)}</b><em>${win.toFixed(0)}% Profit</em></div>`;
+    }).join("");
+    const windowLabel = domain && rows.length ? ` · ${rows[0].date} to ${rows[rows.length - 1].date}` : "";
+    return `<div class="ret-fwd-events">${events.length} threshold events${windowLabel}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>${body}`;
+  };
+  const panicEl = document.getElementById("vixRatioForwardPanic");
+  const contangoEl = document.getElementById("vixRatioForwardContango");
+  if(panicEl) panicEl.innerHTML = html(panicEvents, panic);
+  if(contangoEl) contangoEl.innerHTML = html(contangoEvents, contango);
 }
 
 function drawVIXRatioChart(hoverIndex=null) {
@@ -3129,54 +3447,33 @@ function drawVIXRatioChart(hoverIndex=null) {
   ctx.setLineDash([4, 5]);
   const levels = [
     [min, "#2b2b2b", min.toFixed(2)],
-    [0.8, "#242424", "0.80"],
+    [0.8, "#1D9E75", "Deep Contango"],
     [1.0, "#8a8a8a", "1.00"],
-    [1.2, "#242424", "1.20"],
+    [1.2, "#e05050", "Panic"],
     [max, "#2b2b2b", max.toFixed(2)]
   ];
   levels.forEach(([v, color, label]) => {
     if(v < min || v > max) return;
     const y = toY(v);
     ctx.strokeStyle = color;
-    ctx.lineWidth = v === 1 ? 1.25 : 1;
+    ctx.lineWidth = (v === 0.8 || v === 1.2) ? 1.35 : (v === 1 ? 1.25 : 1);
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
-    ctx.fillStyle = v === 1 ? "#9a9a9a" : "#4a4a4a";
-    ctx.font = v === 1 ? "bold 8px sans-serif" : "8px sans-serif";
+    ctx.fillStyle = (v === 0.8 || v === 1.2 || v === 1) ? color : "#4a4a4a";
+    ctx.font = (v === 0.8 || v === 1.2 || v === 1) ? "bold 8px sans-serif" : "8px sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(label, PAD.left + PW + 6, y + 3);
   });
   ctx.setLineDash([]);
 
   ctx.fillStyle = "#666"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "left";
-  ctx.fillText("BACKWARDATION", PAD.left + 4, Math.max(PAD.top + 14, yOne - 12));
+  ctx.fillText("BACKWARDATION", PAD.left + 4, PAD.top + 14);
   ctx.fillStyle = "#555";
-  ctx.fillText("CONTANGO", PAD.left + 4, Math.min(H - PAD.bottom - 8, yOne + 20));
-
-  rows.forEach(row => {
-    const ratioHigh = Math.max(+row.ratio, +row.ratioOpen);
-    if(!Number.isFinite(ratioHigh) || ratioHigh <= 1) return;
-    const x = toX(row);
-    ctx.fillStyle = "rgba(224,80,80,.45)";
-    ctx.fillRect(x - 0.7, toY(ratioHigh), 1.4, Math.max(1, yOne - toY(ratioHigh)));
-  });
-
-  const stemW = Math.max(1, Math.min(3, PW / rows.length * 1.2));
-  rows.forEach(row => {
-    const open = +row.ratioOpen;
-    const close = +row.ratio;
-    if(!Number.isFinite(open) || !Number.isFinite(close)) return;
-    const x = toX(row), yO = toY(open), yC = toY(close);
-    ctx.strokeStyle = close >= open ? "rgba(29,158,117,.48)" : "rgba(224,80,80,.48)";
-    ctx.lineWidth = stemW;
-    ctx.beginPath();
-    ctx.moveTo(x, yO);
-    ctx.lineTo(x, yC);
-    ctx.stroke();
-  });
+  ctx.fillText("CONTANGO", PAD.left + 4, PAD.top + PH - 8);
 
   ctx.beginPath();
   rows.forEach((row, i) => {
-    const x = toX(row), y = toY(+row.ratio);
+    const stressRatio = Math.max(+row.ratio, +row.ratioOpen);
+    const x = toX(row), y = toY(stressRatio);
     if(i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
@@ -3193,10 +3490,11 @@ function drawVIXRatioChart(hoverIndex=null) {
 
   if(hoverIndex != null && rows[hoverIndex]) {
     const r = rows[hoverIndex];
-    const x = toX(r), y = toY(+r.ratio);
-    const col = +r.ratio >= 1 ? "#e05050" : "#1D9E75";
+    const stressRatio = Math.max(+r.ratio, +r.ratioOpen);
+    const x = toX(r), y = toY(stressRatio);
+    const col = stressRatio >= 1 ? "#e05050" : "#1D9E75";
     const dt = new Date(r.date + "T12:00:00");
-    const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · O ${(+r.ratioOpen).toFixed(3)} / C ${(+r.ratio).toFixed(3)}`;
+    const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · Stress ${stressRatio.toFixed(3)} · O ${(+r.ratioOpen).toFixed(3)} / C ${(+r.ratio).toFixed(3)}`;
     ctx.strokeStyle = col; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
     ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
@@ -3239,6 +3537,7 @@ function drawVIXRatioChart(hoverIndex=null) {
   if(read && latest) {
     read.textContent = `${latest.date}: VIX/VIX3M opened at ${latestOpenRatio.toFixed(3)} and closed at ${latestRatio.toFixed(3)}, so the curve is in ${latestRegime}. Above 1.0 means spot volatility trades over 3-month volatility.`;
   }
+  renderVIXRatioForwardStats(rows, domain);
 
   const canvas = document.getElementById("vixRatioCanvas");
   if(canvas) {
@@ -4597,6 +4896,10 @@ let vixspikeHistoryRange = "5Y";
 let vixRatioHistoryRange = "3Y";
 let maDistHistoryRange = "5Y";
 let dailyChgHistoryRange = "5Y";
+let spxSpyBBHistoryRange = "5Y";
+let spxSpyBBSD = 2;
+let spxSpyBBTimeframe = "daily";
+let spxSpyBBSymbol = "SPY";
 let retHistHistoryRange = "max";
 let rollRetHistoryRange = "10Y";
 const cgDateRanges = {};
@@ -4609,6 +4912,7 @@ const cgRedraw = {
   "cg-goldbin": () => drawGoldBinary(),
   "cg-btcbin": () => drawBTCBinaryXL(),
   "cg-dailychg": () => renderDailyChange(),
+  "cg-spxspybb": () => drawSPXSpyBollinger(),
   "cg-rollret": () => drawRollingReturnModel(),
   "cg-vixsd": () => drawVIXSDSignal(),
   "cg-vixrv": () => drawVIXRealizedVol(),
@@ -4848,6 +5152,33 @@ function setDailyChangeRange(range, btn) {
   renderDailyChange();
 }
 
+function setSPXSpyBBSymbol(symbol) {
+  spxSpyBBSymbol = symbol === "QQQ" ? "QQQ" : "SPY";
+  delete cgDateRanges["cg-spxspybb"];
+  drawSPXSpyBollinger();
+}
+
+function setSPXSpyBBSD(sd, btn) {
+  spxSpyBBSD = Number(sd) || spxSpyBBSD;
+  document.querySelectorAll("#spxSpyBBSD .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  drawSPXSpyBollinger();
+}
+
+function setSPXSpyBBTimeframe(tf) {
+  spxSpyBBTimeframe = tf === "weekly" ? "weekly" : "daily";
+  delete cgDateRanges["cg-spxspybb"];
+  drawSPXSpyBollinger();
+}
+
+function setSPXSpyBBRange(range, btn) {
+  spxSpyBBHistoryRange = range || spxSpyBBHistoryRange;
+  delete cgDateRanges["cg-spxspybb"];
+  document.querySelectorAll("#spxSpyBBRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  drawSPXSpyBollinger();
+}
+
 function setVIXRatioRange(range, btn) {
   vixRatioHistoryRange = range || vixRatioHistoryRange;
   delete cgDateRanges["cg-vixratio"];
@@ -4959,7 +5290,7 @@ function drawVIXSDSignal() {
   const title = document.getElementById("vixsdPriceTitle");
   if(title) title.textContent = `S&P 500 — ${vixsdHistoryRange} Daily Log Chart`;
   const barsTitle = document.getElementById("vixsdBarsTitle");
-  if(barsTitle) barsTitle.textContent = `VIX SD Level — ${vixsdHistoryRange} Daily Close by Day`;
+  if(barsTitle) barsTitle.textContent = `VIX SD Level — ${vixsdHistoryRange} Daily Spike by Day`;
 
   const current = md.vix_sd_current || {};
   const latest = rawVix.length ? rawVix[rawVix.length - 1] : {};

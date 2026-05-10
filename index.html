@@ -5290,7 +5290,7 @@ function drawVIXSDSignal() {
   const title = document.getElementById("vixsdPriceTitle");
   if(title) title.textContent = `S&P 500 — ${vixsdHistoryRange} Daily Log Chart`;
   const barsTitle = document.getElementById("vixsdBarsTitle");
-  if(barsTitle) barsTitle.textContent = `VIX SD Level — ${vixsdHistoryRange} Daily Close by Day`;
+  if(barsTitle) barsTitle.textContent = `VIX SD Level — ${vixsdHistoryRange} Daily Spike by Day`;
 
   const current = md.vix_sd_current || {};
   const latest = rawVix.length ? rawVix[rawVix.length - 1] : {};
