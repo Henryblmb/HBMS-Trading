@@ -2490,9 +2490,20 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">New Lows</div><div class="signal-bar-val" id="newLowsCountVal">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Threshold</div><div class="signal-bar-val" style="font-size:14px;color:#e05050;padding-top:4px">&gt;4%</div></div>
+        <div><div class="signal-bar-label">Threshold</div><div class="signal-bar-val" id="newLowsThresholdVal" style="font-size:14px;color:#e05050;padding-top:4px">&gt;4%</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="newLowsRegimeVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Trigger</label>
+            <div class="ma-sigma-pick">
+              <button id="newLowsThresh2" onclick="setNewLowsThreshold(2)">2%</button>
+              <button id="newLowsThresh3" onclick="setNewLowsThreshold(3)">3%</button>
+              <button id="newLowsThresh4" class="active" onclick="setNewLowsThreshold(4)">4%</button>
+              <button id="newLowsThresh5" onclick="setNewLowsThreshold(5)">5%</button>
+            </div>
+          </div>
+        </div>
         <div class="signal-range-controls" data-cg-date-host>
           <div class="hist-range" id="newLowsRange">
             <button class="hist-btn" onclick="setNewLowsRange('1Y',this)">1Y</button>
@@ -2646,6 +2657,7 @@ let maBreadthMetric = "50d";
 let maBreadthHistoryRange = "10Y";
 let maBreadthThresholdPct = 20;
 let newLowsHistoryRange = "10Y";
+let newLowsThresholdPct = 4;
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
@@ -4498,6 +4510,11 @@ function setNewLowsRange(range, btn) {
   delete cgDateRanges["cg-newlows"];
   document.querySelectorAll("#newLowsRange .hist-btn").forEach(b => b.classList.remove("active"));
   if(btn) btn.classList.add("active");
+  drawNewLowsBreadth();
+}
+
+function setNewLowsThreshold(level) {
+  newLowsThresholdPct = [2, 3, 4, 5].includes(+level) ? +level : 4;
   drawNewLowsBreadth();
 }
 
@@ -7039,8 +7056,14 @@ function drawNewLowsBreadth(hoverIndex=null) {
     ctx.fillText("New 52W lows breadth history unavailable - run screener.py", W/2, H/2);
     return;
   }
-  const threshold = Number.isFinite(+((md.new_lows_52w_status || {}).threshold)) ? +(md.new_lows_52w_status || {}).threshold : 4;
+  const threshold = [2, 3, 4, 5].includes(+newLowsThresholdPct) ? +newLowsThresholdPct : 4;
   const xSpan = domain.endMs - domain.startMs || 1;
+  [2, 3, 4, 5].forEach(level => {
+    const btn = document.getElementById(`newLowsThresh${level}`);
+    if(btn) btn.classList.toggle("active", level === threshold);
+  });
+  const thresholdVal = document.getElementById("newLowsThresholdVal");
+  if(thresholdVal) thresholdVal.textContent = `>${threshold}%`;
   document.querySelectorAll("#newLowsRange .hist-btn").forEach(btn => btn.classList.toggle("active", btn.textContent.trim().toLowerCase() === String(newLowsHistoryRange).toLowerCase()));
   const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
   const toX = r => toDateX(rowDateMs(r));
