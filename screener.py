@@ -2277,6 +2277,95 @@ def sp500_new_lows_from_stock_histories(history_items, stock_results, display_st
     }
 
 
+def sp500_new_highs_from_stock_histories(history_items, stock_results, display_start="2006-01-01", lookback=252, smooth=10, threshold=15.0):
+    sp500_tickers = {
+        str(row.get("ticker", "")).upper()
+        for row in (stock_results or [])
+        if row.get("group") == "SP500" and row.get("ticker")
+    }
+    counts = {}
+    for item in history_items or []:
+        ticker = str(item.get("ticker", "")).upper()
+        if ticker not in sp500_tickers:
+            continue
+        dates, closes = [], []
+        for r in item.get("rows") or []:
+            if len(r) < 4 or r[0] is None or r[3] is None:
+                continue
+            try:
+                close = float(r[3])
+                if close <= 0:
+                    continue
+                dates.append(pd.Timestamp(r[0]))
+                closes.append(close)
+            except Exception:
+                continue
+        if len(closes) < lookback:
+            continue
+        s = pd.Series(closes, index=pd.DatetimeIndex(dates)).sort_index()
+        roll_high = s.rolling(lookback, min_periods=max(80, lookback // 2)).max()
+        valid = roll_high.notna()
+        at_high = (s >= roll_high * 0.9999) & valid
+        for dt, is_valid in valid.items():
+            if not bool(is_valid) or str(pd.Timestamp(dt).date()) < display_start:
+                continue
+            d = str(pd.Timestamp(dt).date())
+            bucket = counts.setdefault(d, {"date": d, "universe": 0, "new_highs": 0})
+            bucket["universe"] += 1
+            if bool(at_high.loc[dt]):
+                bucket["new_highs"] += 1
+
+    base_rows = []
+    for d in sorted(counts):
+        bucket = counts[d]
+        universe = bucket["universe"]
+        if universe < 100:
+            continue
+        new_highs = bucket["new_highs"]
+        base_rows.append({
+            "date": d,
+            "new_highs": int(new_highs),
+            "universe": int(universe),
+            "pct": round(new_highs / universe * 100, 2),
+        })
+    if not base_rows:
+        return [], {
+            "status": "unavailable",
+            "source": "current_sp500_constituent_histories",
+            "method": "10D SMA of percent of current S&P 500 constituents at 12-month closing highs",
+        }
+
+    df = pd.DataFrame(base_rows)
+    df["avg10"] = df["pct"].rolling(smooth, min_periods=1).mean()
+    rows = []
+    for _, row in df.iterrows():
+        rows.append({
+            "date": row["date"],
+            "new_highs": int(row["new_highs"]),
+            "universe": int(row["universe"]),
+            "pct": round(float(row["pct"]), 2),
+            "avg10": round(float(row["avg10"]), 2),
+            "signal": bool(row["avg10"] > threshold),
+        })
+
+    last = rows[-1]
+    return rows, {
+        "status": "expansion" if last["avg10"] > threshold else "normal",
+        "source": "current_sp500_constituent_histories",
+        "method": "10D SMA of percent of current S&P 500 constituents at 12-month closing highs; survivorship-biased",
+        "current_date": last["date"],
+        "current_pct": last["pct"],
+        "current_avg10": last["avg10"],
+        "current_new_highs": last["new_highs"],
+        "current_universe": last["universe"],
+        "lookback_days": lookback,
+        "smooth_days": smooth,
+        "threshold": threshold,
+        "start_date": rows[0]["date"],
+        "observations": len(rows),
+    }
+
+
 def zweig_breadth_thrust_from_stock_histories(history_items, years=30, display_start="2008-01-01", lower=0.40, upper=0.615, window=10, min_gap=42):
     source = "current_sp500_constituent_histories"
     method = "Algorithmic fallback own-version Zweig Breadth Thrust over 10D EMA of S&P 500 constituent advancing/(advancing+declining); current S&P 500 constituent history is survivorship-biased"
@@ -4390,6 +4479,9 @@ def run_once(upload=True, include_insider=True):
     new_lows_rows, new_lows_status = sp500_new_lows_from_stock_histories(ma_stock_history, stock_results)
     market_indicators["new_lows_52w_history"] = new_lows_rows
     market_indicators["new_lows_52w_status"] = new_lows_status
+    new_highs_rows, new_highs_status = sp500_new_highs_from_stock_histories(ma_stock_history, stock_results)
+    market_indicators["new_highs_52w_history"] = new_highs_rows
+    market_indicators["new_highs_52w_status"] = new_highs_status
 
     insider_trades = []
     if include_insider:

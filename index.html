@@ -617,6 +617,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-zbt',this)">Zweig Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-mabreadth',this)">% Stocks above</div>
+      <div class="nav-item sub" onclick="showTab('cg-newhighs',this)">New 52W Highs</div>
       <div class="nav-item sub" onclick="showTab('cg-newlows',this)">New 52W Lows</div>
       <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
     </div>
@@ -2476,6 +2477,63 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- NEW 52W HIGHS -->
+    <div class="panel cg-page" id="tab-cg-newhighs">
+      <div class="cg-header">
+        <div class="cg-title">New 52W Highs — S&amp;P 500 Breadth</div>
+        <div class="cg-sub">10-day average of the percentage of current S&amp;P 500 constituents trading at 12-month closing highs. Green background marks broad upside expansion above the selected threshold.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">10D Avg</div><div class="signal-bar-val" id="newHighsAvgVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Raw %</div><div class="signal-bar-val" id="newHighsPctVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">New Highs</div><div class="signal-bar-val" id="newHighsCountVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Threshold</div><div class="signal-bar-val" id="newHighsThresholdVal" style="font-size:14px;color:#1D9E75;padding-top:4px">&gt;15%</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="newHighsRegimeVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Trigger</label>
+            <div class="ma-sigma-pick">
+              <button id="newHighsThresh10" onclick="setNewHighsThreshold(10)">10%</button>
+              <button id="newHighsThresh15" class="active" onclick="setNewHighsThreshold(15)">15%</button>
+              <button id="newHighsThresh20" onclick="setNewHighsThreshold(20)">20%</button>
+              <button id="newHighsThresh25" onclick="setNewHighsThreshold(25)">25%</button>
+            </div>
+          </div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="newHighsRange">
+            <button class="hist-btn" onclick="setNewHighsRange('1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setNewHighsRange('5Y',this)">5Y</button>
+            <button class="hist-btn active" onclick="setNewHighsRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setNewHighsRange('20Y',this)">20Y</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="newHighsTitle">S&amp;P 500 + 10D Avg % New 52W Highs</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span><span class="cg-leg-line" style="background:#315cff"></span>10D avg</span>
+            <span style="color:#1D9E75">— Expansion trigger</span>
+          </div>
+        </div>
+        <canvas id="newHighsCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bull"><div class="interp-title bull">Above Trigger</div><div class="interp-text">A broad share of the S&amp;P 500 is printing new highs. This usually confirms trend participation and upside breadth.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Below Trigger</div><div class="interp-text">New highs are present but not broad enough to qualify as expansion. Watch whether the average improves or rolls over.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Method</div><div class="interp-text">Uses current S&amp;P 500 constituent histories and closing-price 12M highs, so older history is survivorship-biased.</div></div>
+      </div>
+    </div>
+
     <!-- NEW 52W LOWS -->
     <div class="panel cg-page" id="tab-cg-newlows">
       <div class="cg-header">
@@ -2658,6 +2716,8 @@ let maBreadthHistoryRange = "10Y";
 let maBreadthThresholdPct = 20;
 let newLowsHistoryRange = "10Y";
 let newLowsThresholdPct = 4;
+let newHighsHistoryRange = "10Y";
+let newHighsThresholdPct = 15;
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
@@ -2764,6 +2824,7 @@ function showTab(id, el) {
   if(id === "cg-zbt") setTimeout(drawZweigBreadthThrust, 60);
   if(id === "cg-rspspy") setTimeout(drawRSPSpyBreadth, 60);
   if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
+  if(id === "cg-newhighs") setTimeout(drawNewHighsBreadth, 60);
   if(id === "cg-newlows") setTimeout(drawNewLowsBreadth, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
@@ -2818,6 +2879,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-zbt") drawZweigBreadthThrust();
     if(activePanel && activePanel.id === "tab-cg-rspspy") drawRSPSpyBreadth();
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
+    if(activePanel && activePanel.id === "tab-cg-newhighs") drawNewHighsBreadth();
     if(activePanel && activePanel.id === "tab-cg-newlows") drawNewLowsBreadth();
     if(activePanel && activePanel.id === "tab-signal-calendar") renderSignalCalendar();
   } catch(e) {
@@ -4518,6 +4580,19 @@ function setNewLowsThreshold(level) {
   drawNewLowsBreadth();
 }
 
+function setNewHighsRange(range, btn) {
+  newHighsHistoryRange = range || newHighsHistoryRange;
+  delete cgDateRanges["cg-newhighs"];
+  document.querySelectorAll("#newHighsRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  drawNewHighsBreadth();
+}
+
+function setNewHighsThreshold(level) {
+  newHighsThresholdPct = [10, 15, 20, 25].includes(+level) ? +level : 15;
+  drawNewHighsBreadth();
+}
+
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
   const sigmaLevel = maDistBacktestSigmaLevel || 2;
@@ -5004,6 +5079,7 @@ const cgRedraw = {
   "cg-zbt": () => drawZweigBreadthThrust(),
   "cg-rspspy": () => drawRSPSpyBreadth(),
   "cg-mabreadth": () => drawStocksAboveAnalyzer(),
+  "cg-newhighs": () => drawNewHighsBreadth(),
   "cg-newlows": () => drawNewLowsBreadth(),
   "cg-oil": () => drawOilCharts(),
   "cg-goldsilver": () => drawGoldSilverRatio(),
@@ -7188,6 +7264,163 @@ function drawNewLowsBreadth(hoverIndex=null) {
       drawNewLowsBreadth(idx);
     };
     canvas.onmouseleave = () => drawNewLowsBreadth(null);
+  }
+}
+
+function drawNewHighsBreadth(hoverIndex=null) {
+  const md = window._marketData || {};
+  const rawRows = Array.isArray(md.new_highs_52w_history) ? md.new_highs_52w_history : [];
+  const rawPrice = marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history");
+  const domain = ensureCGCommonDateControls("cg-newhighs", [rawPrice, rawRows], newHighsHistoryRange);
+  const priceRows = filterRowsByDateDomain(rawPrice, domain);
+  const rows = filterRowsByDateDomain(rawRows, domain).filter(r => Number.isFinite(+r.avg10));
+  const c = mkCanvas("newHighsCanvas", 520); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 68, bottom: 32, left: 48 };
+  const gap = 22;
+  const topH = Math.round((H - PAD.top - PAD.bottom - gap) * .64);
+  const botH = H - PAD.top - PAD.bottom - gap - topH;
+  const topY = PAD.top;
+  const botY = PAD.top + topH + gap;
+  const PW = W - PAD.left - PAD.right;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  if(!domain || priceRows.length < 40 || rows.length < 40) {
+    ctx.fillStyle="rgba(255,255,255,.10)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("New 52W highs breadth history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const threshold = [10, 15, 20, 25].includes(+newHighsThresholdPct) ? +newHighsThresholdPct : 15;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  [10, 15, 20, 25].forEach(level => {
+    const btn = document.getElementById(`newHighsThresh${level}`);
+    if(btn) btn.classList.toggle("active", level === threshold);
+  });
+  const thresholdVal = document.getElementById("newHighsThresholdVal");
+  if(thresholdVal) thresholdVal.textContent = `>${threshold}%`;
+  document.querySelectorAll("#newHighsRange .hist-btn").forEach(btn => btn.classList.toggle("active", btn.textContent.trim().toLowerCase() === String(newHighsHistoryRange).toLowerCase()));
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toX = r => toDateX(rowDateMs(r));
+  const priceVals = priceRows.map(r => +r.close).filter(v => v > 0);
+  const minLog = Math.log(Math.min(...priceVals)) * .998;
+  const maxLog = Math.log(Math.max(...priceVals)) * 1.002;
+  const toPriceY = v => topY + topH - ((Math.log(v) - minLog) / (maxLog - minLog || 1)) * topH;
+  const breadthVals = rows.flatMap(r => [+r.pct, +r.avg10]).filter(Number.isFinite);
+  const yMax = Math.max(30, Math.min(70, Math.ceil(Math.max(...breadthVals, threshold) / 10) * 10 + 10));
+  const toBreadthY = v => botY + botH - (Math.max(0, Math.min(yMax, v)) / yMax) * botH;
+
+  const drawRegimeBands = (y, h) => {
+    let start = 0;
+    while(start < rows.length) {
+      const expansion = +rows[start].avg10 > threshold;
+      let end = start + 1;
+      while(end < rows.length && (+rows[end].avg10 > threshold) === expansion) end++;
+      const x1 = Math.max(PAD.left, toX(rows[start]));
+      const last = rows[Math.max(start, end - 1)];
+      const next = rows[end];
+      const x2 = Math.min(PAD.left + PW, next ? toX(next) : toX(last) + Math.max(1, PW / rows.length));
+      ctx.fillStyle = expansion ? "rgba(93,202,165,.105)" : "rgba(224,80,80,.055)";
+      ctx.fillRect(x1, y, Math.max(1, x2 - x1), h);
+      start = end;
+    }
+  };
+  drawRegimeBands(topY, topH);
+  drawRegimeBands(botY, botH);
+
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.08)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++) {
+    const y = topY + topH * i / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  priceRows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toPriceY(+r.close)) : ctx.moveTo(toX(r), toPriceY(+r.close)));
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.55; ctx.stroke();
+
+  ctx.setLineDash([5,5]);
+  [[threshold,"#1D9E75",`${threshold}%`],[0,"#777","0"]].forEach(([v,col,lbl])=>{
+    const y = toBreadthY(v);
+    ctx.strokeStyle=col; ctx.lineWidth=v===threshold?1.35:1;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+    ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
+    ctx.fillText(lbl, PAD.left+PW+5, y+3);
+  });
+  ctx.setLineDash([]);
+  ctx.strokeStyle="rgba(255,255,255,.08)";
+  for(let i=0;i<=4;i++) {
+    const y = botY + botH * i / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+  }
+  const barW = Math.max(1, Math.min(4, PW / rows.length * 1.25));
+  rows.forEach(r => {
+    const v = +r.pct;
+    const x = toX(r), y = toBreadthY(v);
+    ctx.fillStyle = +r.avg10 > threshold ? "rgba(93,202,165,.78)" : "rgba(160,160,160,.58)";
+    ctx.fillRect(x - barW / 2, y, barW, botY + botH - y);
+  });
+  ctx.beginPath();
+  rows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toBreadthY(+r.avg10)) : ctx.moveTo(toX(r), toBreadthY(+r.avg10)));
+  ctx.strokeStyle="#315cff"; ctx.lineWidth=2.2; ctx.stroke();
+
+  ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [Math.round(Math.exp(minLog)), Math.round(Math.exp((minLog + maxLog) / 2)), Math.round(Math.exp(maxLog))].forEach(v => ctx.fillText(String(v), PAD.left-5, toPriceY(v)+3));
+  [0, threshold, yMax].forEach(v => ctx.fillText(v.toFixed(v === 0 ? 0 : 1), PAD.left-5, toBreadthY(v)+3));
+  ctx.fillStyle="#444"; ctx.textAlign="center";
+  const years = new Set();
+  priceRows.forEach(r => {
+    const yr = new Date(r.date+"T12:00:00").getFullYear();
+    if(years.has(yr)) return;
+    years.add(yr);
+    if(years.size % 2 === 0 || newHighsHistoryRange === "1Y") ctx.fillText(String(yr), toX(r), H-PAD.bottom+16);
+  });
+  ctx.fillStyle="#777"; ctx.font="bold 10px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("S&P 500 Index", PAD.left+6, topY+14);
+  ctx.fillText("10D avg % New 52W Highs", PAD.left+6, botY+14);
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex];
+    const px = priceRows.reduce((best, row) => Math.abs(rowDateMs(row)-rowDateMs(r)) < Math.abs(rowDateMs(best)-rowDateMs(r)) ? row : best, priceRows[0]);
+    const x = toX(r), y = toBreadthY(+r.avg10);
+    const col = +r.avg10 > threshold ? "#1D9E75" : "#d8d8d8";
+    ctx.strokeStyle=col; ctx.lineWidth=1.15;
+    ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, botY+botH); ctx.stroke();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fill();
+    const dt = new Date(r.date+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"short",year:"numeric"}).replace(".","");
+    const lines = [`${dt} · 10D ${(+r.avg10).toFixed(1)}%`, `Raw ${(+r.pct).toFixed(1)}% · ${r.new_highs}/${r.universe}`, `SPX ${(+px.close).toFixed(0)}`];
+    ctx.font="bold 10px sans-serif";
+    const boxW = Math.max(...lines.map(line => ctx.measureText(line).width)) + 16;
+    const boxH = 12 + lines.length * 14;
+    const bx = Math.max(PAD.left+2, Math.min(W-PAD.right-boxW-2, x-boxW/2));
+    const by = Math.max(topY+4, Math.min(botY+botH-boxH-4, y-boxH-10));
+    ctx.fillStyle="rgba(8,8,8,.94)"; ctx.strokeStyle="#303030"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
+    ctx.textAlign="left";
+    lines.forEach((line,i)=>{ ctx.fillStyle=i===0?col:"#d8d8d8"; ctx.fillText(line,bx+8,by+15+i*14); });
+  }
+
+  const latest = rawRows[rawRows.length - 1];
+  const set = (id, txt, color=null) => { const el=document.getElementById(id); if(el){ el.textContent=txt; if(color) el.style.color=color; } };
+  const latestColor = latest && +latest.avg10 > threshold ? "#1D9E75" : "#d8d8d8";
+  set("newHighsAvgVal", latest ? (+latest.avg10).toFixed(1)+"%" : "—", latestColor);
+  set("newHighsPctVal", latest ? (+latest.pct).toFixed(1)+"%" : "—", "#d8d8d8");
+  set("newHighsCountVal", latest ? `${latest.new_highs}/${latest.universe}` : "—", "#d8d8d8");
+  set("newHighsRegimeVal", latest ? (+latest.avg10 > threshold ? "EXPANSION" : "NORMAL") : "—", latestColor);
+  const title = document.getElementById("newHighsTitle");
+  if(title && rows.length) title.textContent = `S&P 500 + 10D avg % New 52W Highs · ${rows[0].date} to ${rows[rows.length-1].date}`;
+
+  const canvas = document.getElementById("newHighsCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) { drawNewHighsBreadth(null); return; }
+      const targetMs = domain.startMs + ((x - PAD.left) / PW) * xSpan;
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawNewHighsBreadth(idx);
+    };
+    canvas.onmouseleave = () => drawNewHighsBreadth(null);
   }
 }
 
