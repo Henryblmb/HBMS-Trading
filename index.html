@@ -366,12 +366,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .ma-inline-control span{color:#555;font-weight:650}
 .ma-inline-control button{border:0;background:transparent;color:#888;font:inherit;font-weight:700;padding:0;cursor:pointer}
 .ma-inline-control button.active,.ma-inline-control button:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
-.newlows-date-range{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:flex-end;gap:22px;margin-top:12px;white-space:nowrap}
-.newlows-date-field{display:flex;align-items:center;gap:16px}
-.newlows-date-field label{font-size:8.5px;color:#555;text-transform:uppercase;letter-spacing:.18em;font-weight:650}
-.newlows-date-field span{font-size:14px;color:#f1f1f1;font-weight:650;letter-spacing:.06em}
-.newlows-max-btn{border:0;background:transparent;color:#f1f1f1;font-size:13px;font-weight:650;padding:0;cursor:pointer}
-.newlows-max-btn:hover,.newlows-max-btn.active{text-decoration:underline;text-underline-offset:3px}
 .interp-title{font-size:9.5px;font-weight:600;margin-bottom:3px;letter-spacing:.03em}
 .interp-title.bull{color:#1D9E75}
 .interp-title.bear{color:#e05050}
@@ -2487,17 +2481,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="cg-header">
         <div class="cg-title">New 52W Lows — S&amp;P 500 Breadth</div>
         <div class="cg-sub">10-day average of the percentage of current S&amp;P 500 constituents trading at 12-month closing lows. Red background marks periods above the 4% stress threshold; green marks normal breadth regimes.</div>
-        <div class="hist-range" id="newLowsRange">
-          <button class="hist-btn" onclick="setNewLowsRange('1Y',this)">1Y</button>
-          <button class="hist-btn" onclick="setNewLowsRange('5Y',this)">5Y</button>
-          <button class="hist-btn active" onclick="setNewLowsRange('10Y',this)">10Y</button>
-          <button class="hist-btn" onclick="setNewLowsRange('20Y',this)">20Y</button>
-        </div>
-        <div class="newlows-date-range">
-          <div class="newlows-date-field"><label>From</label><span id="newLowsFromDate">—</span></div>
-          <div class="newlows-date-field"><label>To</label><span id="newLowsToDate">—</span></div>
-          <button class="newlows-max-btn" id="newLowsMaxBtn" onclick="setNewLowsRange('max',this)">Max</button>
-        </div>
       </div>
 
       <div class="signal-bar">
@@ -2510,6 +2493,14 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div><div class="signal-bar-label">Threshold</div><div class="signal-bar-val" style="font-size:14px;color:#e05050;padding-top:4px">&gt;4%</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="newLowsRegimeVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="newLowsRange">
+            <button class="hist-btn" onclick="setNewLowsRange('1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setNewLowsRange('5Y',this)">5Y</button>
+            <button class="hist-btn active" onclick="setNewLowsRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setNewLowsRange('20Y',this)">20Y</button>
+          </div>
+        </div>
       </div>
 
       <div class="cg-chart-box">
@@ -4506,9 +4497,7 @@ function setNewLowsRange(range, btn) {
   newLowsHistoryRange = range || newLowsHistoryRange;
   delete cgDateRanges["cg-newlows"];
   document.querySelectorAll("#newLowsRange .hist-btn").forEach(b => b.classList.remove("active"));
-  document.getElementById("newLowsMaxBtn")?.classList.remove("active");
-  if(btn && btn.classList.contains("hist-btn")) btn.classList.add("active");
-  if(range === "max") document.getElementById("newLowsMaxBtn")?.classList.add("active");
+  if(btn) btn.classList.add("active");
   drawNewLowsBreadth();
 }
 
@@ -7032,16 +7021,7 @@ function drawNewLowsBreadth(hoverIndex=null) {
   const md = window._marketData || {};
   const rawRows = Array.isArray(md.new_lows_52w_history) ? md.new_lows_52w_history : [];
   const rawPrice = marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history");
-  const maxDomain = (() => {
-    const groups = [rawPrice, rawRows].filter(group => Array.isArray(group) && group.some(r => r && r.date && Number.isFinite(rowDateMs(r))));
-    if(!groups.length) return null;
-    const spans = groups.map(group => group.map(rowDateMs).filter(Number.isFinite));
-    const startMs = Math.max(...spans.map(times => Math.min(...times)));
-    const endMs = Math.min(...spans.map(times => Math.max(...times)));
-    return Number.isFinite(startMs) && Number.isFinite(endMs) && startMs <= endMs ? { startMs, endMs } : null;
-  })();
-  const baseDomain = newLowsHistoryRange === "max" ? maxDomain : commonDateDomainForRows([rawPrice, rawRows], newLowsHistoryRange);
-  const domain = newLowsHistoryRange === "max" ? maxDomain : baseDomain;
+  const domain = ensureCGCommonDateControls("cg-newlows", [rawPrice, rawRows], newLowsHistoryRange);
   const priceRows = filterRowsByDateDomain(rawPrice, domain);
   const rows = filterRowsByDateDomain(rawRows, domain).filter(r => Number.isFinite(+r.avg10));
   const c = mkCanvas("newLowsCanvas", 520); if(!c) return;
@@ -7061,16 +7041,6 @@ function drawNewLowsBreadth(hoverIndex=null) {
   }
   const threshold = Number.isFinite(+((md.new_lows_52w_status || {}).threshold)) ? +(md.new_lows_52w_status || {}).threshold : 4;
   const xSpan = domain.endMs - domain.startMs || 1;
-  const dateText = ms => {
-    const d = new Date(ms);
-    return d.toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric" });
-  };
-  const fromEl = document.getElementById("newLowsFromDate");
-  const toEl = document.getElementById("newLowsToDate");
-  if(fromEl) fromEl.textContent = dateText(domain.startMs);
-  if(toEl) toEl.textContent = dateText(domain.endMs);
-  const maxBtn = document.getElementById("newLowsMaxBtn");
-  if(maxBtn && maxDomain) maxBtn.classList.toggle("active", domain.startMs === maxDomain.startMs && domain.endMs === maxDomain.endMs);
   document.querySelectorAll("#newLowsRange .hist-btn").forEach(btn => btn.classList.toggle("active", btn.textContent.trim().toLowerCase() === String(newLowsHistoryRange).toLowerCase()));
   const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
   const toX = r => toDateX(rowDateMs(r));
