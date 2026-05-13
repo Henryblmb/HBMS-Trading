@@ -2188,7 +2188,7 @@ def ma_breadth_compression_from_stock_histories(history_items, years=30, change_
     }
 
 
-def sp500_new_lows_from_stock_histories(history_items, stock_results, display_start="2016-01-01", lookback=252, smooth=10, threshold=4.0):
+def sp500_new_lows_from_stock_histories(history_items, stock_results, display_start="2006-01-01", lookback=252, smooth=10, threshold=4.0):
     sp500_tickers = {
         str(row.get("ticker", "")).upper()
         for row in (stock_results or [])
