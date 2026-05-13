@@ -7053,13 +7053,19 @@ function drawNewLowsBreadth(hoverIndex=null) {
   const toBreadthY = v => botY + botH - (Math.max(0, Math.min(yMax, v)) / yMax) * botH;
 
   const drawRegimeBands = (y, h) => {
-    rows.forEach((r, i) => {
-      const x1 = toX(r);
-      const next = rows[i + 1];
-      const x2 = next ? toX(next) : Math.min(PAD.left + PW, x1 + Math.max(1, PW / rows.length));
-      ctx.fillStyle = +r.avg10 > threshold ? "rgba(224,80,80,.16)" : "rgba(93,202,165,.12)";
+    let start = 0;
+    while(start < rows.length) {
+      const stress = +rows[start].avg10 > threshold;
+      let end = start + 1;
+      while(end < rows.length && (+rows[end].avg10 > threshold) === stress) end++;
+      const x1 = Math.max(PAD.left, toX(rows[start]));
+      const last = rows[Math.max(start, end - 1)];
+      const next = rows[end];
+      const x2 = Math.min(PAD.left + PW, next ? toX(next) : toX(last) + Math.max(1, PW / rows.length));
+      ctx.fillStyle = stress ? "rgba(224,80,80,.12)" : "rgba(93,202,165,.085)";
       ctx.fillRect(x1, y, Math.max(1, x2 - x1), h);
-    });
+      start = end;
+    }
   };
   drawRegimeBands(topY, topH);
   drawRegimeBands(botY, botH);
