@@ -617,6 +617,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-bt50',this)">50D Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-zbt',this)">Zweig Breadth Thrust</div>
       <div class="nav-item sub" onclick="showTab('cg-mabreadth',this)">% Stocks above</div>
+      <div class="nav-item sub" onclick="showTab('cg-newlows',this)">New 52W Lows</div>
       <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
     </div>
 
@@ -2475,6 +2476,50 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- NEW 52W LOWS -->
+    <div class="panel cg-page" id="tab-cg-newlows">
+      <div class="cg-header">
+        <div class="cg-title">New 52W Lows — S&amp;P 500 Breadth</div>
+        <div class="cg-sub">10-day average of the percentage of current S&amp;P 500 constituents trading at 12-month closing lows. Red background marks periods above the 4% stress threshold; green marks normal breadth regimes.</div>
+        <div class="hist-range" id="newLowsRange">
+          <button class="hist-btn" onclick="setNewLowsRange('1Y',this)">1Y</button>
+          <button class="hist-btn" onclick="setNewLowsRange('5Y',this)">5Y</button>
+          <button class="hist-btn active" onclick="setNewLowsRange('10Y',this)">10Y</button>
+          <button class="hist-btn" onclick="setNewLowsRange('max',this)">Max</button>
+        </div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">10D Avg</div><div class="signal-bar-val" id="newLowsAvgVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Raw %</div><div class="signal-bar-val" id="newLowsPctVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">New Lows</div><div class="signal-bar-val" id="newLowsCountVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Threshold</div><div class="signal-bar-val" style="font-size:14px;color:#e05050;padding-top:4px">&gt;4%</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="newLowsRegimeVal" style="font-size:14px;padding-top:4px">—</div></div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="newLowsTitle">S&amp;P 500 + 10D Avg % New 52W Lows</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span><span class="cg-leg-line" style="background:#315cff"></span>10D avg</span>
+            <span style="color:#e05050">— 4% stress</span>
+          </div>
+        </div>
+        <canvas id="newLowsCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Above 4%</div><div class="interp-text">Internal selling pressure is elevated. This often appears during corrections, volatility clusters, or broad de-risking.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Below 4%</div><div class="interp-text">New lows are contained. Breadth stress is not broad enough to dominate the S&amp;P 500 tape.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Method</div><div class="interp-text">Uses current S&amp;P 500 constituent histories and closing-price 12M lows, so older history is survivorship-biased.</div></div>
+      </div>
+    </div>
+
     <!-- OIL TERM CURVE -->
     <div class="panel cg-page" id="tab-cg-oil">
       <div class="cg-header">
@@ -2598,6 +2643,7 @@ let peRatioBacktestSigmaLevel = 1.5;
 let maBreadthMetric = "50d";
 let maBreadthHistoryRange = "10Y";
 let maBreadthThresholdPct = 20;
+let newLowsHistoryRange = "10Y";
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
@@ -2704,6 +2750,7 @@ function showTab(id, el) {
   if(id === "cg-zbt") setTimeout(drawZweigBreadthThrust, 60);
   if(id === "cg-rspspy") setTimeout(drawRSPSpyBreadth, 60);
   if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
+  if(id === "cg-newlows") setTimeout(drawNewLowsBreadth, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
@@ -2757,6 +2804,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-zbt") drawZweigBreadthThrust();
     if(activePanel && activePanel.id === "tab-cg-rspspy") drawRSPSpyBreadth();
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
+    if(activePanel && activePanel.id === "tab-cg-newlows") drawNewLowsBreadth();
     if(activePanel && activePanel.id === "tab-signal-calendar") renderSignalCalendar();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
@@ -4443,6 +4491,14 @@ function setMABreadthRange(range, btn) {
   drawStocksAboveAnalyzer();
 }
 
+function setNewLowsRange(range, btn) {
+  newLowsHistoryRange = range || newLowsHistoryRange;
+  delete cgDateRanges["cg-newlows"];
+  document.querySelectorAll("#newLowsRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  drawNewLowsBreadth();
+}
+
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
   const sigmaLevel = maDistBacktestSigmaLevel || 2;
@@ -4929,6 +4985,7 @@ const cgRedraw = {
   "cg-zbt": () => drawZweigBreadthThrust(),
   "cg-rspspy": () => drawRSPSpyBreadth(),
   "cg-mabreadth": () => drawStocksAboveAnalyzer(),
+  "cg-newlows": () => drawNewLowsBreadth(),
   "cg-oil": () => drawOilCharts(),
   "cg-goldsilver": () => drawGoldSilverRatio(),
 };
@@ -6956,6 +7013,150 @@ function drawStocksAboveAnalyzer() {
   drawMABreadthPrice(priceRows, rows, key, domain || minMaxDates([rawRows, rawPrice]), maBreadthThresholdPct);
   drawMABreadthPctChart(rows, key, domain || minMaxDates([rawRows, rawPrice]), maBreadthThresholdPct);
   renderMABreadthForward(rawRows, rawPrice, key, maBreadthThresholdPct);
+}
+
+function drawNewLowsBreadth(hoverIndex=null) {
+  const md = window._marketData || {};
+  const rawRows = Array.isArray(md.new_lows_52w_history) ? md.new_lows_52w_history : [];
+  const rawPrice = marketHistory("sp500_history").length ? marketHistory("sp500_history") : marketHistory("sp500_history_20y");
+  const domain = ensureCGCommonDateControls("cg-newlows", [rawPrice, rawRows], newLowsHistoryRange);
+  const priceRows = filterRowsByDateDomain(rawPrice, domain);
+  const rows = filterRowsByDateDomain(rawRows, domain).filter(r => Number.isFinite(+r.avg10));
+  const c = mkCanvas("newLowsCanvas", 520); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 68, bottom: 32, left: 48 };
+  const gap = 22;
+  const topH = Math.round((H - PAD.top - PAD.bottom - gap) * .64);
+  const botH = H - PAD.top - PAD.bottom - gap - topH;
+  const topY = PAD.top;
+  const botY = PAD.top + topH + gap;
+  const PW = W - PAD.left - PAD.right;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  if(!domain || priceRows.length < 40 || rows.length < 40) {
+    ctx.fillStyle="rgba(255,255,255,.10)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("New 52W lows breadth history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const threshold = Number.isFinite(+((md.new_lows_52w_status || {}).threshold)) ? +(md.new_lows_52w_status || {}).threshold : 4;
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const toX = r => toDateX(rowDateMs(r));
+  const priceVals = priceRows.map(r => +r.close).filter(v => v > 0);
+  const minLog = Math.log(Math.min(...priceVals)) * .998;
+  const maxLog = Math.log(Math.max(...priceVals)) * 1.002;
+  const toPriceY = v => topY + topH - ((Math.log(v) - minLog) / (maxLog - minLog || 1)) * topH;
+  const breadthVals = rows.flatMap(r => [+r.pct, +r.avg10]).filter(Number.isFinite);
+  const yMax = Math.max(8, Math.min(45, Math.ceil(Math.max(...breadthVals, threshold) / 5) * 5 + 5));
+  const toBreadthY = v => botY + botH - (Math.max(0, Math.min(yMax, v)) / yMax) * botH;
+
+  const drawRegimeBands = (y, h) => {
+    rows.forEach((r, i) => {
+      const x1 = toX(r);
+      const next = rows[i + 1];
+      const x2 = next ? toX(next) : Math.min(PAD.left + PW, x1 + Math.max(1, PW / rows.length));
+      ctx.fillStyle = +r.avg10 > threshold ? "rgba(224,80,80,.16)" : "rgba(93,202,165,.12)";
+      ctx.fillRect(x1, y, Math.max(1, x2 - x1), h);
+    });
+  };
+  drawRegimeBands(topY, topH);
+  drawRegimeBands(botY, botH);
+
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.08)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++) {
+    const y = topY + topH * i / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  priceRows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toPriceY(+r.close)) : ctx.moveTo(toX(r), toPriceY(+r.close)));
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.55; ctx.stroke();
+
+  ctx.setLineDash([5,5]);
+  [[threshold,"#e05050",`${threshold}%`],[0,"#777","0"]].forEach(([v,col,lbl])=>{
+    const y = toBreadthY(v);
+    ctx.strokeStyle=col; ctx.lineWidth=v===threshold?1.35:1;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+    ctx.fillStyle=col; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
+    ctx.fillText(lbl, PAD.left+PW+5, y+3);
+  });
+  ctx.setLineDash([]);
+  ctx.strokeStyle="rgba(255,255,255,.08)";
+  for(let i=0;i<=4;i++) {
+    const y = botY + botH * i / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+  }
+  const barW = Math.max(1, Math.min(4, PW / rows.length * 1.25));
+  rows.forEach(r => {
+    const v = +r.pct;
+    const x = toX(r), y = toBreadthY(v);
+    ctx.fillStyle = +r.avg10 > threshold ? "rgba(224,80,80,.78)" : "rgba(160,160,160,.58)";
+    ctx.fillRect(x - barW / 2, y, barW, botY + botH - y);
+  });
+  ctx.beginPath();
+  rows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toBreadthY(+r.avg10)) : ctx.moveTo(toX(r), toBreadthY(+r.avg10)));
+  ctx.strokeStyle="#315cff"; ctx.lineWidth=2.2; ctx.stroke();
+
+  ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [Math.round(Math.exp(minLog)), Math.round(Math.exp((minLog + maxLog) / 2)), Math.round(Math.exp(maxLog))].forEach(v => ctx.fillText(String(v), PAD.left-5, toPriceY(v)+3));
+  [0, threshold, yMax].forEach(v => ctx.fillText(v.toFixed(v === 0 ? 0 : 1), PAD.left-5, toBreadthY(v)+3));
+  ctx.fillStyle="#444"; ctx.textAlign="center";
+  const years = new Set();
+  priceRows.forEach(r => {
+    const yr = new Date(r.date+"T12:00:00").getFullYear();
+    if(years.has(yr)) return;
+    years.add(yr);
+    if(years.size % 2 === 0 || newLowsHistoryRange === "1Y") ctx.fillText(String(yr), toX(r), H-PAD.bottom+16);
+  });
+  ctx.fillStyle="#777"; ctx.font="bold 10px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("S&P 500 Index", PAD.left+6, topY+14);
+  ctx.fillText("10D avg % New 52W Lows", PAD.left+6, botY+14);
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex];
+    const px = priceRows.reduce((best, row) => Math.abs(rowDateMs(row)-rowDateMs(r)) < Math.abs(rowDateMs(best)-rowDateMs(r)) ? row : best, priceRows[0]);
+    const x = toX(r), y = toBreadthY(+r.avg10);
+    const col = +r.avg10 > threshold ? "#e05050" : "#1D9E75";
+    ctx.strokeStyle=col; ctx.lineWidth=1.15;
+    ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, botY+botH); ctx.stroke();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fill();
+    const dt = new Date(r.date+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"short",year:"numeric"}).replace(".","");
+    const lines = [`${dt} · 10D ${(+r.avg10).toFixed(1)}%`, `Raw ${(+r.pct).toFixed(1)}% · ${r.new_lows}/${r.universe}`, `SPX ${(+px.close).toFixed(0)}`];
+    ctx.font="bold 10px sans-serif";
+    const boxW = Math.max(...lines.map(line => ctx.measureText(line).width)) + 16;
+    const boxH = 12 + lines.length * 14;
+    const bx = Math.max(PAD.left+2, Math.min(W-PAD.right-boxW-2, x-boxW/2));
+    const by = Math.max(topY+4, Math.min(botY+botH-boxH-4, y-boxH-10));
+    ctx.fillStyle="rgba(8,8,8,.94)"; ctx.strokeStyle="#303030"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
+    ctx.textAlign="left";
+    lines.forEach((line,i)=>{ ctx.fillStyle=i===0?col:"#d8d8d8"; ctx.fillText(line,bx+8,by+15+i*14); });
+  }
+
+  const latest = rawRows[rawRows.length - 1];
+  const set = (id, txt, color=null) => { const el=document.getElementById(id); if(el){ el.textContent=txt; if(color) el.style.color=color; } };
+  const latestColor = latest && +latest.avg10 > threshold ? "#e05050" : "#1D9E75";
+  set("newLowsAvgVal", latest ? (+latest.avg10).toFixed(1)+"%" : "—", latestColor);
+  set("newLowsPctVal", latest ? (+latest.pct).toFixed(1)+"%" : "—", "#d8d8d8");
+  set("newLowsCountVal", latest ? `${latest.new_lows}/${latest.universe}` : "—", "#d8d8d8");
+  set("newLowsRegimeVal", latest ? (+latest.avg10 > threshold ? "STRESS" : "NORMAL") : "—", latestColor);
+  const title = document.getElementById("newLowsTitle");
+  if(title && rows.length) title.textContent = `S&P 500 + 10D avg % New 52W Lows · ${rows[0].date} to ${rows[rows.length-1].date}`;
+
+  const canvas = document.getElementById("newLowsCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) { drawNewLowsBreadth(null); return; }
+      const targetMs = domain.startMs + ((x - PAD.left) / PW) * xSpan;
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawNewLowsBreadth(idx);
+    };
+    canvas.onmouseleave = () => drawNewLowsBreadth(null);
+  }
 }
 
 function renderBTForwardStats(elId, priceRows, signals, label, horizons) {
