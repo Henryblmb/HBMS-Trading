@@ -619,6 +619,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-mabreadth',this)">% Stocks above</div>
       <div class="nav-item sub" onclick="showTab('cg-newhighs',this)">New 52W Highs</div>
       <div class="nav-item sub" onclick="showTab('cg-newlows',this)">New 52W Lows</div>
+      <div class="nav-item sub" onclick="showTab('cg-hindenburg',this)">Hindenburg Omen</div>
       <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
     </div>
 
@@ -2591,6 +2592,65 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- HINDENBURG OMEN -->
+    <div class="panel cg-page" id="tab-cg-hindenburg">
+      <div class="cg-header">
+        <div class="cg-title">Hindenburg Omen — S&amp;P 500 Breadth</div>
+        <div class="cg-sub">Breadth divergence model using S&amp;P 500 New 52W Highs and New 52W Lows. A signal requires both highs and lows above 2.2%, new highs no more than 2x new lows, and a rising S&amp;P 500 50D trend.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Latest Signal</div><div class="signal-bar-val" id="hindenburgLatestVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Highs %</div><div class="signal-bar-val" id="hindenburgHighsVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Lows %</div><div class="signal-bar-val" id="hindenburgLowsVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Trend</div><div class="signal-bar-val" id="hindenburgTrendVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Signals</div><div class="signal-bar-val" id="hindenburgCountVal">—</div></div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="hindenburgRange">
+            <button class="hist-btn" onclick="setHindenburgRange('1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHindenburgRange('5Y',this)">5Y</button>
+            <button class="hist-btn active" onclick="setHindenburgRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHindenburgRange('20Y',this)">20Y</button>
+            <button class="hist-btn" onclick="setHindenburgRange('max',this)">Max</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="hindenburgPriceTitle">S&amp;P 500 — Red Dots = Hindenburg Omen</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span style="color:#e05050">● Hindenburg Omen</span>
+          </div>
+        </div>
+        <canvas id="hindenburgPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="hindenburgBreadthTitle">New 52W Highs / Lows — Omen Conditions</span>
+          <div class="cg-chart-legend">
+            <span style="color:#1D9E75">New Highs %</span>
+            <span style="color:#e05050">New Lows %</span>
+            <span style="color:#777">— 2.2% trigger</span>
+            <span style="color:#e05050">● Omen</span>
+          </div>
+        </div>
+        <canvas id="hindenburgBreadthCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Omen Trigger</div><div class="interp-text">Large groups of stocks are making both 52W highs and 52W lows while the index trend is still rising. That divergence warns of fragile market internals.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">No Trigger</div><div class="interp-text">Either new highs/lows are not both elevated, new highs dominate too strongly, or the S&amp;P trend filter is not active.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Method</div><div class="interp-text">S&amp;P 500 variant based on current constituent histories. It does not use NYSE McClellan Oscillator, so treat it as an index breadth divergence warning rather than the full classic NYSE definition.</div></div>
+      </div>
+    </div>
+
     <!-- OIL TERM CURVE -->
     <div class="panel cg-page" id="tab-cg-oil">
       <div class="cg-header">
@@ -2718,6 +2778,7 @@ let newLowsHistoryRange = "10Y";
 let newLowsThresholdPct = 4;
 let newHighsHistoryRange = "10Y";
 let newHighsThresholdPct = 15;
+let hindenburgHistoryRange = "10Y";
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
@@ -2826,6 +2887,7 @@ function showTab(id, el) {
   if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
   if(id === "cg-newhighs") setTimeout(drawNewHighsBreadth, 60);
   if(id === "cg-newlows") setTimeout(drawNewLowsBreadth, 60);
+  if(id === "cg-hindenburg") setTimeout(drawHindenburgOmen, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
@@ -2881,6 +2943,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
     if(activePanel && activePanel.id === "tab-cg-newhighs") drawNewHighsBreadth();
     if(activePanel && activePanel.id === "tab-cg-newlows") drawNewLowsBreadth();
+    if(activePanel && activePanel.id === "tab-cg-hindenburg") drawHindenburgOmen();
     if(activePanel && activePanel.id === "tab-signal-calendar") renderSignalCalendar();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
@@ -4593,6 +4656,14 @@ function setNewHighsThreshold(level) {
   drawNewHighsBreadth();
 }
 
+function setHindenburgRange(range, btn) {
+  hindenburgHistoryRange = range || hindenburgHistoryRange;
+  delete cgDateRanges["cg-hindenburg"];
+  document.querySelectorAll("#hindenburgRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  drawHindenburgOmen();
+}
+
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
   const sigmaLevel = maDistBacktestSigmaLevel || 2;
@@ -5081,6 +5152,7 @@ const cgRedraw = {
   "cg-mabreadth": () => drawStocksAboveAnalyzer(),
   "cg-newhighs": () => drawNewHighsBreadth(),
   "cg-newlows": () => drawNewLowsBreadth(),
+  "cg-hindenburg": () => drawHindenburgOmen(),
   "cg-oil": () => drawOilCharts(),
   "cg-goldsilver": () => drawGoldSilverRatio(),
 };
@@ -7422,6 +7494,201 @@ function drawNewHighsBreadth(hoverIndex=null) {
     };
     canvas.onmouseleave = () => drawNewHighsBreadth(null);
   }
+}
+
+function buildHindenburgRows(priceRaw, highsRaw, lowsRaw) {
+  const highMap = new Map((highsRaw || []).map(r => [r.date, r]));
+  const lowMap = new Map((lowsRaw || []).map(r => [r.date, r]));
+  const priceRows = (priceRaw || [])
+    .filter(r => r.date && Number.isFinite(+r.close) && +r.close > 0)
+    .sort((a,b) => rowDateMs(a) - rowDateMs(b));
+  const closes = priceRows.map(r => +r.close);
+  const sma50 = closes.map((_, i) => i < 49 ? null : closes.slice(i - 49, i + 1).reduce((a,b) => a + b, 0) / 50);
+  return priceRows.map((p, i) => {
+    const hi = highMap.get(p.date), lo = lowMap.get(p.date);
+    const highPct = hi ? +hi.pct : NaN;
+    const lowPct = lo ? +lo.pct : NaN;
+    const highCount = hi ? +hi.new_highs : NaN;
+    const lowCount = lo ? +lo.new_lows : NaN;
+    const trendUp = Number.isFinite(sma50[i]) && Number.isFinite(sma50[i - 50]) && +p.close > sma50[i] && sma50[i] > sma50[i - 50];
+    const breadthConflict = Number.isFinite(highPct) && Number.isFinite(lowPct) && highPct >= 2.2 && lowPct >= 2.2;
+    const balanceOk = Number.isFinite(highCount) && Number.isFinite(lowCount) && lowCount > 0 && highCount <= 2 * lowCount;
+    return {
+      date: p.date,
+      close: +p.close,
+      high_pct: highPct,
+      low_pct: lowPct,
+      new_highs: highCount,
+      new_lows: lowCount,
+      universe: lo?.universe ?? hi?.universe ?? null,
+      sma50: sma50[i],
+      trend_up: trendUp,
+      signal: breadthConflict && balanceOk && trendUp
+    };
+  }).filter(r => Number.isFinite(r.high_pct) && Number.isFinite(r.low_pct));
+}
+
+function drawHindenburgOmen(hoverIndex=null) {
+  const md = window._marketData || {};
+  const highsRaw = Array.isArray(md.new_highs_52w_history) ? md.new_highs_52w_history : [];
+  const lowsRaw = Array.isArray(md.new_lows_52w_history) ? md.new_lows_52w_history : [];
+  const priceRaw = marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history");
+  const allRows = buildHindenburgRows(priceRaw, highsRaw, lowsRaw);
+  const domain = ensureCGCommonDateControls("cg-hindenburg", [allRows], hindenburgHistoryRange);
+  const rows = filterRowsByDateDomain(allRows, domain);
+  document.querySelectorAll("#hindenburgRange .hist-btn").forEach(btn => btn.classList.toggle("active", btn.textContent.trim().toLowerCase() === String(hindenburgHistoryRange).toLowerCase()));
+  drawHindenburgPrice(rows, domain, hoverIndex);
+  drawHindenburgBreadth(rows, domain, hoverIndex);
+  updateHindenburgReadings(allRows, rows);
+}
+
+function updateHindenburgReadings(allRows, rows) {
+  const latest = allRows && allRows.length ? allRows[allRows.length - 1] : null;
+  const signals = (rows || []).filter(r => r.signal);
+  const lastSignal = [...(allRows || [])].reverse().find(r => r.signal);
+  const set = (id, txt, color=null) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  set("hindenburgLatestVal", lastSignal ? formatSignalDate(lastSignal.date) : "None", lastSignal ? "#e05050" : "#1D9E75");
+  set("hindenburgHighsVal", latest ? `${latest.high_pct.toFixed(1)}%` : "—", latest && latest.high_pct >= 2.2 ? "#1D9E75" : "#d8d8d8");
+  set("hindenburgLowsVal", latest ? `${latest.low_pct.toFixed(1)}%` : "—", latest && latest.low_pct >= 2.2 ? "#e05050" : "#d8d8d8");
+  set("hindenburgTrendVal", latest ? (latest.trend_up ? "RISING" : "NOT RISING") : "—", latest && latest.trend_up ? "#EF9F27" : "#777");
+  set("hindenburgCountVal", String(signals.length), signals.length ? "#e05050" : "#d8d8d8");
+  const priceTitle = document.getElementById("hindenburgPriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `S&P 500 — Red dots = Hindenburg Omen · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const breadthTitle = document.getElementById("hindenburgBreadthTitle");
+  if(breadthTitle && rows.length) breadthTitle.textContent = `New 52W Highs / Lows — ${signals.length} signals in selected range`;
+}
+
+function hindenburgScales(rows, domain, W, H, PAD) {
+  const PW = W - PAD.left - PAD.right;
+  const PH = H - PAD.top - PAD.bottom;
+  const startMs = domain?.startMs || (rows[0] ? rowDateMs(rows[0]) : Date.now() - 86400000);
+  const endMs = domain?.endMs || (rows[rows.length - 1] ? rowDateMs(rows[rows.length - 1]) : Date.now());
+  const xSpan = endMs - startMs || 1;
+  const toDateX = ms => PAD.left + ((ms - startMs) / xSpan) * PW;
+  const toX = r => toDateX(rowDateMs(r));
+  return { PW, PH, toDateX, toX };
+}
+
+function drawHindenburgPrice(rows, domain, hoverIndex=null) {
+  const c = mkCanvas("hindenburgPriceCanvas", 300); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 68, bottom: 30, left: 48 };
+  const { PW, PH, toDateX, toX } = hindenburgScales(rows, domain, W, H, PAD);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  if(!domain || rows.length < 40) {
+    ctx.fillStyle="rgba(255,255,255,.10)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Hindenburg breadth history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const prices = rows.map(r => +r.close).filter(v => v > 0);
+  const minLog = Math.log(Math.min(...prices)) * .998;
+  const maxLog = Math.log(Math.max(...prices)) * 1.002;
+  const toY = v => PAD.top + PH - ((Math.log(v) - minLog) / (maxLog - minLog || 1)) * PH;
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.07)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++) { const y = PAD.top + PH * i / 4; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  rows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r.close)) : ctx.moveTo(toX(r), toY(+r.close)));
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.7; ctx.stroke();
+  rows.filter(r => r.signal).forEach(r => {
+    const x = toX(r), y = toY(+r.close);
+    ctx.beginPath(); ctx.arc(x, y, 4.2, 0, Math.PI*2); ctx.fillStyle="#e05050"; ctx.fill();
+    ctx.strokeStyle="#101010"; ctx.lineWidth=1.3; ctx.stroke();
+  });
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r), y = toY(+r.close);
+    ctx.strokeStyle = r.signal ? "#e05050" : "#777"; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top+PH); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fillStyle = r.signal ? "#e05050" : "#d8d8d8"; ctx.fill();
+    const dt = new Date(r.date+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"short",year:"numeric"}).replace(".","");
+    const lines = [`${dt} · SPX ${r.close.toFixed(0)}`, `Highs ${r.high_pct.toFixed(1)}% · Lows ${r.low_pct.toFixed(1)}%`, r.signal ? "Hindenburg Omen" : "No signal"];
+    ctx.font="bold 10px sans-serif";
+    const boxW = Math.max(...lines.map(line => ctx.measureText(line).width)) + 16, boxH = 12 + lines.length * 14;
+    const bx = Math.max(PAD.left+2, Math.min(W-PAD.right-boxW-2, x-boxW/2));
+    const by = Math.max(PAD.top+4, Math.min(PAD.top+PH-boxH-4, y-boxH-10));
+    ctx.fillStyle="rgba(8,8,8,.94)"; ctx.strokeStyle="#303030"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
+    ctx.textAlign="left"; lines.forEach((line,i)=>{ ctx.fillStyle=i===2&&r.signal?"#e05050":"#d8d8d8"; ctx.fillText(line,bx+8,by+15+i*14); });
+  }
+  ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [Math.round(Math.exp(minLog)), Math.round(Math.exp((minLog + maxLog) / 2)), Math.round(Math.exp(maxLog))].forEach(v => ctx.fillText(String(v), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#444"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    ctx.fillText(new Date(ms).getFullYear(), toDateX(ms), H-PAD.bottom+14);
+  });
+  const canvas = document.getElementById("hindenburgPriceCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => handleHindenburgHover(e, rows, domain, PAD, PW);
+    canvas.onmouseleave = () => drawHindenburgOmen(null);
+  }
+}
+
+function drawHindenburgBreadth(rows, domain, hoverIndex=null) {
+  const c = mkCanvas("hindenburgBreadthCanvas", 280); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 68, bottom: 30, left: 48 };
+  const { PW, PH, toDateX, toX } = hindenburgScales(rows, domain, W, H, PAD);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  if(!domain || rows.length < 40) {
+    ctx.fillStyle="rgba(255,255,255,.10)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Hindenburg breadth history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const threshold = 2.2;
+  const vals = rows.flatMap(r => [r.high_pct, r.low_pct]).filter(Number.isFinite);
+  const yMax = Math.max(6, Math.min(45, Math.ceil(Math.max(...vals, threshold) / 5) * 5 + 5));
+  const toY = v => PAD.top + PH - (Math.max(0, Math.min(yMax, v)) / yMax) * PH;
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.07)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++) { const y = PAD.top + PH * i / 4; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  const barW = Math.max(1, Math.min(4, PW / rows.length * 1.15));
+  rows.forEach(r => {
+    const x = toX(r);
+    const hiY = toY(+r.high_pct), loY = toY(+r.low_pct);
+    ctx.fillStyle = "rgba(29,158,117,.62)";
+    ctx.fillRect(x - barW - .5, hiY, barW, PAD.top + PH - hiY);
+    ctx.fillStyle = r.signal ? "rgba(224,80,80,.95)" : "rgba(224,80,80,.66)";
+    ctx.fillRect(x + .5, loY, barW, PAD.top + PH - loY);
+  });
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle="#777"; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(PAD.left,toY(threshold)); ctx.lineTo(PAD.left+PW,toY(threshold)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="#777"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left"; ctx.fillText("2.2%", PAD.left+PW+5, toY(threshold)+3);
+  rows.filter(r => r.signal).forEach(r => {
+    const x = toX(r), y = toY(Math.max(+r.high_pct, +r.low_pct));
+    ctx.beginPath(); ctx.arc(x, y - 6, 3.8, 0, Math.PI*2); ctx.fillStyle="#e05050"; ctx.fill();
+    ctx.strokeStyle="#101010"; ctx.lineWidth=1.2; ctx.stroke();
+  });
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r), y = toY(Math.max(+r.high_pct, +r.low_pct));
+    ctx.strokeStyle = r.signal ? "#e05050" : "#777"; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top+PH); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fillStyle = r.signal ? "#e05050" : "#d8d8d8"; ctx.fill();
+  }
+  ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [0, threshold, yMax].forEach(v => ctx.fillText(v.toFixed(v === 0 ? 0 : 1), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#444"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    ctx.fillText(new Date(ms).getFullYear(), toDateX(ms), H-PAD.bottom+14);
+  });
+  const canvas = document.getElementById("hindenburgBreadthCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => handleHindenburgHover(e, rows, domain, PAD, PW);
+    canvas.onmouseleave = () => drawHindenburgOmen(null);
+  }
+}
+
+function handleHindenburgHover(e, rows, domain, PAD, PW) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if(x < PAD.left || x > PAD.left + PW) { drawHindenburgOmen(null); return; }
+  const targetMs = domain.startMs + ((x - PAD.left) / PW) * (domain.endMs - domain.startMs || 1);
+  let idx = 0, best = Infinity;
+  rows.forEach((row, i) => {
+    const diff = Math.abs(rowDateMs(row) - targetMs);
+    if(diff < best) { best = diff; idx = i; }
+  });
+  drawHindenburgOmen(idx);
 }
 
 function renderBTForwardStats(elId, priceRows, signals, label, horizons) {
