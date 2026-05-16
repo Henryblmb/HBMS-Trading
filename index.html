@@ -1612,7 +1612,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
           <span class="cg-chart-title" id="vixSameBarsTitle">Consecutive Days VIX and S&amp;P 500 Moved In The Same Direction</span>
           <div class="cg-chart-legend">
             <span style="color:#2f6cff">Same-direction streak</span>
-            <span style="color:#777">Dashed = latest value</span>
+            <span style="color:#777">Dashed line is latest value</span>
             <span style="color:#e05050">5+ unusual</span>
           </div>
         </div>
@@ -6238,8 +6238,6 @@ function drawVIXSameBars(rows, domain, hoverIndex=null) {
   const latestY = toY(latestStreak);
   ctx.setLineDash([7,7]); ctx.strokeStyle="#2d63c8"; ctx.lineWidth=2;
   ctx.beginPath(); ctx.moveTo(PAD.left, latestY); ctx.lineTo(PAD.left+PW, latestY); ctx.stroke(); ctx.setLineDash([]);
-  ctx.fillStyle="#222"; ctx.font="bold 10px sans-serif"; ctx.textAlign="left";
-  ctx.fillText("Dashed line is latest value", Math.max(PAD.left + 8, PAD.left + PW * .54), latestY - 8);
   ctx.fillStyle="#333"; ctx.font="9px sans-serif"; ctx.textAlign="right";
   for(let i=0;i<=maxV;i++) ctx.fillText(String(i), PAD.left-6, toY(i)+3);
   ctx.textAlign="left";
