@@ -1418,7 +1418,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
             <span style="color:#777">0 Mean</span>
             <span style="color:#EF9F27">+2 Stress</span>
             <span style="color:#e05050">+3 Panic</span>
-            <span style="color:#aa1a1a">+5+ Crisis</span>
+            <span style="color:#aa1a1a">+5 to +10 Crisis</span>
           </div>
         </div>
         <canvas id="vixsdBarsCanvas" style="width:100%;display:block"></canvas>
@@ -1427,7 +1427,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="interp-grid">
         <div class="interp-cell neut"><div class="interp-title neut">Signal Start</div><div class="interp-text">VIX 35+ is treated as the start of a stress signal. It sits just below +2 SD in the fixed model.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Stronger With SD</div><div class="interp-text">Higher SD bars indicate stronger volatility stress: +3 is panic, +5 and above is crisis-type volatility.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Fixed Model</div><div class="interp-text">SD = (VIX − 20) / 8. The chart is capped from −2 to +7 to keep calm and panic regimes comparable.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Fixed Model</div><div class="interp-text">SD = (VIX − 20) / 8. The chart is capped from −2 to +10 so extreme volatility spikes remain visible without clipping.</div></div>
       </div>
     </div>
 
@@ -5597,7 +5597,7 @@ function drawCanvasTooltip(ctx, W, H, PAD, x, y, lines, color="#d8d8d8") {
   });
 }
 
-function drawVIXSDBars(canvasId, rows, h=230, domain=null, hoverIndex=null) {
+function drawVIXSDBars(canvasId, rows, h=320, domain=null, hoverIndex=null) {
   if(!rows || rows.length < 2 || !domain) {
     emptyCanvas(canvasId, h, "VIX SD history unavailable - run screener.py");
     return;
@@ -5606,7 +5606,7 @@ function drawVIXSDBars(canvasId, rows, h=230, domain=null, hoverIndex=null) {
   const { ctx, W, H } = c;
   const PAD = { top: 16, right: 56, bottom: 28, left: 42 };
   const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
-  const vMin = -2, vMax = 7, signalSD = (35 - 20) / 8;
+  const vMin = -2, vMax = 10, signalSD = (35 - 20) / 8;
   const xSpan = domain.endMs - domain.startMs || 1;
   const toX = row => PAD.left + ((rowDateMs(row) - domain.startMs) / xSpan) * PW;
   const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
@@ -5618,7 +5618,7 @@ function drawVIXSDBars(canvasId, rows, h=230, domain=null, hoverIndex=null) {
   ctx.fillStyle = "rgba(224,80,80,.055)"; ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toY(signalSD) - PAD.top));
   ctx.fillStyle = "rgba(29,158,117,.045)"; ctx.fillRect(PAD.left, zeroY, PW, Math.max(0, H - PAD.bottom - zeroY));
 
-  [-2,-1,0,1,2,3,4,5,6,7].forEach(level => {
+  [-2,-1,0,1,2,3,4,5,6,7,8,9,10].forEach(level => {
     const y = toY(level);
     ctx.strokeStyle = vixSDLevelColor(level);
     ctx.lineWidth = level === 0 ? 1.2 : (level === -1 || level > 0 ? 1.05 : .8);
@@ -5636,10 +5636,11 @@ function drawVIXSDBars(canvasId, rows, h=230, domain=null, hoverIndex=null) {
 
   const barW = Math.max(1, PW / rows.length - .35);
   rows.forEach((r, i) => {
-    const sd = Math.max(vMin, Math.min(vMax, +r.sd_clamped));
+    const rawSd = +r.sd;
+    const sd = Math.max(vMin, Math.min(vMax, Number.isFinite(rawSd) ? rawSd : +r.sd_clamped));
     if(!Number.isFinite(sd)) return;
     const x = toX(r), y = toY(sd);
-    ctx.fillStyle = vixSDColor(+r.sd, !!r.signal);
+    ctx.fillStyle = vixSDColor(Number.isFinite(rawSd) ? rawSd : sd, !!r.signal);
     if(sd >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
     else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
   });
@@ -5652,17 +5653,21 @@ function drawVIXSDBars(canvasId, rows, h=230, domain=null, hoverIndex=null) {
   });
 
   const last = rows[rows.length - 1];
-  if(last && Number.isFinite(+last.sd_clamped)) {
-    const y = toY(+last.sd_clamped);
-    ctx.fillStyle = vixSDColor(+last.sd, !!last.signal);
-    ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
-    ctx.fillText(`${(+last.sd).toFixed(1)} SD`, PAD.left + PW + 4, y + 3);
+  if(last) {
+    const lastRawSd = +last.sd;
+    const lastSD = Math.max(vMin, Math.min(vMax, Number.isFinite(lastRawSd) ? lastRawSd : +last.sd_clamped));
+    if(Number.isFinite(lastSD)) {
+      const y = toY(lastSD);
+      ctx.fillStyle = vixSDColor(Number.isFinite(lastRawSd) ? lastRawSd : lastSD, !!last.signal);
+      ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+      ctx.fillText(`${(Number.isFinite(lastRawSd) ? lastRawSd : lastSD).toFixed(1)} SD`, PAD.left + PW + 4, y + 3);
+    }
   }
 
   if(hoverIndex != null && rows[hoverIndex]) {
     const r = rows[hoverIndex];
     const sdRaw = +r.sd;
-    const sd = Math.max(vMin, Math.min(vMax, +r.sd_clamped));
+    const sd = Math.max(vMin, Math.min(vMax, Number.isFinite(sdRaw) ? sdRaw : +r.sd_clamped));
     const x = toX(r), y = toY(sd);
     const col = vixSDColor(sdRaw, !!r.signal);
     ctx.strokeStyle = col; ctx.lineWidth = 1.15;
@@ -5710,7 +5715,7 @@ function drawVIXSDSignal() {
   if(priceRows.length < 2) emptyCanvas("vixsdPriceCanvas", 240, `S&P 500 ${vixsdHistoryRange} history unavailable - run screener.py`);
   else drawHistoryLineLogByDate("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, [], sharedXPad);
 
-  drawVIXSDBars("vixsdBarsCanvas", vixRows, 230, domain);
+  drawVIXSDBars("vixsdBarsCanvas", vixRows, 340, domain);
 
   const title = document.getElementById("vixsdPriceTitle");
   if(title) title.textContent = `S&P 500 — ${vixsdHistoryRange} Daily Log Chart`;
