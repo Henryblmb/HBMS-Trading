@@ -663,6 +663,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-vixsd',this)">VIX SD Level</div>
       <div class="nav-item sub" onclick="showTab('cg-vixrv',this)">VIX vs Realized Vol</div>
       <div class="nav-item sub" onclick="showTab('cg-vixspike',this)">VIX Spike Model</div>
+      <div class="nav-item sub" onclick="showTab('cg-vixsame',this)">VIX/SPX Same Direction</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Bonds</span><span class="nav-folder-arrow">›</span></div>
@@ -1566,6 +1567,62 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
         <div class="interp-cell info"><div class="interp-title info">Adaptive Threshold</div><div class="interp-text">Thresholds are recalculated on the selected history window, so 1Y reacts faster while 20Y uses a full-cycle distribution.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Bearish Threshold Forward</div><div class="interp-text" id="vixSpikeBearForward">Waiting for VIX spike data.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Bullish Threshold Forward</div><div class="interp-text" id="vixSpikeBullForward">Waiting for VIX compression data.</div></div>
+      </div>
+    </div>
+
+    <!-- VIX / SPX SAME DIRECTION STREAK -->
+    <div class="panel cg-page" id="tab-cg-vixsame">
+      <div class="cg-header">
+        <div class="cg-title">VIX + S&amp;P 500 Same Direction Streak</div>
+        <div class="cg-sub">Counts consecutive daily closes where VIX and S&amp;P 500 move in the same direction. Normally VIX rises when equities fall; repeated same-direction days flag unusual cross-asset behavior and a less clean volatility/equity relationship.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Current Streak</div><div class="signal-bar-val" id="vixSameStreakVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Latest Move</div><div class="signal-bar-val" id="vixSameMoveVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="vixSameRegimeVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Max Streak</div><div class="signal-bar-val" id="vixSameMaxVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="vixsameRange">
+            <button class="hist-btn" onclick="setHistoryRange('vixsame','1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixsame','5Y',this)">5Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixsame','10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setHistoryRange('vixsame','20Y',this)">20Y</button>
+            <button class="hist-btn active" onclick="setHistoryRange('vixsame','max',this)">Max</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixSamePriceTitle">S&amp;P 500 — Same Direction Streak Markers</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span style="color:#2f6cff">● Same-direction day</span>
+          </div>
+        </div>
+        <canvas id="vixSamePriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="vixSameBarsTitle">Consecutive Days VIX and S&amp;P 500 Moved In The Same Direction</span>
+          <div class="cg-chart-legend">
+            <span style="color:#2f6cff">Same-direction streak</span>
+            <span style="color:#777">Dashed = latest value</span>
+            <span style="color:#e05050">5+ unusual</span>
+          </div>
+        </div>
+        <canvas id="vixSameBarsCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-cell neut"><div class="interp-title neut">Same Direction</div><div class="interp-text">Both VIX and S&amp;P 500 rose, or both fell, from the prior close. That is less typical than the usual inverse relationship.</div></div>
+        <div class="interp-cell bear"><div class="interp-title bear">Long Streak</div><div class="interp-text">A 5+ day streak suggests the volatility/equity relationship is behaving unusually. It often appears around unstable transitions, hedging demand, or volatility repricing.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Method</div><div class="interp-text">Uses close-to-close daily changes for VIX and S&amp;P 500. Flat days reset the streak. Max history begins where both series overlap.</div></div>
       </div>
     </div>
 
@@ -2955,6 +3012,7 @@ function showTab(id, el) {
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
   if(id === "cg-vixspike") setTimeout(drawVIXSpikeModel, 60);
+  if(id === "cg-vixsame") setTimeout(drawVIXSameDirectionStreak, 60);
 }
 
 // ═══════════════════════════════════════════════
@@ -2997,6 +3055,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
     if(activePanel && activePanel.id === "tab-cg-vixspike") drawVIXSpikeModel();
+    if(activePanel && activePanel.id === "tab-cg-vixsame") drawVIXSameDirectionStreak();
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
     if(activePanel && activePanel.id === "tab-cg-peratio") drawPERatioChart();
     if(activePanel && activePanel.id === "tab-cg-vixratio") drawVIXRatioChart();
@@ -5186,6 +5245,7 @@ let btcBinHistoryRange = "max";
 let vixsdHistoryRange = "20Y";
 let vixrvHistoryRange = "20Y";
 let vixspikeHistoryRange = "5Y";
+let vixsameHistoryRange = "max";
 let vixRatioHistoryRange = "3Y";
 let maDistHistoryRange = "5Y";
 let dailyChgHistoryRange = "5Y";
@@ -5210,6 +5270,7 @@ const cgRedraw = {
   "cg-vixsd": () => drawVIXSDSignal(),
   "cg-vixrv": () => drawVIXRealizedVol(),
   "cg-vixspike": () => drawVIXSpikeModel(),
+  "cg-vixsame": () => drawVIXSameDirectionStreak(),
   "cg-rethist": () => renderReturnHistogram(),
   "cg-madist": () => renderMADistance(),
   "cg-madist-stocks": () => renderMAStockDistance(),
@@ -5438,6 +5499,13 @@ function setHistoryRange(chart, range, btn) {
     document.querySelectorAll("#vixspikeRange .hist-btn").forEach(b => b.classList.remove("active"));
     if(btn) btn.classList.add("active");
     drawVIXSpikeModel();
+  }
+  if(chart === "vixsame") {
+    vixsameHistoryRange = range;
+    delete cgDateRanges["cg-vixsame"];
+    document.querySelectorAll("#vixsameRange .hist-btn").forEach(b => b.classList.remove("active"));
+    if(btn) btn.classList.add("active");
+    drawVIXSameDirectionStreak();
   }
 }
 
@@ -6013,6 +6081,200 @@ function drawVIXSpikeModel() {
     sigEl.textContent = txt;
     sigEl.style.color = latestChg >= upThr ? "#e05050" : latestChg <= lowThr ? "#1D9E75" : "#777";
   }
+}
+
+function vixCloseValue(row) {
+  const close = +row.vix_close;
+  return Number.isFinite(close) ? close : +row.vix;
+}
+
+function buildVIXSameDirectionRows(priceRows, vixRows) {
+  const priceByDate = new Map((priceRows || []).filter(r => r.date && Number.isFinite(+r.close)).map(r => [r.date, r]));
+  const vixByDate = new Map((vixRows || []).filter(r => r.date && Number.isFinite(vixCloseValue(r))).map(r => [r.date, r]));
+  const dates = [...priceByDate.keys()].filter(d => vixByDate.has(d)).sort();
+  const rows = [];
+  let streak = 0;
+  for(let i = 1; i < dates.length; i++) {
+    const date = dates[i], prevDate = dates[i - 1];
+    const p = priceByDate.get(date), pPrev = priceByDate.get(prevDate);
+    const v = vixByDate.get(date), vPrev = vixByDate.get(prevDate);
+    const spx = +p.close, prevSpx = +pPrev.close;
+    const vix = vixCloseValue(v), prevVix = vixCloseValue(vPrev);
+    const spxChg = prevSpx > 0 ? (spx / prevSpx - 1) * 100 : NaN;
+    const vixChg = prevVix > 0 ? (vix / prevVix - 1) * 100 : NaN;
+    const spxDir = spxChg > 0 ? 1 : spxChg < 0 ? -1 : 0;
+    const vixDir = vixChg > 0 ? 1 : vixChg < 0 ? -1 : 0;
+    const same = spxDir !== 0 && spxDir === vixDir;
+    streak = same ? streak + 1 : 0;
+    rows.push({ date, close: spx, vix, spx_chg: spxChg, vix_chg: vixChg, spx_dir: spxDir, vix_dir: vixDir, same, streak });
+  }
+  return rows;
+}
+
+function drawVIXSameDirectionStreak(hoverIndex=null) {
+  const md = window._marketData || {};
+  const rawPrice = (marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y")).length
+    ? (marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y"))
+    : marketHistory("sp500_history");
+  const rawVix = Array.isArray(md.vix_history) ? md.vix_history : [];
+  const allRows = buildVIXSameDirectionRows(rawPrice, rawVix);
+  const domain = ensureCGCommonDateControls("cg-vixsame", [allRows], vixsameHistoryRange);
+  const rows = filterRowsByDateDomain(allRows, domain);
+  document.querySelectorAll("#vixsameRange .hist-btn").forEach(btn => btn.classList.toggle("active", btn.textContent.trim().toLowerCase() === String(vixsameHistoryRange).toLowerCase()));
+  drawVIXSamePrice(rows, domain, hoverIndex);
+  drawVIXSameBars(rows, domain, hoverIndex);
+  updateVIXSameReadings(allRows, rows);
+}
+
+function updateVIXSameReadings(allRows, rows) {
+  const latest = allRows && allRows.length ? allRows[allRows.length - 1] : null;
+  const maxStreak = rows && rows.length ? Math.max(...rows.map(r => +r.streak || 0)) : 0;
+  const set = (id, txt, color=null) => { const el=document.getElementById(id); if(el){ el.textContent=txt; if(color) el.style.color=color; } };
+  const streak = latest ? +latest.streak || 0 : null;
+  const col = streak >= 5 ? "#e05050" : streak >= 3 ? "#EF9F27" : "#2f6cff";
+  set("vixSameStreakVal", latest ? String(streak) : "—", col);
+  if(latest) {
+    const spxTxt = `${latest.spx_chg >= 0 ? "+" : ""}${latest.spx_chg.toFixed(2)}%`;
+    const vixTxt = `${latest.vix_chg >= 0 ? "+" : ""}${latest.vix_chg.toFixed(2)}%`;
+    set("vixSameMoveVal", `SPX ${spxTxt} / VIX ${vixTxt}`, latest.same ? col : "#d8d8d8");
+    set("vixSameRegimeVal", latest.same ? (streak >= 5 ? "UNUSUAL" : "SAME DIR") : "INVERSE", latest.same ? col : "#1D9E75");
+  } else {
+    set("vixSameMoveVal", "—");
+    set("vixSameRegimeVal", "—");
+  }
+  set("vixSameMaxVal", rows && rows.length ? String(maxStreak) : "—", maxStreak >= 5 ? "#e05050" : "#d8d8d8");
+  const priceTitle = document.getElementById("vixSamePriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `S&P 500 — Same-direction markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const barsTitle = document.getElementById("vixSameBarsTitle");
+  if(barsTitle && rows.length) barsTitle.textContent = `Consecutive Same-Direction Days — latest ${latest ? latest.streak : "—"}`;
+}
+
+function vixSameScale(rows, domain, W, H, PAD) {
+  const PW = W - PAD.left - PAD.right;
+  const PH = H - PAD.top - PAD.bottom;
+  const startMs = domain?.startMs || (rows[0] ? rowDateMs(rows[0]) : Date.now() - 86400000);
+  const endMs = domain?.endMs || (rows[rows.length - 1] ? rowDateMs(rows[rows.length - 1]) : Date.now());
+  const xSpan = endMs - startMs || 1;
+  const toDateX = ms => PAD.left + ((ms - startMs) / xSpan) * PW;
+  const toX = r => toDateX(rowDateMs(r));
+  return { PW, PH, toDateX, toX };
+}
+
+function drawVIXSamePrice(rows, domain, hoverIndex=null) {
+  const c = mkCanvas("vixSamePriceCanvas", 230); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 16, right: 56, bottom: 28, left: 42 };
+  const { PW, PH, toDateX, toX } = vixSameScale(rows, domain, W, H, PAD);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  if(!domain || rows.length < 40) {
+    ctx.fillStyle="rgba(255,255,255,.08)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("VIX/SPX same-direction history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const prices = rows.map(r => +r.close).filter(v => v > 0);
+  const minLog = Math.log(Math.min(...prices)) * .998;
+  const maxLog = Math.log(Math.max(...prices)) * 1.002;
+  const toY = v => PAD.top + PH - ((Math.log(v) - minLog) / (maxLog - minLog || 1)) * PH;
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.055)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ const y=PAD.top+PH*i/4; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  rows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r.close)) : ctx.moveTo(toX(r), toY(+r.close)));
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.6; ctx.stroke();
+  rows.filter(r => r.same && r.streak >= 3).forEach(r => {
+    const x = toX(r), y = toY(+r.close);
+    const col = r.streak >= 5 ? "#e05050" : "#2f6cff";
+    ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI*2); ctx.fillStyle=col; ctx.fill();
+    ctx.strokeStyle="#151515"; ctx.lineWidth=1.1; ctx.stroke();
+  });
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r), y = toY(+r.close);
+    const col = r.same ? (r.streak >= 5 ? "#e05050" : "#2f6cff") : "#777";
+    ctx.strokeStyle=col; ctx.lineWidth=1.1; ctx.beginPath(); ctx.moveTo(x,PAD.top); ctx.lineTo(x,PAD.top+PH); ctx.stroke();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,3.4,0,Math.PI*2); ctx.fill();
+    drawCanvasTooltip(ctx, W, H, PAD, x, y, [
+      `${formatHoverDate(r.date)} · Streak ${r.streak}`,
+      `SPX ${r.spx_chg >= 0 ? "+" : ""}${r.spx_chg.toFixed(2)}% · VIX ${r.vix_chg >= 0 ? "+" : ""}${r.vix_chg.toFixed(2)}%`,
+      r.same ? "Same direction" : "Inverse / reset"
+    ], col);
+  }
+  ctx.fillStyle="#555"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [Math.exp(minLog), Math.exp((minLog+maxLog)/2), Math.exp(maxLog)].forEach(v => ctx.fillText(v.toFixed(0), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#4a4a4a"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p=>{ const ms=domain.startMs+(domain.endMs-domain.startMs)*p; ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), toDateX(ms), H-PAD.bottom+12); });
+  const canvas = document.getElementById("vixSamePriceCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => handleVIXSameHover(e, rows, domain, PAD, PW);
+    canvas.onmouseleave = () => drawVIXSameDirectionStreak(null);
+  }
+}
+
+function drawVIXSameBars(rows, domain, hoverIndex=null) {
+  const c = mkCanvas("vixSameBarsCanvas", 320); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 52, bottom: 32, left: 42 };
+  const { PW, PH, toDateX, toX } = vixSameScale(rows, domain, W, H, PAD);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#f3f4f7"; ctx.fillRect(0,0,W,H);
+  if(!domain || rows.length < 40) {
+    ctx.fillStyle="#555"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("VIX/SPX same-direction history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const latest = rows[rows.length - 1];
+  const latestStreak = latest ? +latest.streak || 0 : 0;
+  const maxV = Math.max(10, Math.ceil(Math.max(...rows.map(r => +r.streak || 0), latestStreak) / 2) * 2);
+  const toY = v => PAD.top + PH - (Math.max(0, Math.min(maxV, v)) / maxV) * PH;
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1;
+  for(let i=0;i<=maxV;i+=Math.max(1, Math.round(maxV/10))) {
+    const y=toY(i); ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+  }
+  const barW = Math.max(1, Math.min(5, PW / rows.length * 1.35));
+  rows.forEach(r => {
+    const v = +r.streak || 0;
+    const x = toX(r), y = toY(v);
+    ctx.fillStyle = v >= 5 ? "#e05050" : "#2d63c8";
+    if(v > 0) ctx.fillRect(x - barW / 2, y, barW, PAD.top + PH - y);
+  });
+  const latestY = toY(latestStreak);
+  ctx.setLineDash([7,7]); ctx.strokeStyle="#2d63c8"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(PAD.left, latestY); ctx.lineTo(PAD.left+PW, latestY); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle="#222"; ctx.font="bold 10px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("Dashed line is latest value", Math.max(PAD.left + 8, PAD.left + PW * .54), latestY - 8);
+  ctx.fillStyle="#333"; ctx.font="9px sans-serif"; ctx.textAlign="right";
+  for(let i=0;i<=maxV;i++) ctx.fillText(String(i), PAD.left-6, toY(i)+3);
+  ctx.textAlign="left";
+  for(let i=0;i<=maxV;i++) ctx.fillText(String(i), PAD.left+PW+6, toY(i)+3);
+  ctx.fillStyle="#333"; ctx.font="9px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p=>{ const ms=domain.startMs+(domain.endMs-domain.startMs)*p; ctx.fillText(new Date(ms).getFullYear(), toDateX(ms), H-PAD.bottom+18); });
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r), y = toY(+r.streak || 0);
+    const col = r.streak >= 5 ? "#e05050" : r.same ? "#2d63c8" : "#777";
+    ctx.strokeStyle=col; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(x,PAD.top); ctx.lineTo(x,PAD.top+PH); ctx.stroke();
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,3.5,0,Math.PI*2); ctx.fill();
+    drawCanvasTooltip(ctx, W, H, PAD, x, y, [
+      `${formatHoverDate(r.date)} · ${r.streak} days`,
+      `SPX ${r.spx_chg >= 0 ? "+" : ""}${r.spx_chg.toFixed(2)}%`,
+      `VIX ${r.vix_chg >= 0 ? "+" : ""}${r.vix_chg.toFixed(2)}%`
+    ], col);
+  }
+  const canvas = document.getElementById("vixSameBarsCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => handleVIXSameHover(e, rows, domain, PAD, PW);
+    canvas.onmouseleave = () => drawVIXSameDirectionStreak(null);
+  }
+}
+
+function handleVIXSameHover(e, rows, domain, PAD, PW) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if(x < PAD.left || x > PAD.left + PW) { drawVIXSameDirectionStreak(null); return; }
+  const targetMs = domain.startMs + ((x - PAD.left) / PW) * (domain.endMs - domain.startMs || 1);
+  let idx = 0, best = Infinity;
+  rows.forEach((row, i) => {
+    const diff = Math.abs(rowDateMs(row) - targetMs);
+    if(diff < best) { best = diff; idx = i; }
+  });
+  drawVIXSameDirectionStreak(idx);
 }
 
 function drawSPXWeeklyEMA() {
