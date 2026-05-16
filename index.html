@@ -620,6 +620,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-mabreadth',this)">% Stocks above</div>
       <div class="nav-item sub" onclick="showTab('cg-newhighs',this)">New 52W Highs</div>
       <div class="nav-item sub" onclick="showTab('cg-newlows',this)">New 52W Lows</div>
+      <div class="nav-item sub" onclick="showTab('cg-narrowleadership',this)">Narrow Leadership</div>
       <div class="nav-item sub" onclick="showTab('cg-hindenburg',this)">Hindenburg Omen</div>
       <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
     </div>
@@ -2593,6 +2594,65 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- NARROW LEADERSHIP -->
+    <div class="panel cg-page" id="tab-cg-narrowleadership">
+      <div class="cg-header">
+        <div class="cg-title">Narrow Leadership — 52W Highs vs Lows</div>
+        <div class="cg-sub">S&amp;P 500 breadth divergence model. It flags periods where new 52-week lows are elevated while new 52-week highs fail to confirm, especially when the index is still holding up. This captures narrow mega-cap leadership and weakening participation beneath the surface.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Regime</div><div class="signal-bar-val" id="narrowLeadershipRegimeVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Low Streak</div><div class="signal-bar-val" id="narrowLeadershipStreakVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">New Lows</div><div class="signal-bar-val" id="narrowLeadershipLowsVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">New Highs</div><div class="signal-bar-val" id="narrowLeadershipHighsVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Signals</div><div class="signal-bar-val" id="narrowLeadershipCountVal">—</div></div>
+        <div class="signal-range-controls" data-cg-date-host>
+          <div class="hist-range" id="narrowLeadershipRange">
+            <button class="hist-btn" onclick="setNarrowLeadershipRange('1Y',this)">1Y</button>
+            <button class="hist-btn" onclick="setNarrowLeadershipRange('5Y',this)">5Y</button>
+            <button class="hist-btn active" onclick="setNarrowLeadershipRange('10Y',this)">10Y</button>
+            <button class="hist-btn" onclick="setNarrowLeadershipRange('20Y',this)">20Y</button>
+            <button class="hist-btn" onclick="setNarrowLeadershipRange('max',this)">Max</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="narrowLeadershipPriceTitle">S&amp;P 500 — Red Dots = Narrow Leadership Divergence</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>S&amp;P 500</span>
+            <span style="color:#e05050">● Divergence</span>
+          </div>
+        </div>
+        <canvas id="narrowLeadershipPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="narrowLeadershipBreadthTitle">New 52W Lows vs New 52W Highs — S&amp;P 500 Members</span>
+          <div class="cg-chart-legend">
+            <span style="color:#ff5c75">New Lows %</span>
+            <span style="color:#d9f7bd">New Highs %</span>
+            <span style="color:#777">— 5% stress</span>
+            <span style="color:#e05050">● Signal</span>
+          </div>
+        </div>
+        <canvas id="narrowLeadershipBreadthCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Narrow Leadership</div><div class="interp-text">New lows expand while new highs fade and the index remains supported. That usually means fewer large-cap winners are masking broader internal weakness.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Contained Breadth Stress</div><div class="interp-text">New lows below the stress line or balanced new highs/lows indicate the divergence is not yet strong enough to flag narrow leadership.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Signal Logic</div><div class="interp-text">Signal requires new lows at or above 5%, new lows exceeding new highs, and S&amp;P 500 price not materially breaking down over the prior 10 sessions.</div></div>
+      </div>
+    </div>
+
     <!-- HINDENBURG OMEN -->
     <div class="panel cg-page" id="tab-cg-hindenburg">
       <div class="cg-header">
@@ -2779,6 +2839,7 @@ let newLowsHistoryRange = "10Y";
 let newLowsThresholdPct = 4;
 let newHighsHistoryRange = "10Y";
 let newHighsThresholdPct = 15;
+let narrowLeadershipHistoryRange = "10Y";
 let hindenburgHistoryRange = "10Y";
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
@@ -2888,6 +2949,7 @@ function showTab(id, el) {
   if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
   if(id === "cg-newhighs") setTimeout(drawNewHighsBreadth, 60);
   if(id === "cg-newlows") setTimeout(drawNewLowsBreadth, 60);
+  if(id === "cg-narrowleadership") setTimeout(drawNarrowLeadership, 60);
   if(id === "cg-hindenburg") setTimeout(drawHindenburgOmen, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
@@ -2944,6 +3006,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
     if(activePanel && activePanel.id === "tab-cg-newhighs") drawNewHighsBreadth();
     if(activePanel && activePanel.id === "tab-cg-newlows") drawNewLowsBreadth();
+    if(activePanel && activePanel.id === "tab-cg-narrowleadership") drawNarrowLeadership();
     if(activePanel && activePanel.id === "tab-cg-hindenburg") drawHindenburgOmen();
     if(activePanel && activePanel.id === "tab-signal-calendar") renderSignalCalendar();
   } catch(e) {
@@ -4657,6 +4720,14 @@ function setNewHighsThreshold(level) {
   drawNewHighsBreadth();
 }
 
+function setNarrowLeadershipRange(range, btn) {
+  narrowLeadershipHistoryRange = range || narrowLeadershipHistoryRange;
+  delete cgDateRanges["cg-narrowleadership"];
+  document.querySelectorAll("#narrowLeadershipRange .hist-btn").forEach(b => b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  drawNarrowLeadership();
+}
+
 function setHindenburgRange(range, btn) {
   hindenburgHistoryRange = range || hindenburgHistoryRange;
   delete cgDateRanges["cg-hindenburg"];
@@ -5153,6 +5224,7 @@ const cgRedraw = {
   "cg-mabreadth": () => drawStocksAboveAnalyzer(),
   "cg-newhighs": () => drawNewHighsBreadth(),
   "cg-newlows": () => drawNewLowsBreadth(),
+  "cg-narrowleadership": () => drawNarrowLeadership(),
   "cg-hindenburg": () => drawHindenburgOmen(),
   "cg-oil": () => drawOilCharts(),
   "cg-goldsilver": () => drawGoldSilverRatio(),
@@ -7495,6 +7567,234 @@ function drawNewHighsBreadth(hoverIndex=null) {
     };
     canvas.onmouseleave = () => drawNewHighsBreadth(null);
   }
+}
+
+function buildNarrowLeadershipRows(priceRaw, highsRaw, lowsRaw) {
+  const highMap = new Map((highsRaw || []).map(r => [r.date, r]));
+  const lowMap = new Map((lowsRaw || []).map(r => [r.date, r]));
+  const priceRows = (priceRaw || [])
+    .filter(r => r.date && Number.isFinite(+r.close) && +r.close > 0)
+    .sort((a,b) => rowDateMs(a) - rowDateMs(b));
+  const rows = priceRows.map((p, i) => {
+    const hi = highMap.get(p.date), lo = lowMap.get(p.date);
+    if(!hi || !lo) return null;
+    const close = +p.close;
+    const prev10 = priceRows[i - 10] ? +priceRows[i - 10].close : NaN;
+    const spx10 = Number.isFinite(prev10) && prev10 > 0 ? (close / prev10 - 1) * 100 : NaN;
+    return {
+      date: p.date,
+      close,
+      high_pct: +hi.pct,
+      low_pct: +lo.pct,
+      high_avg: +hi.avg10,
+      low_avg: +lo.avg10,
+      new_highs: +hi.new_highs,
+      new_lows: +lo.new_lows,
+      universe: lo.universe ?? hi.universe ?? null,
+      spx10,
+      signal: false
+    };
+  }).filter(r => r && Number.isFinite(r.high_pct) && Number.isFinite(r.low_pct) && Number.isFinite(r.high_avg) && Number.isFinite(r.low_avg));
+  rows.forEach((r, i) => {
+    const prev = rows[Math.max(0, i - 10)];
+    const highsFalling = prev ? r.high_avg <= prev.high_avg || r.high_avg <= 4 : false;
+    const lowsElevated = r.low_avg >= 5 || r.low_pct >= 5;
+    const lowsDominate = r.low_avg > r.high_avg || r.low_pct > r.high_pct;
+    const indexHolding = Number.isFinite(r.spx10) ? r.spx10 >= -2 : false;
+    r.signal = lowsElevated && lowsDominate && highsFalling && indexHolding;
+  });
+  return rows;
+}
+
+function drawNarrowLeadership(hoverIndex=null) {
+  const md = window._marketData || {};
+  const highsRaw = Array.isArray(md.new_highs_52w_history) ? md.new_highs_52w_history : [];
+  const lowsRaw = Array.isArray(md.new_lows_52w_history) ? md.new_lows_52w_history : [];
+  const priceRaw = marketHistory("sp500_history_20y").length ? marketHistory("sp500_history_20y") : marketHistory("sp500_history");
+  const allRows = buildNarrowLeadershipRows(priceRaw, highsRaw, lowsRaw);
+  const domain = ensureCGCommonDateControls("cg-narrowleadership", [allRows], narrowLeadershipHistoryRange);
+  const rows = filterRowsByDateDomain(allRows, domain);
+  document.querySelectorAll("#narrowLeadershipRange .hist-btn").forEach(btn => btn.classList.toggle("active", btn.textContent.trim().toLowerCase() === String(narrowLeadershipHistoryRange).toLowerCase()));
+  drawNarrowLeadershipPrice(rows, domain, hoverIndex);
+  drawNarrowLeadershipBreadth(rows, domain, hoverIndex);
+  updateNarrowLeadershipReadings(allRows, rows);
+}
+
+function updateNarrowLeadershipReadings(allRows, rows) {
+  const latest = allRows && allRows.length ? allRows[allRows.length - 1] : null;
+  const signals = (rows || []).filter(r => r.signal);
+  let streak = 0;
+  for(let i = (allRows || []).length - 1; i >= 0; i--) {
+    if(+allRows[i].low_avg >= 5 || +allRows[i].low_pct >= 5) streak++;
+    else break;
+  }
+  const set = (id, txt, color=null) => { const el = document.getElementById(id); if(el){ el.textContent = txt; if(color) el.style.color = color; } };
+  const active = !!latest?.signal;
+  const pressure = latest && ((+latest.low_avg >= 5 || +latest.low_pct >= 5) && (+latest.low_avg > +latest.high_avg || +latest.low_pct > +latest.high_pct));
+  set("narrowLeadershipRegimeVal", active ? "DIVERGENCE" : pressure ? "PRESSURE" : "NORMAL", active ? "#e05050" : pressure ? "#EF9F27" : "#1D9E75");
+  set("narrowLeadershipStreakVal", latest ? `${streak}d` : "—", streak >= 4 ? "#e05050" : streak ? "#EF9F27" : "#d8d8d8");
+  set("narrowLeadershipLowsVal", latest ? `${latest.low_avg.toFixed(1)}%` : "—", latest && latest.low_avg >= 5 ? "#e05050" : "#d8d8d8");
+  set("narrowLeadershipHighsVal", latest ? `${latest.high_avg.toFixed(1)}%` : "—", latest && latest.high_avg >= latest.low_avg ? "#1D9E75" : "#d8d8d8");
+  set("narrowLeadershipCountVal", String(signals.length), signals.length ? "#e05050" : "#d8d8d8");
+  const priceTitle = document.getElementById("narrowLeadershipPriceTitle");
+  if(priceTitle && rows.length) priceTitle.textContent = `S&P 500 — Narrow leadership divergence · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+  const breadthTitle = document.getElementById("narrowLeadershipBreadthTitle");
+  if(breadthTitle && rows.length) breadthTitle.textContent = `New 52W Lows vs Highs — ${signals.length} divergence signals in selected range`;
+}
+
+function narrowLeadershipScale(rows, domain, W, H, PAD) {
+  const PW = W - PAD.left - PAD.right;
+  const PH = H - PAD.top - PAD.bottom;
+  const startMs = domain?.startMs || (rows[0] ? rowDateMs(rows[0]) : Date.now() - 86400000);
+  const endMs = domain?.endMs || (rows[rows.length - 1] ? rowDateMs(rows[rows.length - 1]) : Date.now());
+  const xSpan = endMs - startMs || 1;
+  const toDateX = ms => PAD.left + ((ms - startMs) / xSpan) * PW;
+  const toX = r => toDateX(rowDateMs(r));
+  return { PW, PH, toDateX, toX };
+}
+
+function drawNarrowLeadershipPrice(rows, domain, hoverIndex=null) {
+  const c = mkCanvas("narrowLeadershipPriceCanvas", 260); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 68, bottom: 30, left: 48 };
+  const { PW, PH, toDateX, toX } = narrowLeadershipScale(rows, domain, W, H, PAD);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  if(!domain || rows.length < 40) {
+    ctx.fillStyle="rgba(255,255,255,.10)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Narrow leadership history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const prices = rows.map(r => +r.close).filter(v => v > 0);
+  const minLog = Math.log(Math.min(...prices)) * .998;
+  const maxLog = Math.log(Math.max(...prices)) * 1.002;
+  const toY = v => PAD.top + PH - ((Math.log(v) - minLog) / (maxLog - minLog || 1)) * PH;
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.07)"; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++) { const y = PAD.top + PH * i / 4; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  rows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r.close)) : ctx.moveTo(toX(r), toY(+r.close)));
+  ctx.strokeStyle="#d8d8d8"; ctx.lineWidth=1.7; ctx.stroke();
+  rows.filter(r => r.signal).forEach(r => {
+    const x = toX(r), y = toY(+r.close);
+    ctx.beginPath(); ctx.arc(x, y, 4.1, 0, Math.PI*2); ctx.fillStyle="#e05050"; ctx.fill();
+    ctx.strokeStyle="#101010"; ctx.lineWidth=1.25; ctx.stroke();
+  });
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r), y = toY(+r.close);
+    ctx.strokeStyle = r.signal ? "#e05050" : "#777"; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top+PH); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fillStyle = r.signal ? "#e05050" : "#d8d8d8"; ctx.fill();
+    const dt = new Date(r.date+"T12:00:00").toLocaleDateString("de-DE",{day:"2-digit",month:"short",year:"numeric"}).replace(".","");
+    const lines = [`${dt} · SPX ${r.close.toFixed(0)}`, `10D lows ${r.low_avg.toFixed(1)}% · highs ${r.high_avg.toFixed(1)}%`, `SPX 10D ${r.spx10 >= 0 ? "+" : ""}${r.spx10.toFixed(1)}%`];
+    ctx.font="bold 10px sans-serif";
+    const boxW = Math.max(...lines.map(line => ctx.measureText(line).width)) + 16, boxH = 12 + lines.length * 14;
+    const bx = Math.max(PAD.left+2, Math.min(W-PAD.right-boxW-2, x-boxW/2));
+    const by = Math.max(PAD.top+4, Math.min(PAD.top+PH-boxH-4, y-boxH-10));
+    ctx.fillStyle="rgba(8,8,8,.94)"; ctx.strokeStyle="#303030"; ctx.fillRect(bx,by,boxW,boxH); ctx.strokeRect(bx,by,boxW,boxH);
+    ctx.textAlign="left"; lines.forEach((line,i)=>{ ctx.fillStyle=i===1&&r.signal?"#e05050":"#d8d8d8"; ctx.fillText(line,bx+8,by+15+i*14); });
+  }
+  ctx.fillStyle="#777"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [Math.round(Math.exp(minLog)), Math.round(Math.exp((minLog + maxLog) / 2)), Math.round(Math.exp(maxLog))].forEach(v => ctx.fillText(String(v), PAD.left-5, toY(v)+3));
+  ctx.fillStyle="#444"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    ctx.fillText(new Date(ms).getFullYear(), toDateX(ms), H-PAD.bottom+14);
+  });
+  const canvas = document.getElementById("narrowLeadershipPriceCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => handleNarrowLeadershipHover(e, rows, domain, PAD, PW);
+    canvas.onmouseleave = () => drawNarrowLeadership(null);
+  }
+}
+
+function drawNarrowLeadershipBreadth(rows, domain, hoverIndex=null) {
+  const c = mkCanvas("narrowLeadershipBreadthCanvas", 420); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 68, bottom: 32, left: 48 };
+  const gap = 14;
+  const panelH = Math.floor((H - PAD.top - PAD.bottom - gap) / 2);
+  const topY = PAD.top;
+  const botY = PAD.top + panelH + gap;
+  const PW = W - PAD.left - PAD.right;
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#101010"; ctx.fillRect(0,0,W,H);
+  if(!domain || rows.length < 40) {
+    ctx.fillStyle="rgba(255,255,255,.10)"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("Narrow leadership breadth history unavailable - run screener.py", W/2, H/2);
+    return;
+  }
+  const xSpan = domain.endMs - domain.startMs || 1;
+  const toX = r => PAD.left + ((rowDateMs(r) - domain.startMs) / xSpan) * PW;
+  const toDateX = ms => PAD.left + ((ms - domain.startMs) / xSpan) * PW;
+  const vals = rows.flatMap(r => [r.low_pct, r.high_pct, r.low_avg, r.high_avg]).filter(Number.isFinite);
+  const yMax = Math.max(8, Math.min(40, Math.ceil(Math.max(...vals, 5) / 5) * 5 + 5));
+  const toLowY = v => topY + panelH - (Math.max(0, Math.min(yMax, v)) / yMax) * panelH;
+  const toHighY = v => botY + panelH - (Math.max(0, Math.min(yMax, v)) / yMax) * panelH;
+  const drawPanelGrid = (y0, toY) => {
+    ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.07)"; ctx.lineWidth=1;
+    for(let i=0;i<=4;i++) { const y = y0 + panelH * i / 4; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+    ctx.strokeStyle="#777"; ctx.lineWidth=1.1; ctx.beginPath(); ctx.moveTo(PAD.left,toY(5)); ctx.lineTo(PAD.left+PW,toY(5)); ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  drawPanelGrid(topY, toLowY);
+  drawPanelGrid(botY, toHighY);
+  const barW = Math.max(1, Math.min(4, PW / rows.length * 1.2));
+  rows.forEach(r => {
+    const x = toX(r);
+    const lowY = toLowY(+r.low_pct);
+    const highY = toHighY(+r.high_pct);
+    ctx.fillStyle = r.signal ? "rgba(255,92,117,.95)" : "rgba(255,92,117,.70)";
+    ctx.fillRect(x - barW / 2, lowY, barW, topY + panelH - lowY);
+    ctx.fillStyle = "rgba(217,247,189,.72)";
+    ctx.fillRect(x - barW / 2, highY, barW, botY + panelH - highY);
+  });
+  const drawAvg = (key, toY, color) => {
+    ctx.beginPath();
+    rows.forEach((r,i)=>i ? ctx.lineTo(toX(r), toY(+r[key])) : ctx.moveTo(toX(r), toY(+r[key])));
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
+  };
+  drawAvg("low_avg", toLowY, "#ff5c75");
+  drawAvg("high_avg", toHighY, "#d9f7bd");
+  rows.filter(r => r.signal).forEach(r => {
+    const x = toX(r), y = toLowY(Math.max(+r.low_pct, +r.low_avg));
+    ctx.beginPath(); ctx.arc(x, y - 6, 3.8, 0, Math.PI*2); ctx.fillStyle="#e05050"; ctx.fill();
+    ctx.strokeStyle="#101010"; ctx.lineWidth=1.2; ctx.stroke();
+  });
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex], x = toX(r);
+    ctx.strokeStyle = r.signal ? "#e05050" : "#777"; ctx.lineWidth=1.1;
+    ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(x, botY + panelH); ctx.stroke();
+    ctx.fillStyle = r.signal ? "#e05050" : "#d8d8d8";
+    ctx.beginPath(); ctx.arc(x, toLowY(+r.low_avg), 3.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, toHighY(+r.high_avg), 3.4, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle="#777"; ctx.font="bold 10px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("% New 52W Lows", PAD.left+6, topY+14);
+  ctx.fillText("% New 52W Highs", PAD.left+6, botY+14);
+  ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [0,5,yMax].forEach(v => { ctx.fillText(v.toFixed(v ? 1 : 0), PAD.left-5, toLowY(v)+3); ctx.fillText(v.toFixed(v ? 1 : 0), PAD.left-5, toHighY(v)+3); });
+  ctx.fillStyle="#444"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
+    ctx.fillText(new Date(ms).getFullYear(), toDateX(ms), H-PAD.bottom+16);
+  });
+  const canvas = document.getElementById("narrowLeadershipBreadthCanvas");
+  if(canvas) {
+    canvas.onmousemove = e => handleNarrowLeadershipHover(e, rows, domain, PAD, PW);
+    canvas.onmouseleave = () => drawNarrowLeadership(null);
+  }
+}
+
+function handleNarrowLeadershipHover(e, rows, domain, PAD, PW) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if(x < PAD.left || x > PAD.left + PW) { drawNarrowLeadership(null); return; }
+  const targetMs = domain.startMs + ((x - PAD.left) / PW) * (domain.endMs - domain.startMs || 1);
+  let idx = 0, best = Infinity;
+  rows.forEach((row, i) => {
+    const diff = Math.abs(rowDateMs(row) - targetMs);
+    if(diff < best) { best = diff; idx = i; }
+  });
+  drawNarrowLeadership(idx);
 }
 
 function buildHindenburgRows(priceRaw, highsRaw, lowsRaw) {
