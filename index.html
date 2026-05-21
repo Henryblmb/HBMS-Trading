@@ -136,6 +136,17 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .hist-btn{font-size:10px;padding:4px 10px;border:1px solid #202020;background:#101010;color:#8a8a8a;cursor:pointer;transition:all .1s}
 .hist-btn:hover{color:#e0e0e0;background:#151515}
 .hist-btn.active{background:#1D9E75;border-color:#1D9E75;color:#fff}
+.cap-eq-table-wrap{overflow-x:auto;border:1px solid #1a1a1a;background:#101010}
+.cap-eq-table{width:100%;border-collapse:collapse;min-width:720px;font-size:11px}
+.cap-eq-table th{background:#0b7285;color:#f5f5f5;padding:7px 9px;text-align:center;font-weight:700;border-right:1px solid rgba(255,255,255,.18)}
+.cap-eq-table th:first-child{text-align:left}
+.cap-eq-table td{padding:6px 9px;text-align:center;border-top:1px solid #242424;border-right:1px solid #242424;color:#d8d8d8}
+.cap-eq-table td:first-child{text-align:left;font-weight:700;color:#f0f0f0;background:#151515}
+.cap-eq-table td.pos{background:rgba(29,158,117,.16);color:#8fe5c3}
+.cap-eq-table td.neg{background:rgba(224,80,80,.17);color:#f2a0a0}
+.cap-eq-table td.neut{background:rgba(255,255,255,.04);color:#d8d8d8}
+.cap-eq-note{font-size:11px;color:#8a8a8a;line-height:1.55;margin-top:12px}
+.cap-eq-note strong{color:#d8d8d8}
 .cg-date-range{grid-column:2;grid-row:3;display:flex;gap:5px;align-items:center;justify-content:flex-end;margin-top:8px;white-space:nowrap}
 .cg-date-range label{font-size:8.5px;color:#666;text-transform:uppercase;letter-spacing:.06em}
 .cg-date-range input{width:116px;height:24px;border:1px solid #202020;background:#101010;color:#9a9a9a;font-size:10px;padding:2px 5px;outline:none;color-scheme:dark}
@@ -623,6 +634,7 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       <div class="nav-item sub" onclick="showTab('cg-narrowleadership',this)">Narrow Leadership</div>
       <div class="nav-item sub" onclick="showTab('cg-hindenburg',this)">Hindenburg Omen</div>
       <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
+      <div class="nav-item sub" onclick="showTab('cg-capeq-rally',this)">Broad/Narrow Rally</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Momentum</span><span class="nav-folder-arrow">›</span></div>
@@ -2459,6 +2471,84 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
       </div>
     </div>
 
+    <!-- CAP WEIGHT VS EQUAL WEIGHT RALLY -->
+    <div class="panel cg-page" id="tab-cg-capeq-rally">
+      <div class="cg-header">
+        <div class="cg-title">S&amp;P 500 Broad / Narrow Rally Signals</div>
+        <div class="cg-sub">Six-week SPY minus RSP relative performance. Positive spreads flag narrow cap-weight leadership; negative spreads flag broad equal-weight leadership. Select Broad or Narrow, then choose the signal threshold.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Latest Spread</div><div class="signal-bar-val" id="capEqSpreadVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Mode</div><div class="signal-bar-val" id="capEqModeVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Threshold</div><div class="signal-bar-val" id="capEqThresholdVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Signals</div><div class="signal-bar-val" id="capEqSignalCountVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">3M / 12M Avg</div><div class="signal-bar-val" id="capEqForwardVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Setup</label>
+            <div class="ma-sigma-pick">
+              <button id="capEqModeNarrow" class="active" onclick="setCapEqRallyMode('narrow')">Narrow</button>
+              <button id="capEqModeBroad" onclick="setCapEqRallyMode('broad')">Broad</button>
+            </div>
+          </div>
+          <div class="signal-inline-control">
+            <label>Threshold</label>
+            <div class="ma-sigma-pick">
+              <button id="capEqThresh3" onclick="setCapEqRallyThreshold(3)">+3</button>
+              <button id="capEqThresh35" onclick="setCapEqRallyThreshold(3.5)">+3.5</button>
+              <button id="capEqThresh4" class="active" onclick="setCapEqRallyThreshold(4)">+4</button>
+              <button id="capEqThresh5" onclick="setCapEqRallyThreshold(5)">+5</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="capEqPriceTitle">S&amp;P 500 Daily Close — Signal Starts</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>SPY</span>
+            <span id="capEqPriceLegend" style="color:#EF9F27">Signal starts</span>
+          </div>
+        </div>
+        <canvas id="capEqPriceCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="capEqSpreadTitle">SPY Minus RSP Relative 6-Week Performance</span>
+          <div class="cg-chart-legend">
+            <span id="capEqBarLegend" style="color:#EF9F27">Threshold hits</span>
+            <span id="capEqThreshLegend" style="color:#c5793b">Threshold</span>
+            <span id="capEqSignalLegend" style="color:#8bd9bd">Signal starts</span>
+          </div>
+        </div>
+        <canvas id="capEqSpreadCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">S&amp;P 500 Forward Performance After Signal</span>
+          <div class="cg-chart-legend"><span id="capEqTableLegend">Dynamic backtest from SPY/RSP history</span></div>
+        </div>
+        <div class="cap-eq-table-wrap">
+          <table class="cap-eq-table" id="capEqForwardTable"></table>
+        </div>
+        <div class="cap-eq-note" id="capEqSummary">Waiting for SPY/RSP history.</div>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell bear"><div class="interp-title bear">Narrow Rally</div><div class="interp-text">SPY outperforms RSP over six weeks by the selected positive threshold. The cap-weighted index is being carried more by large weights than by the average constituent.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Broad Rally</div><div class="interp-text">SPY underperforms RSP over six weeks by the selected negative threshold. Equal-weight participation is stronger than cap-weight leadership.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Method</div><div class="interp-text">Uses ETF proxy data from RSP/SPY history. Signal starts are first qualifying days after a three-month de-clustering window.</div></div>
+      </div>
+    </div>
+
     <!-- % STOCKS ABOVE -->
     <div class="panel cg-page" id="tab-cg-mabreadth">
       <div class="cg-header">
@@ -2898,6 +2988,8 @@ let newHighsHistoryRange = "10Y";
 let newHighsThresholdPct = 15;
 let narrowLeadershipHistoryRange = "10Y";
 let hindenburgHistoryRange = "10Y";
+let capEqRallyMode = "narrow";
+let capEqRallyThreshold = 4;
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
 let maStockStatsByTicker = null;
@@ -3008,6 +3100,7 @@ function showTab(id, el) {
   if(id === "cg-newlows") setTimeout(drawNewLowsBreadth, 60);
   if(id === "cg-narrowleadership") setTimeout(drawNarrowLeadership, 60);
   if(id === "cg-hindenburg") setTimeout(drawHindenburgOmen, 60);
+  if(id === "cg-capeq-rally") setTimeout(drawCapEqRally, 60);
   if(id === "cg-oil") setTimeout(drawOilCharts, 60);
   if(id === "cg-vixsd") setTimeout(drawVIXSDSignal, 60);
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
@@ -3067,6 +3160,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-newlows") drawNewLowsBreadth();
     if(activePanel && activePanel.id === "tab-cg-narrowleadership") drawNarrowLeadership();
     if(activePanel && activePanel.id === "tab-cg-hindenburg") drawHindenburgOmen();
+    if(activePanel && activePanel.id === "tab-cg-capeq-rally") drawCapEqRally();
     if(activePanel && activePanel.id === "tab-signal-calendar") renderSignalCalendar();
   } catch(e) {
     document.getElementById("lastUpd").textContent = "Error — run screener.py";
@@ -4795,6 +4889,17 @@ function setHindenburgRange(range, btn) {
   drawHindenburgOmen();
 }
 
+function setCapEqRallyMode(mode) {
+  capEqRallyMode = mode === "broad" ? "broad" : "narrow";
+  if(capEqRallyMode === "broad" && capEqRallyThreshold === 4) capEqRallyThreshold = 3.5;
+  drawCapEqRally();
+}
+
+function setCapEqRallyThreshold(level) {
+  capEqRallyThreshold = [3, 3.5, 4, 5].includes(+level) ? +level : 4;
+  drawCapEqRally();
+}
+
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
   const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
   const sigmaLevel = maDistBacktestSigmaLevel || 2;
@@ -5287,6 +5392,7 @@ const cgRedraw = {
   "cg-newlows": () => drawNewLowsBreadth(),
   "cg-narrowleadership": () => drawNarrowLeadership(),
   "cg-hindenburg": () => drawHindenburgOmen(),
+  "cg-capeq-rally": () => drawCapEqRally(),
   "cg-oil": () => drawOilCharts(),
   "cg-goldsilver": () => drawGoldSilverRatio(),
 };
@@ -7336,6 +7442,261 @@ function drawRSPSpyBreadth() {
   if(priceTitle && rows.length) priceTitle.textContent = `SPY — RSP/SPY breadth regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
   const ratioTitle = document.getElementById("rspSpyRatioTitle");
   if(ratioTitle && rows.length) ratioTitle.textContent = `RSP/SPY Ratio Index — 50D / 200D Trend · ${rows[0].date} to ${rows[rows.length - 1].date}`;
+}
+
+function capEqRallyRows() {
+  const md = window._marketData || {};
+  const raw = Array.isArray(md.rsp_spy_breadth_history) ? md.rsp_spy_breadth_history : [];
+  const rows = raw
+    .filter(r => r && r.date && Number.isFinite(+r.spy) && +r.spy > 0 && Number.isFinite(+r.rsp) && +r.rsp > 0)
+    .sort((a,b) => rowDateMs(a) - rowDateMs(b));
+  const lookback = 30;
+  return rows.map((r, i) => {
+    if(i < lookback) return { date:r.date, spy:+r.spy, rsp:+r.rsp, spread:null };
+    const prev = rows[i - lookback];
+    const spyRet = (+r.spy / +prev.spy - 1) * 100;
+    const rspRet = (+r.rsp / +prev.rsp - 1) * 100;
+    return { date:r.date, spy:+r.spy, rsp:+r.rsp, spyRet, rspRet, spread:spyRet - rspRet };
+  });
+}
+
+function capEqRallySignals(rows, mode=capEqRallyMode, threshold=capEqRallyThreshold) {
+  const thr = Math.abs(+threshold || 4);
+  const isBroad = mode === "broad";
+  const hits = r => Number.isFinite(+r.spread) && (isBroad ? +r.spread <= -thr : +r.spread >= thr);
+  const out = [];
+  let wasHit = false, lastSignalIndex = -9999;
+  (rows || []).forEach((r, i) => {
+    const hit = hits(r);
+    if(hit && !wasHit && i - lastSignalIndex > 63) {
+      out.push({ date:r.date, type:isBroad ? "broad" : "narrow", spread:+r.spread });
+      lastSignalIndex = i;
+    }
+    wasHit = hit;
+  });
+  return out;
+}
+
+function capEqMedian(vals) {
+  const a = vals.filter(Number.isFinite).slice().sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+}
+
+function capEqForwardStats(rows, signals) {
+  const horizons = [
+    ["+1M", 21], ["+2M", 42], ["+3M", 63],
+    ["+6M", 126], ["+9M", 189], ["+12M", 252]
+  ];
+  const prices = (rows || []).filter(r => r && r.date && Number.isFinite(+r.spy) && +r.spy > 0);
+  return horizons.map(([label, bars]) => {
+    const vals = [], dds = [];
+    (signals || []).forEach(sig => {
+      const i = firstIndexOnOrAfter(prices, sig.date);
+      const start = prices[i], end = prices[i + bars];
+      if(!start || !end || +start.spy <= 0) return;
+      vals.push((+end.spy / +start.spy - 1) * 100);
+      let trough = 0;
+      for(let j = i; j <= Math.min(i + bars, prices.length - 1); j++) {
+        const dd = (+prices[j].spy / +start.spy - 1) * 100;
+        if(dd < trough) trough = dd;
+      }
+      dds.push(trough);
+    });
+    const avg = vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
+    const med = capEqMedian(vals);
+    const max = vals.length ? Math.max(...vals) : null;
+    const min = vals.length ? Math.min(...vals) : null;
+    const win = vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null;
+    const avgDD = dds.length ? dds.reduce((a,b)=>a+b,0) / dds.length : null;
+    const maxDD = dds.length ? Math.min(...dds) : null;
+    return { label, avg, med, max, min, win, avgDD, maxDD, sample:vals.length };
+  });
+}
+
+function drawCapEqPrice(rows, signals) {
+  const c = mkCanvas("capEqPriceCanvas", 260); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 54, bottom: 30, left: 48 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const valid = (rows || []).filter(r => Number.isFinite(+r.spy) && +r.spy > 0);
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  if(valid.length < 50) {
+    ctx.fillStyle="#555"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("SPY/RSP history unavailable - run screener.py", W/2, H/2); return;
+  }
+  const startMs = rowDateMs(valid[0]), endMs = rowDateMs(valid[valid.length - 1]);
+  const xSpan = endMs - startMs || 1;
+  const logs = valid.map(r => Math.log(+r.spy));
+  const vMin = Math.min(...logs) * .998, vMax = Math.max(...logs) * 1.002;
+  const toX = r => PAD.left + ((rowDateMs(r) - startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((Math.log(v) - vMin) / (vMax - vMin || 1)) * PH;
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.045)";
+  for(let i=0;i<=3;i++){ const y=PAD.top+i/3*PH; ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke(); }
+  ctx.setLineDash([]);
+  const sigCol = capEqRallyMode === "broad" ? "rgba(96,140,255,.45)" : "rgba(29,158,117,.42)";
+  (signals || []).forEach(sig => {
+    const idx = firstIndexOnOrAfter(valid, sig.date), r = valid[idx];
+    if(!r) return;
+    const x = toX(r);
+    ctx.strokeStyle = sigCol; ctx.lineWidth = 1.05; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+  ctx.beginPath();
+  valid.forEach((r,i) => i ? ctx.lineTo(toX(r), toY(+r.spy)) : ctx.moveTo(toX(r), toY(+r.spy)));
+  ctx.strokeStyle = "rgba(216,216,216,.82)"; ctx.lineWidth = 1.55; ctx.stroke();
+  ctx.fillStyle="#555"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+  [Math.exp(vMin), Math.exp((vMin+vMax)/2), Math.exp(vMax)].forEach(v => ctx.fillText(Math.round(v).toLocaleString("en-US"), PAD.left - 5, toY(v)+3));
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = startMs + xSpan * p;
+    ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), PAD.left + p * PW, H - PAD.bottom + 14);
+  });
+  ctx.fillStyle="#888"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("@HBStrategies", PAD.left, H - 8);
+}
+
+function drawCapEqSpread(rows, signals) {
+  const c = mkCanvas("capEqSpreadCanvas", 300); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 18, right: 54, bottom: 30, left: 48 };
+  const PW = W - PAD.left - PAD.right, PH = H - PAD.top - PAD.bottom;
+  const valid = (rows || []).filter(r => Number.isFinite(+r.spread));
+  ctx.clearRect(0,0,W,H); ctx.fillStyle="#151515"; ctx.fillRect(0,0,W,H);
+  if(valid.length < 50) {
+    ctx.fillStyle="#555"; ctx.font="10px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("6-week relative spread unavailable - run screener.py", W/2, H/2); return;
+  }
+  const startMs = rowDateMs(valid[0]), endMs = rowDateMs(valid[valid.length - 1]);
+  const xSpan = endMs - startMs || 1;
+  const thr = Math.abs(capEqRallyThreshold);
+  const isBroad = capEqRallyMode === "broad";
+  const threshold = isBroad ? -thr : thr;
+  const vals = valid.map(r => +r.spread);
+  const absMax = Math.max(6, Math.ceil(Math.max(...vals.map(v => Math.abs(v)), Math.abs(threshold)) + .5));
+  const vMin = -absMax, vMax = absMax;
+  const toX = r => PAD.left + ((rowDateMs(r) - startMs) / xSpan) * PW;
+  const toY = v => PAD.top + PH - ((v - vMin) / (vMax - vMin || 1)) * PH;
+  const zeroY = toY(0);
+  ctx.setLineDash([2,4]); ctx.strokeStyle="rgba(255,255,255,.055)";
+  for(let v=Math.ceil(vMin/2)*2; v<=vMax; v+=2) {
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+PW,y); ctx.stroke();
+    ctx.fillStyle="#555"; ctx.font="8px sans-serif"; ctx.textAlign="right";
+    ctx.fillText((v>0?"+":"") + v, PAD.left - 5, y + 3);
+  }
+  ctx.setLineDash([]);
+  ctx.strokeStyle="rgba(255,255,255,.26)"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PAD.left,zeroY); ctx.lineTo(PAD.left+PW,zeroY); ctx.stroke();
+  const yThr = toY(threshold);
+  ctx.strokeStyle = isBroad ? "rgba(96,140,255,.85)" : "rgba(239,159,39,.85)";
+  ctx.lineWidth = 1.2; ctx.setLineDash([6,5]);
+  ctx.beginPath(); ctx.moveTo(PAD.left,yThr); ctx.lineTo(PAD.left+PW,yThr); ctx.stroke();
+  ctx.setLineDash([]);
+  const barW = Math.max(1, PW / valid.length - .35);
+  valid.forEach(r => {
+    const v = +r.spread, x = toX(r), y = toY(v);
+    const hit = isBroad ? v <= threshold : v >= threshold;
+    ctx.fillStyle = hit ? (isBroad ? "rgba(79,134,255,.95)" : "rgba(239,159,39,.95)") : "rgba(172,184,196,.36)";
+    if(v >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
+    else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
+  });
+  const sigCol = isBroad ? "rgba(96,140,255,.48)" : "rgba(29,158,117,.42)";
+  (signals || []).forEach(sig => {
+    const idx = firstIndexOnOrAfter(valid, sig.date), r = valid[idx];
+    if(!r) return;
+    const x = toX(r);
+    ctx.strokeStyle = sigCol; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+  ctx.fillStyle="#4a4a4a"; ctx.font="8px sans-serif"; ctx.textAlign="center";
+  [0,.2,.4,.6,.8,1].forEach(p => {
+    const ms = startMs + xSpan * p;
+    ctx.fillText(new Date(ms).toLocaleString("en-US",{year:"2-digit"}), PAD.left + p * PW, H - PAD.bottom + 14);
+  });
+  ctx.fillStyle="#888"; ctx.font="bold 8px sans-serif"; ctx.textAlign="left";
+  ctx.fillText("@HBStrategies", PAD.left, H - 8);
+}
+
+function renderCapEqForwardTable(stats, signals) {
+  const table = document.getElementById("capEqForwardTable");
+  const summary = document.getElementById("capEqSummary");
+  if(!table || !summary) return;
+  const rows = [
+    ["Average", "avg", true],
+    ["Median", "med", true],
+    ["Max", "max", true],
+    ["Min", "min", true],
+    ["%Positive", "win", false],
+    ["Avg Drawdown", "avgDD", true],
+    ["Max Drawdown", "maxDD", true],
+    ["Sample", "sample", false]
+  ];
+  const fmt = (v, key) => {
+    if(v == null || !Number.isFinite(+v)) return "—";
+    if(key === "sample") return Math.round(v).toString();
+    if(key === "win") return Math.round(v) + "%";
+    return fmtPct(+v, 1);
+  };
+  const cls = (v, key) => {
+    if(v == null || !Number.isFinite(+v) || key === "sample") return "neut";
+    if(key === "avgDD" || key === "maxDD" || key === "min") return +v < 0 ? "neg" : "pos";
+    return +v >= 0 ? "pos" : "neg";
+  };
+  table.innerHTML = `<thead><tr><th>Metric</th>${stats.map(s=>`<th>${s.label}</th>`).join("")}</tr></thead><tbody>${rows.map(([label,key]) => `<tr><td>${label}</td>${stats.map(s=>`<td class="${cls(s[key], key)}">${fmt(s[key], key)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+  const m3 = stats.find(s => s.label === "+3M"), m6 = stats.find(s => s.label === "+6M"), m12 = stats.find(s => s.label === "+12M");
+  const sign = capEqRallyMode === "broad" ? "&lt;=" : "&gt;=";
+  const signedThr = capEqRallyMode === "broad" ? -Math.abs(capEqRallyThreshold) : Math.abs(capEqRallyThreshold);
+  summary.innerHTML = `<strong>Signal setup:</strong> SPY 6W return minus RSP 6W return ${sign} ${signedThr.toFixed(signedThr % 1 ? 1 : 0)} pp; sample ${signals.length} de-clustered signals. +3M avg ${m3&&m3.avg!=null?fmtPct(m3.avg,1):"—"}, +6M avg ${m6&&m6.avg!=null?fmtPct(m6.avg,1):"—"}, +12M avg ${m12&&m12.avg!=null?fmtPct(m12.avg,1):"—"}.<br>RSP starts in 2004, so this is an ETF-proxy test from the available RSP/SPY history. Forward returns are SPY returns from signal close.`;
+}
+
+function drawCapEqRally() {
+  const rows = capEqRallyRows();
+  const valid = rows.filter(r => Number.isFinite(+r.spread));
+  const signals = capEqRallySignals(rows);
+  const latest = valid[valid.length - 1] || {};
+  const isBroad = capEqRallyMode === "broad";
+  const color = isBroad ? "#608cff" : "#EF9F27";
+  const signedThr = isBroad ? -Math.abs(capEqRallyThreshold) : Math.abs(capEqRallyThreshold);
+  const modeText = isBroad ? "BROAD" : "NARROW";
+  const modeButtons = [["capEqModeNarrow", !isBroad], ["capEqModeBroad", isBroad]];
+  modeButtons.forEach(([id, active]) => { const el=document.getElementById(id); if(el) el.classList.toggle("active", active); });
+  [3,3.5,4,5].forEach(v => {
+    const id = v === 3.5 ? "capEqThresh35" : "capEqThresh" + String(v).replace(".","");
+    const el = document.getElementById(id);
+    if(el) {
+      el.classList.toggle("active", +capEqRallyThreshold === v);
+      el.textContent = (isBroad ? "-" : "+") + (v % 1 ? v.toFixed(1) : v.toFixed(0));
+    }
+  });
+  [["capEqSpreadVal", Number.isFinite(+latest.spread) ? (+latest.spread).toFixed(1) + " pp" : "—"], ["capEqModeVal", modeText], ["capEqThresholdVal", (signedThr > 0 ? "+" : "") + signedThr.toFixed(signedThr % 1 ? 1 : 0) + " pp"], ["capEqSignalCountVal", String(signals.length)]].forEach(([id, txt]) => {
+    const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
+  });
+  const stats = capEqForwardStats(rows, signals);
+  const fwd = document.getElementById("capEqForwardVal");
+  const m3 = stats.find(s => s.label === "+3M"), m12 = stats.find(s => s.label === "+12M");
+  if(fwd) { fwd.textContent = `${m3&&m3.avg!=null?fmtPct(m3.avg,1):"—"} / ${m12&&m12.avg!=null?fmtPct(m12.avg,1):"—"}`; fwd.style.color = color; }
+  const priceLegend = document.getElementById("capEqPriceLegend");
+  if(priceLegend) { priceLegend.textContent = `${modeText.toLowerCase()} signal starts (${signals.length})`; priceLegend.style.color = color; }
+  const barLegend = document.getElementById("capEqBarLegend");
+  if(barLegend) { barLegend.textContent = `${isBroad ? "<=" : ">="} ${signedThr.toFixed(signedThr % 1 ? 1 : 0)} pp ${isBroad ? "broad rally" : "narrow rally"}`; barLegend.style.color = color; }
+  const thrLegend = document.getElementById("capEqThreshLegend");
+  if(thrLegend) { thrLegend.textContent = `Threshold ${signedThr.toFixed(signedThr % 1 ? 1 : 0)} pp`; thrLegend.style.color = isBroad ? "#608cff" : "#c5793b"; }
+  const sigLegend = document.getElementById("capEqSignalLegend");
+  if(sigLegend) sigLegend.textContent = "Signal starts";
+  const latestText = Number.isFinite(+latest.spread) ? `Latest ${latest.date} | spread ${(+latest.spread).toFixed(1)} pp` : "Latest unavailable";
+  const priceTitle = document.getElementById("capEqPriceTitle");
+  if(priceTitle) priceTitle.textContent = `SPY Daily Close — ${modeText} rally signal starts · ${latestText}`;
+  const spreadTitle = document.getElementById("capEqSpreadTitle");
+  if(spreadTitle) spreadTitle.textContent = `SPY Minus RSP Relative 6-Week Performance · ${latestText}`;
+  const tableLegend = document.getElementById("capEqTableLegend");
+  if(tableLegend) tableLegend.textContent = `${signals.length} signal starts`;
+  drawCapEqPrice(rows, signals);
+  drawCapEqSpread(rows, signals);
+  renderCapEqForwardTable(stats, signals);
 }
 
 function maBreadthMetricLabel(key) {
