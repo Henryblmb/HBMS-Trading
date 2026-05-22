@@ -9653,7 +9653,7 @@ function collectSignalCalendarRows(){
   add(md.btc_binary_xl_signals, "BTC Binary XL", "bull", "btc", "value", "");
   add(md.rsp_spy_breadth_signals, "RSP/SPY Breadth", null, "spx", "score", "Score");
   const capEqRows = capEqRallyRows();
-  add(capEqRallySignals(capEqRows, "narrow", 5), "Narrow Rally +5", "bear", "spx", "spread", "Spread");
+  add(capEqRallySignals(capEqRows, "narrow", 5), "Narrow Rally +5", "bull", "spx", "spread", "Spread");
   add(capEqRallySignals(capEqRows, "broad", 5), "Broad Rally -5", "bull", "spx", "spread", "Spread");
   const washed = md.washed_out_bottom_picker && md.washed_out_bottom_picker.signals;
   add(washed, "Washed Out Bottom", "bull", "spx", "score", "Score");
