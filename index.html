@@ -378,6 +378,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .mini-forward-table .pos{color:#16251f;font-weight:700}
 .mini-forward-table .neg{color:#261719;font-weight:700}
 .mini-forward-table .neut{color:#1f2933}
+.mini-forward-footer{font-size:11px;line-height:1.55;color:#555;margin-top:14px}
+.mini-forward-footer strong{display:block;color:#1f2937;font-weight:850;margin-bottom:6px}
+.mini-forward-footer span{display:block;color:#555;margin-top:4px}
 .vix-ratio-forward .interp-title{min-height:24px;display:flex;align-items:flex-start}
 .vix-ratio-forward .ret-fwd-events{min-height:24px}
 .ma-forward-title{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
@@ -719,6 +722,8 @@ canvas{background:#fff!important}
 .mini-forward-table{font-size:12px!important}
 .mini-forward-table th{padding:7px 10px!important;font-size:12px!important;background:#087f9f!important;color:#fff!important}
 .mini-forward-table td{padding:7px 10px!important;font-size:12px!important}
+.mini-forward-footer{font-size:12px!important;margin-top:16px!important}
+.mini-forward-footer strong{font-size:12px!important}
 .cap-eq-table{font-size:12px!important}
 .cap-eq-table th,.cap-eq-table td{padding:7px 10px!important}
 .card,.scard,.score-card,.sec-card,.vix-metric,.mom-card,.regime-card,.econ-card{border-color:#d7dee4!important;background:#fff!important}
@@ -3425,12 +3430,10 @@ function forwardTableMedian(vals) {
 
 function renderForwardStatsTable(eventText, rows, opts={}) {
   const cols = Array.isArray(rows) ? rows : [];
-  const sample = cols.some(r => r && r.n != null);
   const cell = (txt, cls="neut") => `<td class="${cls}">${txt == null || txt === "" ? "—" : txt}</td>`;
   const row = (label, mapper) => `<tr><td>${seasonEscape(label)}</td>${cols.map(mapper).join("")}</tr>`;
   const avgLabel = opts.avgLabel || "Average";
-  const probLabel = opts.probLabel || "Prob.";
-  const hasDistributions = cols.some(r => forwardTableValues(r).length);
+  const probLabel = opts.probLabel || "%Positive";
   const metricValue = (r, key) => {
     const vals = forwardTableValues(r);
     if(!vals.length) return null;
@@ -3441,15 +3444,18 @@ function renderForwardStatsTable(eventText, rows, opts={}) {
   };
   const htmlRows = [
     row(avgLabel, r => cell(r && r.avgText != null ? r.avgText : (r && r.avg != null ? fmtPct(+r.avg, 1) : "—"), forwardTableClass(r && r.avg))),
-    ...(hasDistributions ? [
-      row("Median", r => { const v = metricValue(r, "median"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); }),
-      row("Max", r => { const v = metricValue(r, "max"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); }),
-      row("Min", r => { const v = metricValue(r, "min"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); })
-    ] : []),
-    row(probLabel, r => cell(r && r.winText != null ? r.winText : (r && r.win != null ? `${(+r.win).toFixed(0)}%` : "—"), r && r.win != null ? (+r.win >= 50 ? "pos" : "neg") : "neut"))
+    row("Median", r => { const v = r && r.med != null ? +r.med : metricValue(r, "median"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); }),
+    row("Max", r => { const v = r && r.max != null ? +r.max : metricValue(r, "max"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); }),
+    row("Min", r => { const v = r && r.min != null ? +r.min : metricValue(r, "min"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); }),
+    row(probLabel, r => cell(r && r.winText != null ? r.winText : (r && r.win != null ? `${(+r.win).toFixed(0)}%` : "—"), r && r.win != null ? (+r.win >= 50 ? "pos" : "neg") : "neut")),
+    row("Avg Drawdown", r => { const v = r && r.avgDD != null ? +r.avgDD : null; return cell(v == null ? "—" : fmtPct(v, 1), v == null ? "neut" : "neg"); }),
+    row("Max Drawdown", r => { const v = r && r.maxDD != null ? +r.maxDD : null; return cell(v == null ? "—" : fmtPct(v, 1), v == null ? "neut" : "neg"); }),
+    row("Sample", r => cell(r && r.n != null ? String(r.n) : "—"))
   ];
-  if(sample) htmlRows.push(row("Sample", r => cell(r && r.n != null ? String(r.n) : "—")));
-  return `<div class="ret-fwd-events">${seasonEscape(eventText || "Historical forward performance")}</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Metric</th>${cols.map(r=>`<th>${seasonEscape(r && r.label != null ? r.label : "")}</th>`).join("")}</tr></thead><tbody>${htmlRows.join("")}</tbody></table></div>`;
+  const setupText = opts.setupText || eventText || "Historical forward performance.";
+  const dataText = opts.dataText || "Forward returns use signal-day close. Completed horizons only; open horizons are excluded.";
+  const disclaimer = opts.disclaimer || "Disclaimer: Past performance does not guarantee future performance. For research and educational purposes only.";
+  return `<div class="ret-fwd-events">${seasonEscape(eventText || "Historical forward performance")}</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Metric</th>${cols.map(r=>`<th>${seasonEscape(r && r.label != null ? r.label : "")}</th>`).join("")}</tr></thead><tbody>${htmlRows.join("")}</tbody></table></div><div class="mini-forward-footer"><strong>Signal setup: ${seasonEscape(setupText)}</strong><span>${seasonEscape(dataText)}</span><span>${seasonEscape(disclaimer)}</span></div>`;
 }
 
 function ensureReturnHistogramOptions() {
@@ -7609,13 +7615,13 @@ function renderRSPSpyForward(priceRows, signals) {
       values: vals
     };
   };
-  const row = (label, type) => {
-    const m3 = calc(type, 63), m12 = calc(type, 252);
-    const fmtCell = r => `<span class="${forwardTableClass(r.avg)}">${r.avg==null?"—":fmtPct(r.avg,1)} / ${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</span>`;
-    return `<tr><td>${label}</td><td>${fmtCell(m3)}</td><td>${fmtCell(m12)}</td></tr>`;
-  };
   const bull = sigs.filter(s=>s.type==="bull").length, bear = sigs.filter(s=>s.type==="bear").length;
-  el.innerHTML = `<div class="ret-fwd-events">${bull} broad / ${bear} narrow regime starts</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Signal</th><th>3M</th><th>12M</th></tr></thead><tbody>${row("Broad","bull")}${row("Narrow","bear")}</tbody></table></div>`;
+  el.innerHTML = renderForwardStatsTable(`${bull} broad / ${bear} narrow regime starts`, [
+    { label:"Broad +3M", ...calc("bull", 63) },
+    { label:"Broad +12M", ...calc("bull", 252) },
+    { label:"Narrow +3M", ...calc("bear", 63) },
+    { label:"Narrow +12M", ...calc("bear", 252) }
+  ]);
 }
 
 function drawRSPSpyBreadth() {
@@ -7851,7 +7857,7 @@ function renderCapEqForwardTable(stats, signals) {
   const m3 = stats.find(s => s.label === "+3M"), m6 = stats.find(s => s.label === "+6M"), m12 = stats.find(s => s.label === "+12M");
   const sign = capEqRallyMode === "broad" ? "&lt;=" : "&gt;=";
   const signedThr = capEqRallyMode === "broad" ? -Math.abs(capEqRallyThreshold) : Math.abs(capEqRallyThreshold);
-  summary.innerHTML = `<strong>Signal setup:</strong> SPY 6W return minus RSP 6W return ${sign} ${signedThr.toFixed(signedThr % 1 ? 1 : 0)} pp; sample ${signals.length} de-clustered signals. +3M avg ${m3&&m3.avg!=null?fmtPct(m3.avg,1):"—"}, +6M avg ${m6&&m6.avg!=null?fmtPct(m6.avg,1):"—"}, +12M avg ${m12&&m12.avg!=null?fmtPct(m12.avg,1):"—"}.<br>RSP starts in 2004, so this is an ETF-proxy test from the available RSP/SPY history. Forward returns are SPY returns from signal close.`;
+  summary.innerHTML = `<strong>Signal setup:</strong> SPY 6W return minus RSP 6W return ${sign} ${signedThr.toFixed(signedThr % 1 ? 1 : 0)} pp; sample ${signals.length} de-clustered signals. +3M avg ${m3&&m3.avg!=null?fmtPct(m3.avg,1):"—"}, +6M avg ${m6&&m6.avg!=null?fmtPct(m6.avg,1):"—"}, +12M avg ${m12&&m12.avg!=null?fmtPct(m12.avg,1):"—"}.<br><span>RSP starts in 2004, so this is an ETF-proxy test from the available RSP/SPY history. Forward returns are SPY returns from signal close.</span><span>Disclaimer: Past performance does not guarantee future performance. For research and educational purposes only.</span>`;
 }
 
 function drawCapEqRally() {
