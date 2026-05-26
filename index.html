@@ -3541,6 +3541,27 @@ function forwardTableMedian(vals) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+function forwardPathStats(rows, events, bars, priceKey="close") {
+  const rets = [], dds = [];
+  (events || []).forEach(({ r, i }) => {
+    const start = rows && rows[i];
+    const end = rows && rows[i + bars];
+    const startPx = +(start && start[priceKey]);
+    const endPx = +(end && end[priceKey]);
+    if(!Number.isFinite(startPx) || !Number.isFinite(endPx) || startPx <= 0) return;
+    rets.push((endPx / startPx - 1) * 100);
+    let trough = 0;
+    for(let j = i; j <= Math.min(i + bars, rows.length - 1); j++) {
+      const px = +(rows[j] && rows[j][priceKey]);
+      if(!Number.isFinite(px)) continue;
+      const dd = (px / startPx - 1) * 100;
+      if(dd < trough) trough = dd;
+    }
+    dds.push(trough);
+  });
+  return { rets, dds };
+}
+
 function renderForwardStatsTable(eventText, rows, opts={}) {
   const cols = Array.isArray(rows) ? rows : [];
   const cell = (txt, cls="neut") => `<td class="${cls}">${txt == null || txt === "" ? "—" : txt}</td>`;
@@ -5070,13 +5091,12 @@ function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
   const calc = side => {
     const events = maDistanceMonthlyEvents(rows, key, plus, minus, side).filter(({i}) => i + 21 < rows.length);
     return horizons.map(h => {
-      const rets = events.map(({r,i}) => {
-        const f = rows[i + h.days];
-        return f && Number.isFinite(+r.close) && Number.isFinite(+f.close) ? (+f.close / +r.close - 1) * 100 : null;
-      }).filter(Number.isFinite);
+      const { rets, dds } = forwardPathStats(rows, events, h.days);
       const avg = rets.length ? rets.reduce((a,b)=>a+b,0)/rets.length : null;
       const win = rets.length ? rets.filter(v=>v>0).length / rets.length * 100 : null;
-      return { label:h.label, avg, win, n:rets.length, values: rets };
+      const avgDD = dds.length ? dds.reduce((a,b)=>a+b,0)/dds.length : null;
+      const maxDD = dds.length ? Math.min(...dds) : null;
+      return { label:h.label, avg, win, n:rets.length, values: rets, avgDD, maxDD };
     });
   };
   const render = (id, events) => {
@@ -5263,13 +5283,12 @@ function renderMADistanceForwardStats(rows, key, mean, sigma) {
   const calc = side => {
     const events = maDistanceMonthlyEvents(rows, key, plus, minus, side).filter(({i}) => i + 21 < rows.length);
     return horizons.map(h => {
-      const rets = events.map(({r,i}) => {
-        const f = rows[i + h.days];
-        return f && r.close ? (+f.close / +r.close - 1) * 100 : null;
-      }).filter(Number.isFinite);
+      const { rets, dds } = forwardPathStats(rows, events, h.days);
       const avg = rets.length ? rets.reduce((a,b)=>a+b,0)/rets.length : null;
       const win = rets.length ? rets.filter(v=>v>0).length / rets.length * 100 : null;
-      return { label:h.label, avg, win, n:rets.length, values: rets };
+      const avgDD = dds.length ? dds.reduce((a,b)=>a+b,0)/dds.length : null;
+      const maxDD = dds.length ? Math.min(...dds) : null;
+      return { label:h.label, avg, win, n:rets.length, values: rets, avgDD, maxDD };
     });
   };
   const render = (id, title, events, color) => {
