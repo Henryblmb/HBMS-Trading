@@ -790,10 +790,10 @@ canvas{background:#fff!important}
 .cg-chart-legend span{color:#4b5563!important;font-size:9.5px!important;font-weight:600!important}
 .cg-leg-line[style*="#d8d8d8"],.cg-leg-line[style*="#e0e0e0"],.cg-leg-line[style*="#2f80d8"],[style*="background:#d8d8d8"],[style*="background: #d8d8d8"],[style*="background:#e0e0e0"],[style*="background: #e0e0e0"],[style*="background:#2f80d8"],[style*="background: #2f80d8"],[style*="background:rgba(216,216,216"],[style*="background: rgba(216,216,216"]{background:#111827!important}
 .chart-watermark{left:26px!important;bottom:8px!important;font-size:10px!important;color:rgba(31,41,55,.55)!important}
-.interp-grid{gap:10px!important;margin:8px 0 22px!important}
-.interp-cell{padding:11px 13px!important;border:1px solid #d7dee4!important;background:#fff!important}
-.interp-title{font-size:10.5px!important;line-height:1.25!important;margin-bottom:5px!important}
-.interp-text{font-size:10.5px!important;line-height:1.42!important;color:#4b5563!important}
+.interp-grid{gap:4px!important;margin:6px 0 14px!important}
+.interp-cell{padding:6px 10px!important;border:1px solid #d7dee4!important;background:#fff!important}
+.interp-title{font-size:10px!important;line-height:1.16!important;margin-bottom:2px!important}
+.interp-text{font-size:10px!important;line-height:1.28!important;color:#4b5563!important}
 .ret-forward-grid{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
 .interp-grid .interp-cell:has(.mini-forward-table),.ret-forward-grid .interp-cell:has(.mini-forward-table){order:1!important;width:100%!important;grid-column:1/-1!important;border:0!important;padding:0!important;background:#fff!important}
 .ret-forward-grid .interp-cell:not(:has(.mini-forward-table)){order:2!important}
@@ -2070,8 +2070,8 @@ canvas{background:#fff!important}
       <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Above +2σ</div><div class="interp-text">Price is unusually extended above its trend. Often trend-following strength, but watch for exhaustion when the move is vertical.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Below −2σ</div><div class="interp-text">Price is unusually stretched below its trend. Often stress or capitulation; forward response separates crash continuation from mean reversion.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull" id="maDistForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maDistForwardPos">Waiting for MA distance data.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear ma-forward-title"><span id="maDistForwardNegTitle">Forward After −2σ</span><div class="ma-sigma-pick"><span>Backtest</span><button id="maDistSigma1" onclick="setMADistBacktestSigma(1)">1σ</button><button id="maDistSigma2" class="active" onclick="setMADistBacktestSigma(2)">2σ</button><button id="maDistSigma3" onclick="setMADistBacktestSigma(3)">3σ</button></div></div><div class="interp-text" id="maDistForwardNeg">Waiting for MA distance data.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull" id="maDistForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maDistForwardPos">Waiting for MA distance data.</div></div>
       </div>
     </div>
 
@@ -2150,8 +2150,8 @@ canvas{background:#fff!important}
       <div class="interp-grid ret-forward-grid">
         <div class="interp-cell bull"><div class="interp-title bull">Extended Upside</div><div class="interp-text">Stocks above +2σ are unusually stretched above their own trend. This can mark strong momentum, but also short-term exhaustion after fast vertical moves.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear">Washed Out</div><div class="interp-text">Stocks below −2σ are unusually stretched below trend. −3σ names are the deepest current dislocations in the S&amp;P 500 universe.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull" id="maStockForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maStockForwardPos">Click a stock to load forward performance.</div></div>
         <div class="interp-cell bear"><div class="interp-title bear ma-forward-title"><span id="maStockForwardNegTitle">Forward After −2σ</span><div class="ma-sigma-pick"><span>Backtest</span><button id="maStockSigma1" onclick="setMAStockBacktestSigma(1)">1σ</button><button id="maStockSigma2" class="active" onclick="setMAStockBacktestSigma(2)">2σ</button><button id="maStockSigma3" onclick="setMAStockBacktestSigma(3)">3σ</button></div></div><div class="interp-text" id="maStockForwardNeg">Click a stock to load forward performance.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull" id="maStockForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maStockForwardPos">Click a stock to load forward performance.</div></div>
       </div>
     </div>
 
