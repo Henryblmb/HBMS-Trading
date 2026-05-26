@@ -561,12 +561,6 @@ body{background:var(--bg)!important;color:var(--text)!important;font-family:Inte
 #tab-cg-zbt .signal-bar-divider{background:#202020!important}
 #tab-cg-zbt .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
 #tab-cg-zbt .interp-text{color:#a8a8a8!important}
-#tab-cg-rspspy .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
-#tab-cg-rspspy .signal-bar-label{color:#c8c8c8!important}
-#tab-cg-rspspy .signal-bar-desc{color:#d0d0d0!important}
-#tab-cg-rspspy .signal-bar-divider{background:#202020!important}
-#tab-cg-rspspy .interp-cell{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:12px!important}
-#tab-cg-rspspy .interp-text{color:#a8a8a8!important}
 #tab-cg-oil .signal-bar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;padding-left:0!important;padding-right:0!important}
 #tab-cg-oil .signal-bar-label{color:#c8c8c8!important}
 #tab-cg-oil .signal-bar-desc{color:#d0d0d0!important}
@@ -801,7 +795,7 @@ canvas{background:#fff!important}
 .interp-title{font-size:10.5px!important;line-height:1.25!important;margin-bottom:5px!important}
 .interp-text{font-size:10.5px!important;line-height:1.42!important;color:#4b5563!important}
 .ret-forward-grid{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
-.ret-forward-grid .interp-cell:has(.mini-forward-table){order:1!important;width:100%!important;grid-column:1/-1!important;border:0!important;padding:0!important;background:#fff!important}
+.interp-grid .interp-cell:has(.mini-forward-table),.ret-forward-grid .interp-cell:has(.mini-forward-table){order:1!important;width:100%!important;grid-column:1/-1!important;border:0!important;padding:0!important;background:#fff!important}
 .ret-forward-grid .interp-cell:not(:has(.mini-forward-table)){order:2!important}
 .ret-fwd-events{font-size:10px!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#6b7280!important;font-weight:800!important;margin:0 0 7px!important}
 .mini-forward-table,.cap-eq-table{font-size:10.5px!important}
@@ -886,7 +880,6 @@ canvas{background:#fff!important}
       <div class="nav-item sub" onclick="showTab('cg-newlows',this)">New 52W Lows</div>
       <div class="nav-item sub" onclick="showTab('cg-narrowleadership',this)">Narrow Leadership</div>
       <div class="nav-item sub" onclick="showTab('cg-hindenburg',this)">Hindenburg Omen</div>
-      <div class="nav-item sub" onclick="showTab('cg-rspspy',this)">RSP/SPY Breadth</div>
       <div class="nav-item sub" onclick="showTab('cg-capeq-rally',this)">Broad/Narrow Rally</div>
     </div>
 
@@ -895,7 +888,6 @@ canvas{background:#fff!important}
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
       <div class="nav-item sub" onclick="showTab('cg-dailychg',this)">1-Day % Change</div>
-      <div class="nav-item sub" onclick="showTab('cg-spxspybb',this)">Bollinger Bands</div>
       <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
@@ -1960,72 +1952,6 @@ canvas{background:#fff!important}
       </div>
     </div>
 
-    <!-- SPY / QQQ BOLLINGER -->
-    <div class="panel cg-page" id="tab-cg-spxspybb">
-      <div class="cg-header">
-        <div class="cg-title">SPY / QQQ Bollinger Bands — Momentum Extension</div>
-        <div class="cg-sub">SPY or QQQ price chart with 20-period Bollinger Bands. Switch between daily and weekly closes, and select 2σ, 3σ or 4σ extension bands.</div>
-      </div>
-
-      <div class="signal-bar">
-        <div><div class="signal-bar-label">Close</div><div class="signal-bar-val" id="spxSpyBBRatio">—</div></div>
-        <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Mean</div><div class="signal-bar-val" id="spxSpyBBMean" style="color:#d8d8d8">—</div></div>
-        <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="spxSpyBBZ">—</div></div>
-        <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Band</div><div class="signal-bar-val" id="spxSpyBBBand" style="font-size:14px;padding-top:4px">—</div></div>
-        <div class="signal-inline-controls">
-          <div class="signal-inline-control">
-            <label>Symbol</label>
-            <select id="spxSpyBBSymbol" onchange="setSPXSpyBBSymbol(this.value)">
-              <option value="SPY">SPY</option>
-              <option value="QQQ">QQQ</option>
-            </select>
-          </div>
-          <div class="signal-inline-control">
-            <label>Timeframe</label>
-            <select id="spxSpyBBTF" onchange="setSPXSpyBBTimeframe(this.value)">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-            </select>
-          </div>
-        </div>
-        <div class="signal-range-controls" data-cg-date-host>
-          <div class="hist-range" id="spxSpyBBSD">
-            <button class="hist-btn active" onclick="setSPXSpyBBSD(2,this)">2σ</button>
-            <button class="hist-btn" onclick="setSPXSpyBBSD(3,this)">3σ</button>
-            <button class="hist-btn" onclick="setSPXSpyBBSD(4,this)">4σ</button>
-          </div>
-          <div class="hist-range" id="spxSpyBBRange">
-            <button class="hist-btn" onclick="setSPXSpyBBRange('1Y',this)">1Y</button>
-            <button class="hist-btn active" onclick="setSPXSpyBBRange('5Y',this)">5Y</button>
-            <button class="hist-btn" onclick="setSPXSpyBBRange('10Y',this)">10Y</button>
-            <button class="hist-btn" onclick="setSPXSpyBBRange('20Y',this)">20Y</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title" id="spxSpyBBTitle">SPY — 20D Bollinger Bands</span>
-          <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Close</span>
-            <span style="color:#EF9F27">20P Mean</span>
-            <span style="color:#1D9E75">Upper Band</span>
-            <span style="color:#e05050">Lower Band</span>
-          </div>
-        </div>
-        <canvas id="spxSpyBBCanvas" style="width:100%;display:block"></canvas>
-      </div>
-
-      <div class="interp-grid">
-        <div class="interp-cell bull"><div class="interp-title bull">Upper Band</div><div class="interp-text">A close above the selected upper band marks unusually strong upside extension versus the recent 20-period trend.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear">Lower Band</div><div class="interp-text">A close below the selected lower band marks unusually strong downside extension or stress versus the recent 20-period trend.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Model</div><div class="interp-text">Bands use a fixed 20-period lookback. Daily uses 20 trading days; Weekly uses 20 weekly closes.</div></div>
-      </div>
-    </div>
-
     <!-- RETURN HISTOGRAM -->
     <div class="panel cg-page" id="tab-cg-rethist">
       <div class="cg-header">
@@ -2658,69 +2584,6 @@ canvas{background:#fff!important}
         <div class="interp-cell neut"><div class="interp-title neut">Setup Zone (Below 10%)</div><div class="interp-text">Deep washout. Once breadth leaves this zone, the next 12 weekly bars decide whether a full thrust confirms.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Weekly Timeframe</div><div class="interp-text">Weekly data filters daily noise. Signals are marked on the week they confirm above 80%.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="bt50ForwardStats">Waiting for breadth thrust data.</div></div>
-      </div>
-    </div>
-
-    <!-- RSP/SPY BREADTH -->
-    <div class="panel cg-page" id="tab-cg-rspspy">
-      <div class="cg-header">
-        <div class="cg-title">RSP/SPY Equal Weight vs Cap Weight Breadth Model</div>
-        <div class="cg-sub">RSP divided by SPY tracks whether the average S&amp;P 500 stock is keeping up with the cap-weighted index. A rising ratio signals broad participation; a falling ratio warns that gains are concentrated in the largest names.</div>
-      </div>
-
-      <div class="signal-bar">
-        <div>
-          <div class="signal-bar-label">Ratio Index</div>
-          <div class="signal-bar-val" id="rspSpyRatioVal">—</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div>
-          <div class="signal-bar-label">Breadth Score</div>
-          <div class="signal-bar-val" id="rspSpyScoreVal">—</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div>
-          <div class="signal-bar-label">3M Relative</div>
-          <div class="signal-bar-val" id="rspSpyChgVal">—</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div>
-          <div class="signal-bar-label">Regime</div>
-          <div class="signal-bar-val" id="rspSpyRegimeVal" style="font-size:14px;padding-top:4px">—</div>
-        </div>
-        <div class="signal-bar-divider"></div>
-        <div class="signal-bar-desc">Score blends ratio vs 50D, ratio vs 200D and 3M relative momentum. Green = equal-weight participation; red = narrow cap-weight leadership.</div>
-      </div>
-
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title" id="rspSpyPriceTitle">S&amp;P 500 — RSP/SPY regime markers</span>
-          <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>SPY</span>
-            <span style="color:#1D9E75">● Broad participation</span>
-            <span style="color:#e05050">● Narrow leadership</span>
-          </div>
-        </div>
-        <canvas id="rspSpyPriceCanvas" style="width:100%;display:block"></canvas>
-      </div>
-
-      <div class="cg-chart-box">
-        <div class="cg-chart-header">
-          <span class="cg-chart-title" id="rspSpyRatioTitle">RSP/SPY Ratio Index — 50D / 200D Trend</span>
-          <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Ratio</span>
-            <span><span class="cg-leg-line" style="background:#1D9E75"></span>50D</span>
-            <span><span class="cg-leg-line" style="background:#EF9F27"></span>200D</span>
-          </div>
-        </div>
-        <canvas id="rspSpyRatioCanvas" style="width:100%;display:block"></canvas>
-      </div>
-
-      <div class="interp-grid ret-forward-grid">
-        <div class="interp-cell bull"><div class="interp-title bull">Broad Participation</div><div class="interp-text">RSP outperforming SPY means the average S&amp;P 500 stock is contributing. This usually confirms healthier risk appetite than mega-cap-only leadership.</div></div>
-        <div class="interp-cell bear"><div class="interp-title bear">Narrow Leadership</div><div class="interp-text">RSP lagging SPY means cap-weight concentration is carrying the index. It is not automatically bearish, but it lowers breadth quality.</div></div>
-        <div class="interp-cell info"><div class="interp-title info">Signal Use</div><div class="interp-text">Best used as a confirmation layer with % stocks above and breadth thrust. Persistent weakness while SPY rises can warn of fragile upside.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Forward Performance</div><div class="interp-text" id="rspSpyForwardStats">Waiting for RSP/SPY data.</div></div>
       </div>
     </div>
 
@@ -3379,7 +3242,6 @@ function showTab(id, el) {
   if(id === "cg-goldbin") setTimeout(drawGoldBinary, 60);
   if(id === "cg-btcbin") setTimeout(drawBTCBinaryXL, 60);
   if(id === "cg-dailychg") setTimeout(renderDailyChange, 60);
-  if(id === "cg-spxspybb") setTimeout(drawSPXSpyBollinger, 60);
   if(id === "cg-rollret") setTimeout(drawRollingReturnModel, 60);
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
@@ -3393,7 +3255,6 @@ function showTab(id, el) {
   if(id === "cg-washedout") setTimeout(drawWashedOutBottomPicker, 60);
   if(id === "cg-bt50") setTimeout(() => { drawBT50Chart(); updateBT50Signal(); }, 60);
   if(id === "cg-zbt") setTimeout(drawZweigBreadthThrust, 60);
-  if(id === "cg-rspspy") setTimeout(drawRSPSpyBreadth, 60);
   if(id === "cg-mabreadth") setTimeout(drawStocksAboveAnalyzer, 60);
   if(id === "cg-newhighs") setTimeout(drawNewHighsBreadth, 60);
   if(id === "cg-newlows") setTimeout(drawNewLowsBreadth, 60);
@@ -3439,7 +3300,6 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-btcbin") drawBTCBinaryXL();
     if(activePanel && activePanel.id === "tab-cg-rollret") drawRollingReturnModel();
     if(activePanel && activePanel.id === "tab-cg-dailychg") renderDailyChange();
-    if(activePanel && activePanel.id === "tab-cg-spxspybb") drawSPXSpyBollinger();
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
     if(activePanel && activePanel.id === "tab-cg-madist-stocks") renderMAStockDistance();
@@ -3453,7 +3313,6 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-vixratio") drawVIXRatioChart();
     if(activePanel && activePanel.id === "tab-cg-washedout") drawWashedOutBottomPicker();
     if(activePanel && activePanel.id === "tab-cg-zbt") drawZweigBreadthThrust();
-    if(activePanel && activePanel.id === "tab-cg-rspspy") drawRSPSpyBreadth();
     if(activePanel && activePanel.id === "tab-cg-mabreadth") drawStocksAboveAnalyzer();
     if(activePanel && activePanel.id === "tab-cg-newhighs") drawNewHighsBreadth();
     if(activePanel && activePanel.id === "tab-cg-newlows") drawNewLowsBreadth();
@@ -3560,6 +3419,39 @@ function forwardPathStats(rows, events, bars, priceKey="close") {
     dds.push(trough);
   });
   return { rets, dds };
+}
+
+function calendarForwardStatRows(priceRows, signals, horizons, priceKey="close") {
+  const px = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r[priceKey]) && +r[priceKey] > 0);
+  return (horizons || []).map(h => {
+    const vals = [], dds = [];
+    (signals || []).forEach(sig => {
+      if(!sig || !sig.date || px.length < 2) return;
+      const startIdx = firstIndexOnOrAfter(px, sig.date);
+      const targetDate = h.months != null ? addMonthsToDate(sig.date, h.months) : px[startIdx + h.days]?.date;
+      if(!px[startIdx] || !targetDate || targetDate > px[px.length - 1].date) return;
+      const endIdx = h.months != null ? firstIndexOnOrAfter(px, targetDate) : startIdx + h.days;
+      const start = px[startIdx], end = px[endIdx];
+      const startPx = +(start && start[priceKey]);
+      const endPx = +(end && end[priceKey]);
+      if(!Number.isFinite(startPx) || !Number.isFinite(endPx) || startPx <= 0) return;
+      vals.push((endPx / startPx - 1) * 100);
+      let trough = 0;
+      for(let j = startIdx; j <= Math.min(endIdx, px.length - 1); j++) {
+        const dd = (+px[j][priceKey] / startPx - 1) * 100;
+        if(Number.isFinite(dd) && dd < trough) trough = dd;
+      }
+      dds.push(trough);
+    });
+    const avg = vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
+    const med = forwardTableMedian(vals);
+    const max = vals.length ? Math.max(...vals) : null;
+    const min = vals.length ? Math.min(...vals) : null;
+    const win = vals.length ? vals.filter(v => v > 0).length / vals.length * 100 : null;
+    const avgDD = dds.length ? dds.reduce((a,b)=>a+b,0) / dds.length : null;
+    const maxDD = dds.length ? Math.min(...dds) : null;
+    return { label:h.label, avg, med, max, min, win, n:vals.length, values:vals, avgDD, maxDD };
+  });
 }
 
 function renderForwardStatsTable(eventText, rows, opts={}) {
@@ -3919,7 +3811,7 @@ function renderDailyChange() {
     const side = latestForStats >= stats.mean + 2 * stats.sigma ? "upper-tail momentum day" : latestForStats <= stats.mean - 2 * stats.sigma ? "lower-tail stress day" : latestForStats >= 0 ? "positive but inside normal range" : "negative but inside normal range";
     desc.textContent = `${ticker} latest 1D move is ${fmtPct(latestForStats, 2)} (${Number.isFinite(z) ? (z >= 0 ? "+" : "") + z.toFixed(2) + "σ" : "—"}), a ${side}. Window: ${rows[0].date} to ${rows[rows.length - 1].date} · ${rows.length} sessions.`;
   }
-  drawHistoryLineLogByDate("dailyChgPriceCanvas", rows, 230, `${ticker} Daily`, "#d8d8d8", domain);
+  drawHistoryLineLogByDate("dailyChgPriceCanvas", rows, 230, `${ticker} Daily`, "#000000", domain);
   drawDailyChangeBars(rows, stats.mean, stats.sigma, domain);
 }
 
@@ -4148,20 +4040,12 @@ function vixRatioThresholdEvents(rows, side, threshold) {
 }
 
 function vixRatioForwardSummary(events, priceRows) {
-  const horizons = [1, 3, 6, 12];
-  const out = {};
-  horizons.forEach(h => out[h] = []);
-  if(!events.length || priceRows.length < 50) return out;
-  events.forEach(ev => {
-    const start = firstRowAtOrAfter(priceRows, rowDateMs(ev));
-    if(!start || !Number.isFinite(+start.row.close)) return;
-    horizons.forEach(h => {
-      const target = firstRowAtOrAfter(priceRows, addMonthsISO(start.row.date, h), start.index + 1);
-      if(!target || !Number.isFinite(+target.row.close)) return;
-      out[h].push((+target.row.close / +start.row.close - 1) * 100);
-    });
-  });
-  return out;
+  return calendarForwardStatRows(priceRows, events, [
+    { label:"1M", months:1 },
+    { label:"3M", months:3 },
+    { label:"6M", months:6 },
+    { label:"12M", months:12 },
+  ]);
 }
 
 function renderVIXRatioForwardStats(rows, domain=null) {
@@ -4172,15 +4056,8 @@ function renderVIXRatioForwardStats(rows, domain=null) {
   const contango = vixRatioForwardSummary(contangoEvents, priceRows);
   const html = (events, summary) => {
     if(!priceRows.length) return "SPY history unavailable.";
-    const statRows = [1, 3, 6, 12].map(h => {
-      const vals = summary[h] || [];
-      if(!vals.length) return { label:`${h}M`, avg:null, win:null, n:0 };
-      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
-      const win = vals.filter(v => v > 0).length / vals.length * 100;
-      return { label:`${h}M`, avg, win, n:vals.length, values: vals };
-    });
     const windowLabel = domain && rows.length ? ` · ${rows[0].date} to ${rows[rows.length - 1].date}` : "";
-    return renderForwardStatsTable(`${events.length} threshold events${windowLabel}`, statRows);
+    return renderForwardStatsTable(`${events.length} threshold events${windowLabel}`, summary);
   };
   const panicEl = document.getElementById("vixRatioForwardPanic");
   const contangoEl = document.getElementById("vixRatioForwardContango");
@@ -5735,7 +5612,6 @@ const cgRedraw = {
   "cg-goldbin": () => drawGoldBinary(),
   "cg-btcbin": () => drawBTCBinaryXL(),
   "cg-dailychg": () => renderDailyChange(),
-  "cg-spxspybb": () => drawSPXSpyBollinger(),
   "cg-rollret": () => drawRollingReturnModel(),
   "cg-vixsd": () => drawVIXSDSignal(),
   "cg-vixrv": () => drawVIXRealizedVol(),
@@ -5751,7 +5627,6 @@ const cgRedraw = {
   "cg-washedout": () => drawWashedOutBottomPicker(),
   "cg-bt50": () => drawBT50Chart(),
   "cg-zbt": () => drawZweigBreadthThrust(),
-  "cg-rspspy": () => drawRSPSpyBreadth(),
   "cg-mabreadth": () => drawStocksAboveAnalyzer(),
   "cg-newhighs": () => drawNewHighsBreadth(),
   "cg-newlows": () => drawNewLowsBreadth(),
@@ -6184,7 +6059,7 @@ function drawVIXSDSignal() {
   const sharedXPad = { top: 14, right: 56, bottom: 28, left: 42 };
 
   if(priceRows.length < 2) emptyCanvas("vixsdPriceCanvas", 240, `S&P 500 ${vixsdHistoryRange} history unavailable - run screener.py`);
-  else drawHistoryLineLogByDate("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, [], sharedXPad);
+  else drawHistoryLineLogByDate("vixsdPriceCanvas", priceRows, 240, "S&P 500 Daily", "#000000", domain, [], sharedXPad);
 
   drawVIXSDBars("vixsdBarsCanvas", vixRows, 340, domain);
 
@@ -6339,7 +6214,7 @@ function drawVIXRealizedVol() {
   const rows = filterRowsByDateDomain(validRows, domain);
 
   if(priceRows.length < 2) emptyCanvas("vixrvPriceCanvas", 230, `S&P 500 ${vixrvHistoryRange} history unavailable - run screener.py`);
-  else drawHistoryLineLogByDate("vixrvPriceCanvas", priceRows, 230, "S&P 500 Daily", "#d8d8d8", domain, []);
+  else drawHistoryLineLogByDate("vixrvPriceCanvas", priceRows, 230, "S&P 500 Daily", "#000000", domain, []);
   drawVIXRVChart("vixrvVolCanvas", rows, 320, domain);
 
   const priceTitle = document.getElementById("vixrvPriceTitle");
@@ -6474,21 +6349,7 @@ function vixSpikeForwardSummary(priceRows, spikeRows, predicate) {
     { label: "6M", months: 6 },
     { label: "12M", months: 12 },
   ];
-  const rows = horizons.map(h => {
-    const rets = [];
-    events.forEach(ev => {
-      const startIdx = firstIndexOnOrAfter(px, ev.date);
-      const targetDate = addMonthsToDate(ev.date, h.months);
-      if(!px[startIdx] || targetDate > px[px.length - 1].date) return;
-      const endIdx = firstIndexOnOrAfter(px, targetDate);
-      const start = px[startIdx], end = px[endIdx];
-      if(!start || !end || !Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
-      rets.push(((+end.close / +start.close) - 1) * 100);
-    });
-    const avg = rets.length ? rets.reduce((a,b)=>a+b,0) / rets.length : null;
-    const win = rets.length ? rets.filter(v => v > 0).length / rets.length * 100 : null;
-    return { ...h, avg, win, count: rets.length, n: rets.length, values: rets };
-  });
+  const rows = calendarForwardStatRows(px, events, horizons);
   return { events: events.length, rows };
 }
 
@@ -6524,7 +6385,7 @@ function drawVIXSpikeModel() {
   });
   const sharedXPad = { top: 14, right: 70, bottom: 26, left: 42 };
   if(priceRows.length < 2) emptyCanvas("vixSpikePriceCanvas", 230, `S&P 500 ${vixspikeHistoryRange} history unavailable - run screener.py`);
-  else drawHistoryLineLogByDate("vixSpikePriceCanvas", priceRows, 230, "S&P 500 Daily", "#d8d8d8", domain, zones, sharedXPad);
+  else drawHistoryLineLogByDate("vixSpikePriceCanvas", priceRows, 230, "S&P 500 Daily", "#000000", domain, zones, sharedXPad);
   drawVIXSpikeBars("vixSpikeBarsCanvas", rows, 280, domain, upThr, lowThr);
   renderVIXSpikeForwardStats(priceRows, rows, upThr, lowThr, pctSel);
 
@@ -6810,7 +6671,7 @@ function drawSPXWeeklyEMA() {
     if(current !== null && current !== regime) {
       const x1 = toX(regimeStart);
       const x2 = toX(Math.max(i - 1, regimeStart));
-      ctx.fillStyle = regime === "bull" ? "rgba(29,158,117,.055)" : "rgba(224,80,80,.052)";
+      ctx.fillStyle = regime === "bull" ? "rgba(29,158,117,.14)" : "rgba(224,80,80,.13)";
       ctx.fillRect(x1, PAD.top, Math.max(1, x2 - x1), PH);
       regime = current;
       regimeStart = i;
@@ -6819,7 +6680,7 @@ function drawSPXWeeklyEMA() {
   if(regime !== null) {
     const x1 = toX(regimeStart);
     const x2 = toX(rows.length - 1);
-    ctx.fillStyle = regime === "bull" ? "rgba(29,158,117,.055)" : "rgba(224,80,80,.052)";
+    ctx.fillStyle = regime === "bull" ? "rgba(29,158,117,.14)" : "rgba(224,80,80,.13)";
     ctx.fillRect(x1, PAD.top, Math.max(1, x2 - x1), PH);
   }
 
@@ -6845,7 +6706,7 @@ function drawSPXWeeklyEMA() {
     ctx.stroke();
   }
 
-  drawLine(dailyCloses, "#d8d8d8", 1.9, "e0", dailyRows);
+  drawLine(dailyCloses, "#000000", 2.05, "f0", dailyRows);
   drawLine(ema21, "#9bbcff", 1.6, "bb");
   drawLine(ema9, "#5DCAA5", 1.7, "cc");
 
@@ -6987,7 +6848,7 @@ function drawSPXRSIReversal() {
   const dailyZones = signalZonesForDaily(daily, signals, status);
   const weeklyZones = signalZonesForWeekly(weeklyRows, signals, status);
   const rsi = weeklyRows.map(d => d.rsi == null ? null : +d.rsi);
-  drawHistoryLineLog("spxrsiPriceCanvas", daily, 240, "S&P 500 Daily", "#d8d8d8", dailyZones);
+  drawHistoryLineLog("spxrsiPriceCanvas", daily, 240, "S&P 500 Daily", "#000000", dailyZones);
   drawRSIChart("spxrsiRSICanvas", weeklyRows, rsi, 170, weeklyZones);
   drawSPXSignalDots("spxrsiPriceCanvas", daily, signals, "price", true);
   drawSPXSignalDots("spxrsiRSICanvas", weeklyRows, signals, "rsi");
@@ -7556,7 +7417,7 @@ function drawBinaryReturnsOscillator(rows, signals, domain, canvasId="binRetOscC
     if(!started) { ctx.moveTo(toX(r), toY(v)); started = true; }
     else ctx.lineTo(toX(r), toY(v));
   });
-  ctx.strokeStyle=opts.lineColor || "#3ed8d8"; ctx.lineWidth=1.8; ctx.stroke();
+  ctx.strokeStyle=opts.lineColor || "#000000"; ctx.lineWidth=1.8; ctx.stroke();
   drawBinaryLongSignalLines(canvasId, valid, signals, domain, "ma20", true);
   ctx.fillStyle="#5a5a5a"; ctx.font="8px sans-serif"; ctx.textAlign="right";
   [vMin,0,vMax].forEach(v=>ctx.fillText(Math.round(v), PAD.left-5, toY(v)+3));
@@ -7578,7 +7439,7 @@ function drawSPYBinaryReturns() {
     const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
   });
   if(priceRows.length > 50) {
-    drawHistoryLineLogByDate("binRetPriceCanvas", priceRows, 240, "SPY", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("binRetPriceCanvas", priceRows, 240, "SPY", "#000000", domain, []);
     drawBinaryLongSignalLines("binRetPriceCanvas", priceRows, signals, domain);
   } else {
     emptyCanvas("binRetPriceCanvas", 240, "SPY history unavailable - run screener.py");
@@ -7605,12 +7466,12 @@ function drawGoldBinary() {
     const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
   });
   if(priceRows.length > 50) {
-    drawHistoryLineLogByDate("goldBinPriceCanvas", priceRows, 240, "Gold", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("goldBinPriceCanvas", priceRows, 240, "Gold", "#d97706", domain, []);
     drawBinaryLongSignalLines("goldBinPriceCanvas", priceRows, signals, domain);
   } else {
     emptyCanvas("goldBinPriceCanvas", 240, "Gold history unavailable - run screener.py");
   }
-  drawBinaryReturnsOscillator(rows, signals, domain, "goldBinOscCanvas", { lineColor:"#facc15", posLevel:18, negLevel:-18, emptyLabel:"Gold Binary unavailable - run screener.py" });
+  drawBinaryReturnsOscillator(rows, signals, domain, "goldBinOscCanvas", { lineColor:"#d97706", posLevel:18, negLevel:-18, emptyLabel:"Gold Binary unavailable - run screener.py" });
   renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.gold })), signals, domain, "goldBinForwardStats");
   const priceTitle = document.getElementById("goldBinPriceTitle");
   if(priceTitle && rows.length) priceTitle.textContent = `Gold — Binary accumulation regime markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
@@ -7632,12 +7493,12 @@ function drawBTCBinaryXL() {
     const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
   });
   if(priceRows.length > 50) {
-    drawHistoryLineLogByDate("btcBinPriceCanvas", priceRows, 240, "BTC-USD", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("btcBinPriceCanvas", priceRows, 240, "BTC-USD", "#d97706", domain, []);
     drawBinaryLongSignalLines("btcBinPriceCanvas", priceRows, signals, domain);
   } else {
     emptyCanvas("btcBinPriceCanvas", 240, "BTC-USD history unavailable - run screener.py");
   }
-  drawBinaryReturnsOscillator(rows, signals, domain, "btcBinOscCanvas", { lineColor:"#288cff", posLevel:90, negLevel:-110, emptyLabel:"BTC Binary XL unavailable - run screener.py" });
+  drawBinaryReturnsOscillator(rows, signals, domain, "btcBinOscCanvas", { lineColor:"#d97706", posLevel:90, negLevel:-110, emptyLabel:"BTC Binary XL unavailable - run screener.py" });
   renderBinaryReturnsForward(rawRows.map(r => ({ date:r.date, close:+r.btc })), signals, domain, "btcBinForwardStats");
   const priceTitle = document.getElementById("btcBinPriceTitle");
   if(priceTitle && rows.length) priceTitle.textContent = `BTC-USD — Binary XL signal markers · ${rows[0].date} to ${rows[rows.length - 1].date}`;
@@ -7770,7 +7631,7 @@ function drawRSPSpyBreadth() {
     const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
   });
   if(priceRows.length > 50) {
-    drawHistoryLineLogByDate("rspSpyPriceCanvas", priceRows, 240, "SPY", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("rspSpyPriceCanvas", priceRows, 240, "SPY", "#000000", domain, []);
     drawRSPSpySignalDots("rspSpyPriceCanvas", priceRows, signals, "close", true, domain);
   } else {
     emptyCanvas("rspSpyPriceCanvas", 240, "RSP/SPY price history unavailable - run screener.py");
@@ -9039,7 +8900,7 @@ function drawZweigBreadthThrust() {
     const el = document.getElementById(id); if(el){ el.textContent = txt; el.style.color = color; }
   });
   if(priceRows.length > 50) {
-    drawHistoryLineLogByDate("zbtPriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("zbtPriceCanvas", priceRows, 240, "S&P 500 Daily", "#000000", domain, []);
     drawBinaryLongSignalLines("zbtPriceCanvas", priceRows, signals, domain);
   } else {
     emptyCanvas("zbtPriceCanvas", 240, "S&P 500 daily history unavailable - run screener.py");
@@ -9105,7 +8966,7 @@ function drawBT20Chart() {
   const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
   const signals = Array.isArray(md.bt20_signals) ? md.bt20_signals : [];
   if(priceRows.length > 100) {
-    drawHistoryLineLogByDate("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("bt20PriceCanvas", priceRows, 240, "S&P 500 Daily", "#000000", domain, []);
     drawBTSignalDotsByDate("bt20PriceCanvas", priceRows, signals, "close", false, true, domain);
   } else {
     emptyCanvas("bt20PriceCanvas", 240, "S&P 500 daily history unavailable - run screener.py");
@@ -9258,7 +9119,7 @@ function drawWashedOutBottomPicker() {
     loadWashedOutFullHistory(payload).then(full => { if(full && full.length) drawWashedOutBottomPicker(); });
   }
   if(visPrice.length > 30 && domain) {
-    drawHistoryLineLogByDate("washedOutPriceCanvas", visPrice, 260, "S&P 500", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("washedOutPriceCanvas", visPrice, 260, "S&P 500", "#000000", domain, []);
     drawWashedOutSignalLines("washedOutPriceCanvas", visPrice, visSignals, domain, "close", true);
   } else emptyCanvas("washedOutPriceCanvas", 260, "S&P 500 washed-out history unavailable - run screener.py");
   drawWashedOutScoreChart(visRows, visSignals, domain, threshold);
@@ -9269,11 +9130,13 @@ function drawWashedOutBottomPicker() {
   const modelStats = (payload.model_signal || {}).stats || {};
   const statEl = document.getElementById("washedOutForwardStats");
   if(statEl) {
-    const rows = washedOutHorizons().map(h => {
+    const computedRows = calendarForwardStatRows(priceRows, signals, washedOutHorizons().map(h => ({ label:h, months:+h.replace("M", "") })));
+    const rows = washedOutHorizons().map((h, i) => {
       const s = modelStats[h] || {};
-      return { label:h, avg:s.avg, win:s.win_rate, n:s.n };
+      const c = computedRows[i] || {};
+      return { ...c, label:h, avg:s.avg ?? c.avg, med:s.median ?? c.med, win:s.win_rate ?? c.win, n:s.n ?? c.n };
     });
-    statEl.innerHTML = renderForwardStatsTable(`${(payload.model_signal || {}).events || 0} model events · threshold ${threshold}%`, rows, { probLabel:"Win" });
+    statEl.innerHTML = renderForwardStatsTable(`${(payload.model_signal || {}).events || 0} model events · threshold ${threshold}%`, rows);
   }
 }
 
@@ -9331,7 +9194,7 @@ function drawBT50Chart() {
   const priceRows = filterRowsByDateDomain(rawPriceRows, domain);
   const breadthRows = filterRowsByDateDomain(rawBreadthRows, domain);
   if(priceRows.length > 100) {
-    drawHistoryLineLogByDate("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#d8d8d8", domain, []);
+    drawHistoryLineLogByDate("bt50PriceCanvas", priceRows, 260, "S&P 500 Weekly", "#000000", domain, []);
     drawBTSignalDotsByDate("bt50PriceCanvas", priceRows, signals, "close", false, true, domain);
   } else {
     emptyCanvas("bt50PriceCanvas", 260, "S&P 500 weekly history unavailable - run screener.py");
@@ -9987,7 +9850,6 @@ function collectSignalCalendarRows(){
   add(md.binary_accumulation_signals, "SPY Binary Returns", "bull", "spx", "value", "");
   add(md.gold_binary_signals, "Gold Binary", "bull", "gold", "value", "");
   add(md.btc_binary_xl_signals, "BTC Binary XL", "bull", "btc", "value", "");
-  add(md.rsp_spy_breadth_signals, "RSP/SPY Breadth", null, "spx", "score", "Score");
   const capEqRows = capEqRallyRows();
   add(capEqRallySignals(capEqRows, "narrow", 5), "Narrow Rally +5", "bull", "spx", "spread", "Spread");
   add(capEqRallySignals(capEqRows, "broad", 5), "Broad Rally -5", "bull", "spx", "spread", "Spread");
