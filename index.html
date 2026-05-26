@@ -804,6 +804,7 @@ canvas{background:#fff!important}
 }
 .cg-chart-legend span{color:#4b5563!important;font-size:9.5px!important;font-weight:600!important}
 .cg-chart-legend .ma-z-pos{color:#2a9d78!important;font-weight:800!important}
+.cg-chart-legend .ma-z-extreme-pos{color:#15803d!important;font-weight:850!important}
 .cg-chart-legend .ma-z-neg{color:#c43d4b!important;font-weight:800!important}
 .cg-chart-legend .ma-z-extreme-neg{color:#7c3aed!important;font-weight:850!important}
 .cg-leg-line[style*="#d8d8d8"],.cg-leg-line[style*="#e0e0e0"],.cg-leg-line[style*="#2f80d8"],[style*="background:#d8d8d8"],[style*="background: #d8d8d8"],[style*="background:#e0e0e0"],[style*="background: #e0e0e0"],[style*="background:#2f80d8"],[style*="background: #2f80d8"],[style*="background:rgba(216,216,216"],[style*="background: rgba(216,216,216"]{background:#111827!important}
@@ -2120,10 +2121,10 @@ canvas{background:#fff!important}
           <div class="cg-chart-legend">
             <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Distance</span>
             <span><span class="cg-leg-line" style="background:#EF9F27"></span>Mean</span>
-            <span style="color:#1D9E75">+2σ</span>
-            <span style="color:#32c48d">+3σ</span>
-            <span style="color:#e05050">−2σ</span>
-            <span style="color:#a855f7">−3σ</span>
+            <span class="ma-z-pos">+2σ</span>
+            <span class="ma-z-extreme-pos">+3σ</span>
+            <span class="ma-z-neg">−2σ</span>
+            <span class="ma-z-extreme-neg">−3σ</span>
           </div>
         </div>
         <canvas id="maDistCanvas" style="width:100%;display:block"></canvas>
@@ -2200,10 +2201,10 @@ canvas{background:#fff!important}
           <div class="cg-chart-legend">
             <span><i style="background:#d8d8d8"></i>Distance</span>
             <span style="color:#EF9F27">Mean</span>
-            <span style="color:#1D9E75">+2σ</span>
-            <span style="color:#32c48d">+3σ</span>
-            <span style="color:#e05050">−2σ</span>
-            <span style="color:#a855f7">−3σ</span>
+            <span class="ma-z-pos">+2σ</span>
+            <span class="ma-z-extreme-pos">+3σ</span>
+            <span class="ma-z-neg">−2σ</span>
+            <span class="ma-z-extreme-neg">−3σ</span>
           </div>
         </div>
         <canvas id="maStockChartCanvas" style="width:100%;display:block"></canvas>
