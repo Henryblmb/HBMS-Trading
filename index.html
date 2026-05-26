@@ -733,6 +733,102 @@ canvas{background:#fff!important}
 ::-webkit-scrollbar-thumb{background:#cbd5df!important}
 ::-webkit-scrollbar-thumb:hover{background:#9ca3af!important}
 
+/* Research layout final polish */
+.main{padding:24px 30px!important}
+.panel.active{max-width:1580px!important;margin:0 auto!important}
+.cg-page,.sigcal-page{position:relative!important;background:#fff!important}
+.cg-page{padding:68px 28px 42px!important}
+.sigcal-page{padding-top:68px!important}
+.cg-page::before,.sigcal-page::before{
+  content:""!important;
+  position:absolute!important;
+  left:28px!important;
+  top:24px!important;
+  width:42px!important;
+  height:42px!important;
+  background:url("hb-logo.png") center/contain no-repeat!important;
+}
+.cg-page::after,.sigcal-page::after{
+  content:"HB Strategies Research\A @HBMStrategies"!important;
+  white-space:pre!important;
+  position:absolute!important;
+  left:82px!important;
+  top:25px!important;
+  font-size:14px!important;
+  line-height:1.25!important;
+  font-weight:850!important;
+  color:#1f2937!important;
+}
+.cg-page::after,.sigcal-page::after{letter-spacing:.01em!important}
+.cg-header{margin:0 0 22px!important;padding:0!important;text-align:center!important;border-bottom:0!important}
+.cg-title{font-size:20px!important;line-height:1.18!important;font-weight:850!important;letter-spacing:0!important;color:#000!important;margin:0 0 7px!important}
+.cg-sub{font-size:12px!important;line-height:1.38!important;font-weight:700!important;color:#374151!important;max-width:920px!important}
+.cg-pill{font-size:11px!important;margin-top:9px!important}
+.signal-bar{margin:0 0 22px!important;padding:10px 0!important;border-top:1px solid #e5e7eb!important;border-bottom:1px solid #e5e7eb!important;background:#fff!important}
+.signal-bar-label{font-size:8.5px!important;letter-spacing:.12em!important;color:#6b7280!important}
+.signal-bar-val{font-size:19px!important;line-height:1.08!important;color:#111827!important}
+.signal-bar-desc{font-size:10.5px!important;color:#4b5563!important}
+.signal-bar-divider{background:#e5e7eb!important}
+.cg-chart-box{margin:0 0 28px!important;padding:0 26px 20px!important;border:1px solid #d7dee4!important;background:#fff!important}
+.cg-chart-header{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  justify-items:center!important;
+  align-items:start!important;
+  gap:6px!important;
+  min-height:0!important;
+  padding:16px 0 8px!important;
+  position:relative!important;
+}
+.cg-chart-title{font-size:17px!important;line-height:1.18!important;font-weight:850!important;color:#000!important;text-align:center!important;max-width:980px!important;margin:0!important}
+.cg-chart-legend{
+  position:static!important;
+  inset:auto!important;
+  display:flex!important;
+  justify-content:center!important;
+  flex-wrap:wrap!important;
+  gap:10px!important;
+  font-size:9.5px!important;
+  line-height:1.2!important;
+  color:#4b5563!important;
+  max-width:100%!important;
+}
+.cg-chart-legend span{color:#4b5563!important;font-size:9.5px!important;font-weight:600!important}
+.cg-leg-line[style*="#d8d8d8"],.cg-leg-line[style*="#e0e0e0"],[style*="background:#d8d8d8"],[style*="background: #d8d8d8"],[style*="background:#e0e0e0"],[style*="background: #e0e0e0"]{background:#2f80d8!important}
+.chart-watermark{left:26px!important;bottom:8px!important;font-size:10px!important;color:rgba(31,41,55,.55)!important}
+.interp-grid{gap:12px!important;margin:10px 0 28px!important}
+.interp-cell{padding:11px 13px!important;border:1px solid #d7dee4!important;background:#fff!important}
+.interp-title{font-size:10.5px!important;line-height:1.25!important;margin-bottom:5px!important}
+.interp-text{font-size:10.5px!important;line-height:1.42!important;color:#4b5563!important}
+.ret-forward-grid{display:grid!important;grid-template-columns:1fr!important;gap:16px!important}
+.ret-forward-grid .interp-cell:has(.mini-forward-table){order:1!important;width:100%!important;grid-column:1/-1!important;border:0!important;padding:0!important;background:#fff!important}
+.ret-forward-grid .interp-cell:not(:has(.mini-forward-table)){order:2!important}
+.ret-fwd-events{font-size:10px!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:#6b7280!important;font-weight:800!important;margin:0 0 7px!important}
+.mini-forward-table,.cap-eq-table{font-size:10.5px!important}
+.mini-forward-table th,.cap-eq-table th{font-size:10.5px!important;padding:6px 9px!important;background:#087f9f!important;color:#fff!important}
+.mini-forward-table td,.cap-eq-table td{font-size:10.5px!important;padding:6px 9px!important}
+.mini-forward-footer,.cap-eq-note{font-size:10.5px!important;line-height:1.55!important;color:#6b7280!important;margin-top:14px!important}
+.mini-forward-footer strong,.cap-eq-note strong{font-size:11px!important;color:#1f2937!important}
+.mini-forward-footer span{display:block!important;margin-top:9px!important}
+.hist-btn,.tf-btn,.signal-range-controls .hist-btn,.signal-bar>.cg-date-range button,.signal-range-controls .cg-date-range button{
+  background:transparent!important;
+  border-color:transparent!important;
+  color:#4b5563!important;
+  box-shadow:none!important;
+}
+.hist-btn:hover,.tf-btn:hover,.signal-range-controls .hist-btn:hover,.signal-bar>.cg-date-range button:hover,.signal-range-controls .cg-date-range button:hover{
+  background:transparent!important;
+  color:#111827!important;
+}
+.hist-btn.active,.tf-btn.active,.signal-range-controls .hist-btn.active,.signal-bar>.cg-date-range button.active,.signal-range-controls .cg-date-range button.active{
+  background:transparent!important;
+  border-color:transparent!important;
+  color:#111827!important;
+  text-decoration:underline!important;
+  text-decoration-thickness:1px!important;
+  text-underline-offset:4px!important;
+}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:#fff}
 ::-webkit-scrollbar-thumb{background:#cbd5df}
@@ -3135,10 +3231,12 @@ canvas{background:#fff!important}
       "#333":"#6b7280","#333333":"#6b7280","#444":"#6b7280",
       "#444444":"#6b7280","#555":"#6b7280","#555555":"#6b7280",
       "#666":"#6b7280","#777":"#6b7280","#888":"#4b5563",
-      "#aaa":"#374151","#ccc":"#1f2937","#d8d8d8":"#111827",
-      "#eee":"#111827","#f1f1f1":"#111827"
+      "#aaa":"#374151","#ccc":"#1f2937","#d8d8d8":"#2f80d8",
+      "#e0e0e0":"#2f80d8","#eee":"#111827","#f1f1f1":"#111827"
     };
     if(solid[v]) return solid[v];
+    if(v.startsWith("rgba(216,216,216,")) return value.replace(/rgba\(\s*216\s*,\s*216\s*,\s*216\s*,\s*([^)]+)\)/i, (_, a) => `rgba(47,128,216,${Math.max(parseFloat(a) || 0.65, 0.65)})`);
+    if(v.startsWith("rgba(224,224,224,")) return value.replace(/rgba\(\s*224\s*,\s*224\s*,\s*224\s*,\s*([^)]+)\)/i, (_, a) => `rgba(47,128,216,${Math.max(parseFloat(a) || 0.65, 0.65)})`);
     if(v.startsWith("rgba(255,255,255,")) return value.replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([^)]+)\)/i, (_, a) => `rgba(17,24,39,${Math.max(parseFloat(a) || 0.08, 0.08)})`);
     if(v.startsWith("rgba(0,0,0,")) return value.replace(/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*([^)]+)\)/i, (_, a) => `rgba(17,24,39,${Math.min(parseFloat(a) || 0.18, 0.18)})`);
     if(v.startsWith("rgba(10,10,10,")) return "rgba(255,255,255,.92)";
