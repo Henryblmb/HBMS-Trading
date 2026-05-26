@@ -365,6 +365,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;heigh
 .ret-fwd-row{font-size:10px;color:#888;padding:3px 0;border-top:1px solid rgba(255,255,255,.04)}
 .ret-fwd-row b{font-size:11px;font-weight:600;text-align:right}
 .ret-fwd-row em{font-style:normal;text-align:right;color:#777}
+.mini-forward-table-wrap{overflow-x:auto;border:1px solid #202020;background:#101010;margin-top:6px}
+.mini-forward-table{width:100%;border-collapse:collapse;min-width:420px;font-size:10px}
+.mini-forward-table th{background:#e8e8e8;color:#111;padding:6px 8px;text-align:center;font-weight:800;border-right:1px solid rgba(0,0,0,.16)}
+.mini-forward-table th:first-child{text-align:left}
+.mini-forward-table td{padding:6px 8px;text-align:center;border-top:1px solid #242424;border-right:1px solid #242424;color:#d8d8d8}
+.mini-forward-table td:first-child{text-align:left;font-weight:700;color:#f0f0f0;background:#151515}
+.mini-forward-table td.pos{background:rgba(29,158,117,.035);color:#d7f2e9;font-weight:700}
+.mini-forward-table td.neg{background:rgba(224,80,80,.035);color:#f4d7d7;font-weight:700}
+.mini-forward-table td.neut{background:rgba(255,255,255,.035);color:#d8d8d8}
+.mini-forward-table .pos{color:#d7f2e9;font-weight:700}
+.mini-forward-table .neg{color:#f4d7d7;font-weight:700}
+.mini-forward-table .neut{color:#d8d8d8}
 .vix-ratio-forward .interp-title{min-height:24px;display:flex;align-items:flex-start}
 .vix-ratio-forward .ret-fwd-events{min-height:24px}
 .ma-forward-title{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
@@ -3221,6 +3233,26 @@ function fmtPct(v, digits=1) {
   return (v >= 0 ? "+" : "") + v.toFixed(digits) + "%";
 }
 
+function forwardTableClass(v) {
+  if(!Number.isFinite(+v)) return "neut";
+  return +v >= 0 ? "pos" : "neg";
+}
+
+function renderForwardStatsTable(eventText, rows, opts={}) {
+  const cols = Array.isArray(rows) ? rows : [];
+  const sample = cols.some(r => r && r.n != null);
+  const cell = (txt, cls="neut") => `<td class="${cls}">${txt == null || txt === "" ? "—" : txt}</td>`;
+  const row = (label, mapper) => `<tr><td>${seasonEscape(label)}</td>${cols.map(mapper).join("")}</tr>`;
+  const avgLabel = opts.avgLabel || "Average";
+  const probLabel = opts.probLabel || "Prob.";
+  const htmlRows = [
+    row(avgLabel, r => cell(r && r.avgText != null ? r.avgText : (r && r.avg != null ? fmtPct(+r.avg, 1) : "—"), forwardTableClass(r && r.avg))),
+    row(probLabel, r => cell(r && r.winText != null ? r.winText : (r && r.win != null ? `${(+r.win).toFixed(0)}%` : "—")))
+  ];
+  if(sample) htmlRows.push(row("Sample", r => cell(r && r.n != null ? String(r.n) : "—")));
+  return `<div class="ret-fwd-events">${seasonEscape(eventText || "Historical forward performance")}</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Metric</th>${cols.map(r=>`<th>${seasonEscape(r && r.label != null ? r.label : "")}</th>`).join("")}</tr></thead><tbody>${htmlRows.join("")}</tbody></table></div>`;
+}
+
 function ensureReturnHistogramOptions() {
   const sel = document.getElementById("retHistTicker");
   if(!sel) return null;
@@ -3801,16 +3833,15 @@ function renderVIXRatioForwardStats(rows, domain=null) {
   const contango = vixRatioForwardSummary(contangoEvents, priceRows);
   const html = (events, summary) => {
     if(!priceRows.length) return "SPY history unavailable.";
-    const body = [1, 3, 6, 12].map(h => {
+    const statRows = [1, 3, 6, 12].map(h => {
       const vals = summary[h] || [];
-      if(!vals.length) return `<div class="ret-fwd-row"><span>${h}M</span><b>—</b><em>—</em></div>`;
+      if(!vals.length) return { label:`${h}M`, avg:null, win:null, n:0 };
       const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
       const win = vals.filter(v => v > 0).length / vals.length * 100;
-      const col = avg >= 0 ? "#5DCAA5" : "#e05050";
-      return `<div class="ret-fwd-row"><span>${h}M</span><b style="color:${col}">${fmtPct(avg, 1)}</b><em>${win.toFixed(0)}% Profit</em></div>`;
-    }).join("");
+      return { label:`${h}M`, avg, win, n:vals.length };
+    });
     const windowLabel = domain && rows.length ? ` · ${rows[0].date} to ${rows[rows.length - 1].date}` : "";
-    return `<div class="ret-fwd-events">${events.length} threshold events${windowLabel}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>${body}`;
+    return renderForwardStatsTable(`${events.length} threshold events${windowLabel}`, statRows);
   };
   const panicEl = document.getElementById("vixRatioForwardPanic");
   const contangoEl = document.getElementById("vixRatioForwardContango");
@@ -3994,15 +4025,14 @@ function returnForwardSummary(rows, predicate) {
 function renderReturnForwardStats(rows, plus2, minus2) {
   const fmt = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
   const html = summary => {
-    const body = [3, 6, 12].map(h => {
+    const statRows = [3, 6, 12].map(h => {
       const vals = summary.byHorizon[h] || [];
-      if(!vals.length) return `<div class="ret-fwd-row"><span>${h}M</span><b>—</b><em>—</em></div>`;
+      if(!vals.length) return { label:`${h}M`, avg:null, win:null, n:0 };
       const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
       const prob = vals.filter(v => v > 0).length / vals.length * 100;
-      const col = avg >= 0 ? "#5DCAA5" : "#e05050";
-      return `<div class="ret-fwd-row"><span>${h}M</span><b style="color:${col}">${fmt(avg)}</b><em>${prob.toFixed(0)}% Profit</em></div>`;
-    }).join("");
-    return `<div class="ret-fwd-events">${summary.events} historical moves ≥ 2σ</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>${body}`;
+      return { label:`${h}M`, avg, avgText:fmt(avg), win:prob, n:vals.length };
+    });
+    return renderForwardStatsTable(`${summary.events} historical moves ≥ 2σ`, statRows);
   };
   const pos = document.getElementById("retForwardPos");
   const neg = document.getElementById("retForwardNeg");
@@ -4280,8 +4310,7 @@ function renderRollingReturnForward(rows, upper, lower, sideFilter="both") {
       return;
     }
     const n = events.length ? Math.max(...events.map(e => e.n), 0) : 0;
-    el.innerHTML = `<div class="ret-fwd-events">${n} monthly-capped moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
-      events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
+    el.innerHTML = renderForwardStatsTable(`${n} monthly-capped moves`, events);
   };
   render("rollRetForwardPos", calc("pos"));
   render("rollRetForwardNeg", calc("neg"));
@@ -4735,8 +4764,7 @@ function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
   const render = (id, events) => {
     const el = document.getElementById(id); if(!el) return;
     const n = Math.max(...events.map(e=>e.n), 0);
-    el.innerHTML = `<div class="ret-fwd-events">${n} monthly-capped moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
-      events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
+    el.innerHTML = renderForwardStatsTable(`${n} monthly-capped moves`, events);
   };
   render("maStockForwardPos", calc("pos"));
   render("maStockForwardNeg", calc("neg"));
@@ -4929,8 +4957,7 @@ function renderMADistanceForwardStats(rows, key, mean, sigma) {
   const render = (id, title, events, color) => {
     const el = document.getElementById(id); if(!el) return;
     const n = Math.max(...events.map(e=>e.n), 0);
-    el.innerHTML = `<div class="ret-fwd-events">${n} monthly-capped moves</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
-      events.map(e => `<div class="ret-fwd-row"><span>${e.label}</span><strong style="color:${e.avg!=null&&e.avg>=0?"#1D9E75":"#e05050"}">${e.avg==null?"—":fmtPct(e.avg,1)}</strong><em>${e.win==null?"—":e.win.toFixed(0)+"% Profit"}</em></div>`).join("");
+    el.innerHTML = renderForwardStatsTable(`${n} monthly-capped moves`, events);
   };
   render("maDistForwardPos", `+${sigmaLevel}σ`, calc("pos"), "#1D9E75");
   render("maDistForwardNeg", `−${sigmaLevel}σ`, calc("neg"), "#e05050");
@@ -6123,22 +6150,14 @@ function vixSpikeForwardSummary(priceRows, spikeRows, predicate) {
     });
     const avg = rets.length ? rets.reduce((a,b)=>a+b,0) / rets.length : null;
     const win = rets.length ? rets.filter(v => v > 0).length / rets.length * 100 : null;
-    return { ...h, avg, win, count: rets.length };
+    return { ...h, avg, win, count: rets.length, n: rets.length };
   });
   return { events: events.length, rows };
 }
 
 function renderVIXSpikeForwardStats(priceRows, spikeRows, upThr, lowThr, pctSel) {
-  const fmt = v => v == null ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
   const pctFmt = v => Number.isInteger(v) ? String(v) : String(+v.toFixed(3));
-  const html = (summary, thresholdText) => `
-    <div class="ret-fwd-events">${summary.events} events · ${thresholdText}</div>
-    <div class="ret-fwd-head"><span>Time</span><span>Avg</span><span>Plus</span></div>
-    ${summary.rows.map(r => {
-      const col = r.avg == null ? "#777" : r.avg >= 0 ? "#5DCAA5" : "#e05050";
-      return `<div class="ret-fwd-row"><span>${r.label}</span><b style="color:${col}">${fmt(r.avg)}</b><em>${r.win == null ? "—" : r.win.toFixed(0) + "%"} · ${r.count || 0}</em></div>`;
-    }).join("")}
-  `;
+  const html = (summary, thresholdText) => renderForwardStatsTable(`${summary.events} events · ${thresholdText}`, summary.rows);
   const bearEl = document.getElementById("vixSpikeBearForward");
   const bullEl = document.getElementById("vixSpikeBullForward");
   if(bearEl) bearEl.innerHTML = html(
@@ -6781,23 +6800,9 @@ function updateSPXForwardStats(daily, signals) {
     });
     const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
     const win = returns.length ? returns.filter(v => v > 0).length / returns.length * 100 : null;
-    return { ...h, avg, win, count: returns.length };
+    return { ...h, avg, win, count: returns.length, n: returns.length };
   });
-  body.innerHTML = `
-    <div style="display:grid;grid-template-columns:42px 1fr 1fr 28px;gap:5px 8px;align-items:center;font-size:9.5px;line-height:1.25">
-      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em">Time</span>
-      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em;text-align:right">Avg</span>
-      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em;text-align:right">Plus</span>
-      <span style="color:#555;text-transform:uppercase;letter-spacing:.06em;text-align:right">N</span>
-      ${stats.map(s => {
-        const avg = s.avg == null ? "—" : `${s.avg >= 0 ? "+" : ""}${s.avg.toFixed(1)}%`;
-        const win = s.win == null ? "—" : `${s.win.toFixed(0)}%`;
-        const col = s.avg == null ? "#666" : s.avg >= 0 ? "#1D9E75" : "#e05050";
-        return `<span style="color:#aaa;font-weight:600">${s.label}</span><span style="color:${col};font-weight:600;text-align:right">${avg}</span><span style="color:#1D9E75;font-weight:600;text-align:right">${win}</span><span style="color:#555;text-align:right">${s.count || "—"}</span>`;
-      }).join("")}
-    </div>
-    <div style="margin-top:7px;color:#555;font-size:9px;line-height:1.35">Measured from the signal-day close. Open horizons are excluded.</div>
-  `;
+  body.innerHTML = renderForwardStatsTable("Measured from the signal-day close. Open horizons excluded.", stats);
 }
 
 function updateSPXRSIReadings(status, signals, weeklyRows) {
@@ -7110,12 +7115,7 @@ function renderBinaryReturnsForward(priceRows, signals, domain=null, elId="binRe
     return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length };
   });
   const rows = [{ name:"Long", type:"bull", data:calc("bull") }];
-  el.innerHTML = `<div class="ret-fwd-events">${sigs.filter(s=>s.type==="bull").length} visible long signals</div><div class="ret-fwd-head"><span>Type</span><span>3M</span><span>12M</span></div>` +
-    rows.map(side => {
-      const m3 = side.data.find(r=>r.label==="3M"), m12 = side.data.find(r=>r.label==="12M");
-      const cell = r => `<strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</em>`;
-      return `<div class="ret-fwd-row"><span>${side.name}</span><span>${cell(m3)}</span><span>${cell(m12)}</span></div>`;
-    }).join("");
+  el.innerHTML = renderForwardStatsTable(`${sigs.filter(s=>s.type==="bull").length} visible long signals`, rows[0].data);
 }
 
 function binaryLongSignalsFromRows(rows, threshold=-18, minGap=21, priceKey="spy") {
@@ -7411,11 +7411,11 @@ function renderRSPSpyForward(priceRows, signals) {
   };
   const row = (label, type) => {
     const m3 = calc(type, 63), m12 = calc(type, 252);
-    const fmtCell = r => `<strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</em>`;
-    return `<div class="ret-fwd-row"><span>${label}</span><span>${fmtCell(m3)}</span><span>${fmtCell(m12)}</span></div>`;
+    const fmtCell = r => `<span class="${forwardTableClass(r.avg)}">${r.avg==null?"—":fmtPct(r.avg,1)} / ${r.win==null?"—":r.win.toFixed(0)+"%"}${r.n ? " · " + r.n : ""}</span>`;
+    return `<tr><td>${label}</td><td>${fmtCell(m3)}</td><td>${fmtCell(m12)}</td></tr>`;
   };
   const bull = sigs.filter(s=>s.type==="bull").length, bear = sigs.filter(s=>s.type==="bear").length;
-  el.innerHTML = `<div class="ret-fwd-events">${bull} broad / ${bear} narrow regime starts</div><div class="ret-fwd-head"><span>Signal</span><span>3M</span><span>12M</span></div>${row("Broad","bull")}${row("Narrow","bear")}`;
+  el.innerHTML = `<div class="ret-fwd-events">${bull} broad / ${bear} narrow regime starts</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Signal</th><th>3M</th><th>12M</th></tr></thead><tbody>${row("Broad","bull")}${row("Narrow","bear")}</tbody></table></div>`;
 }
 
 function drawRSPSpyBreadth() {
@@ -7741,8 +7741,7 @@ function renderMABreadthForward(rows, priceRows, key, threshold=maBreadthThresho
   };
   const render = (id, result, label) => {
     const el = document.getElementById(id); if(!el) return;
-    el.innerHTML = `<div class="ret-fwd-events">${result.events.length} historical signals · ${label}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
-      result.stats.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
+    el.innerHTML = renderForwardStatsTable(`${result.events.length} historical signals · ${label}`, result.stats);
   };
   render("maBreadthForwardExp", calc("high"), `${maBreadthMetricLabel(key)} above ≥ ${100 - threshold}%`);
   render("maBreadthForwardComp", calc("low"), `${maBreadthMetricLabel(key)} above ≤ ${threshold}%`);
@@ -8644,8 +8643,7 @@ function renderBTForwardStats(elId, priceRows, signals, label, horizons) {
       n: vals.length
     };
   });
-  el.innerHTML = `<div class="ret-fwd-events">${sigs.length} historical signals · ${label}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
-    rows.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
+  el.innerHTML = renderForwardStatsTable(`${sigs.length} historical signals · ${label}`, rows);
 }
 
 function drawZBTBreadthChart(rows, signals, domain=null) {
@@ -8932,11 +8930,11 @@ function drawWashedOutBottomPicker() {
   const modelStats = (payload.model_signal || {}).stats || {};
   const statEl = document.getElementById("washedOutForwardStats");
   if(statEl) {
-    statEl.innerHTML = `<div class="ret-fwd-events">${(payload.model_signal || {}).events || 0} model events · threshold ${threshold}%</div><div class="ret-fwd-head" style="grid-template-columns:42px 72px 72px;justify-content:start"><span>Horizon</span><span>Avg Fwd</span><span>Win</span></div>` +
-      washedOutHorizons().map(h => {
-        const s = modelStats[h] || {};
-        return `<div class="ret-fwd-row" style="grid-template-columns:42px 72px 72px;justify-content:start"><span>${h}</span><strong style="color:${(s.avg||0)>=0?"#1D9E75":"#e05050"}">${s.avg==null?"—":fmtPct(s.avg,1)}</strong><em style="text-align:left">${s.win_rate==null?"—":s.win_rate.toFixed(0)+"%"}${s.n ? " · " + s.n : ""}</em></div>`;
-      }).join("");
+    const rows = washedOutHorizons().map(h => {
+      const s = modelStats[h] || {};
+      return { label:h, avg:s.avg, win:s.win_rate, n:s.n };
+    });
+    statEl.innerHTML = renderForwardStatsTable(`${(payload.model_signal || {}).events || 0} model events · threshold ${threshold}%`, rows, { probLabel:"Win" });
   }
 }
 
@@ -9172,8 +9170,7 @@ function forwardPEForwardStats(peRows, priceRows, mean, sigma) {
   const render = (id, rows, events, thresholdText) => {
     const el = document.getElementById(id); if(!el) return;
     const n = events.length;
-    el.innerHTML = `<div class="ret-fwd-events">${n} historical readings · ${thresholdText}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
-      rows.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
+    el.innerHTML = renderForwardStatsTable(`${n} historical readings · ${thresholdText}`, rows);
   };
   const expEvents = eventsFor("expensive");
   const cheapEvents = eventsFor("cheap");
@@ -9308,8 +9305,7 @@ function peRatioForwardStats(peRows, priceRows, mean, sigma) {
   const render = (id, rows, events, thresholdText) => {
     const el = document.getElementById(id); if(!el) return;
     const n = events.length;
-    el.innerHTML = `<div class="ret-fwd-events">${n} historical readings · ${thresholdText}</div><div class="ret-fwd-head"><span>Horizon</span><span>Avg Fwd</span><span>Prob.</span></div>` +
-      rows.map(r => `<div class="ret-fwd-row"><span>${r.label}</span><strong style="color:${r.avg!=null&&r.avg>=0?"#1D9E75":"#e05050"}">${r.avg==null?"—":fmtPct(r.avg,1)}</strong><em>${r.win==null?"—":r.win.toFixed(0)+"% Profit"}${r.n ? " · " + r.n : ""}</em></div>`).join("");
+    el.innerHTML = renderForwardStatsTable(`${n} historical readings · ${thresholdText}`, rows);
   };
   const expEvents = eventsFor("expensive");
   const cheapEvents = eventsFor("cheap");
