@@ -3543,7 +3543,10 @@ function renderForwardStatsTable(eventText, rows, opts={}) {
   const setupText = opts.setupText || eventText || "Historical forward performance.";
   const dataText = opts.dataText || "Forward returns use signal-day close. Completed horizons only; open horizons are excluded.";
   const disclaimer = opts.disclaimer || "Disclaimer: Past performance does not guarantee future performance. For research and educational purposes only.";
-  return `<div class="ret-fwd-events">${seasonEscape(eventText || "Historical forward performance")}</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Metric</th>${cols.map(r=>`<th>${seasonEscape(r && r.label != null ? r.label : "")}</th>`).join("")}</tr></thead><tbody>${htmlRows.join("")}</tbody></table></div><div class="mini-forward-footer"><strong>Signal setup: ${seasonEscape(setupText)}</strong><span>${seasonEscape(dataText)}</span><span>${seasonEscape(disclaimer)}</span></div>`;
+  const footer = opts.footer === "none" ? "" : opts.footer === "setup-only"
+    ? `<div class="mini-forward-footer"><strong>Signal setup: ${seasonEscape(setupText)}</strong></div>`
+    : `<div class="mini-forward-footer"><strong>Signal setup: ${seasonEscape(setupText)}</strong><span>${seasonEscape(dataText)}</span><span>${seasonEscape(disclaimer)}</span></div>`;
+  return `<div class="ret-fwd-events">${seasonEscape(eventText || "Historical forward performance")}</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Metric</th>${cols.map(r=>`<th>${seasonEscape(r && r.label != null ? r.label : "")}</th>`).join("")}</tr></thead><tbody>${htmlRows.join("")}</tbody></table></div>${footer}`;
 }
 
 function ensureReturnHistogramOptions() {
@@ -5038,13 +5041,13 @@ function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
       return { label:h.label, avg, win, n:rets.length, values: rets, avgDD, maxDD };
     });
   };
-  const render = (id, events) => {
+  const render = (id, events, footer) => {
     const el = document.getElementById(id); if(!el) return;
     const n = Math.max(...events.map(e=>e.n), 0);
-    el.innerHTML = renderForwardStatsTable(`${n} monthly-capped moves`, events);
+    el.innerHTML = renderForwardStatsTable(`${n} monthly-capped moves`, events, { footer });
   };
+  render("maStockForwardNeg", calc("neg"), "setup-only");
   render("maStockForwardPos", calc("pos"));
-  render("maStockForwardNeg", calc("neg"));
 }
 
 function setMAStockBacktestSigma(level) {
@@ -5230,13 +5233,13 @@ function renderMADistanceForwardStats(rows, key, mean, sigma) {
       return { label:h.label, avg, win, n:rets.length, values: rets, avgDD, maxDD };
     });
   };
-  const render = (id, title, events, color) => {
+  const render = (id, title, events, color, footer) => {
     const el = document.getElementById(id); if(!el) return;
     const n = Math.max(...events.map(e=>e.n), 0);
-    el.innerHTML = renderForwardStatsTable(`${n} monthly-capped moves`, events);
+    el.innerHTML = renderForwardStatsTable(`${n} monthly-capped moves`, events, { footer });
   };
+  render("maDistForwardNeg", `−${sigmaLevel}σ`, calc("neg"), "#e05050", "setup-only");
   render("maDistForwardPos", `+${sigmaLevel}σ`, calc("pos"), "#1D9E75");
-  render("maDistForwardNeg", `−${sigmaLevel}σ`, calc("neg"), "#e05050");
 }
 
 function maDistanceMonthlyEvents(rows, key, plus2, minus2, side) {
