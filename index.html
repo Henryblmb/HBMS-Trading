@@ -810,6 +810,8 @@ canvas{background:#fff!important}
 .mini-forward-footer,.cap-eq-note{font-size:10.5px!important;line-height:1.55!important;color:#6b7280!important;margin-top:14px!important}
 .mini-forward-footer strong,.cap-eq-note strong{font-size:11px!important;color:#1f2937!important}
 .mini-forward-footer span{display:block!important;margin-top:9px!important}
+.cg-chart-box{margin-bottom:22px!important;padding-bottom:16px!important}
+.cg-chart-box canvas{max-height:360px!important}
 .hist-btn,.tf-btn,.signal-range-controls .hist-btn,.signal-bar>.cg-date-range button,.signal-range-controls .cg-date-range button{
   background:transparent!important;
   border-color:transparent!important;
@@ -3228,13 +3230,21 @@ canvas{background:#fff!important}
       "#181818":"#e5e7eb","#1a1a1a":"#d7dee4","#1e1e1e":"#9ca3af",
       "#202020":"#d7dee4","#222":"#d7dee4","#222222":"#d7dee4",
       "#242424":"#d7dee4","#252525":"#cbd5df","#2a2a2a":"#9ca3af",
-      "#333":"#6b7280","#333333":"#6b7280","#444":"#6b7280",
+      "#303030":"#7b8a8b","#333":"#6b7280","#333333":"#6b7280","#444":"#6b7280",
       "#444444":"#6b7280","#555":"#6b7280","#555555":"#6b7280",
       "#666":"#6b7280","#777":"#6b7280","#888":"#4b5563",
       "#aaa":"#374151","#ccc":"#1f2937","#d8d8d8":"#2f80d8",
       "#e0e0e0":"#2f80d8","#eee":"#111827","#f1f1f1":"#111827"
     };
     if(solid[v]) return solid[v];
+    const rgba = v.match(/^rgba\((\d+),(\d+),(\d+),([^)]+)\)$/);
+    if(rgba) {
+      const r = +rgba[1], g = +rgba[2], b = +rgba[3], a = Math.max(0, Math.min(1, parseFloat(rgba[4]) || 0));
+      if(r <= 25 && g <= 25 && b <= 25) {
+        if(a >= 0.45) return "rgba(255,255,255,.96)";
+        return `rgba(17,24,39,${Math.min(a, 0.18)})`;
+      }
+    }
     if(v.startsWith("rgba(216,216,216,")) return value.replace(/rgba\(\s*216\s*,\s*216\s*,\s*216\s*,\s*([^)]+)\)/i, (_, a) => `rgba(47,128,216,${Math.max(parseFloat(a) || 0.65, 0.65)})`);
     if(v.startsWith("rgba(224,224,224,")) return value.replace(/rgba\(\s*224\s*,\s*224\s*,\s*224\s*,\s*([^)]+)\)/i, (_, a) => `rgba(47,128,216,${Math.max(parseFloat(a) || 0.65, 0.65)})`);
     if(v.startsWith("rgba(255,255,255,")) return value.replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([^)]+)\)/i, (_, a) => `rgba(17,24,39,${Math.max(parseFloat(a) || 0.08, 0.08)})`);
@@ -3463,6 +3473,10 @@ function mkCanvas(id, h) {
   const el = document.getElementById(id); if(!el) return null;
   const dpr = window.devicePixelRatio || 1;
   const W = el.parentElement.clientWidth || 800;
+  if(el.closest(".cg-chart-box") && h > 180) {
+    const factor = h >= 340 ? 0.78 : h >= 280 ? 0.84 : 0.90;
+    h = Math.max(190, Math.round(h * factor));
+  }
   el.width = Math.round(W * dpr); el.height = Math.round(h * dpr);
   el.style.width = W + "px"; el.style.height = h + "px";
   const ctx = el.getContext("2d"); ctx.scale(dpr, dpr);
