@@ -689,6 +689,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif!importan
 .heat-sub{color:rgba(17,24,39,.65)!important}
 .heat-name{color:#111827!important}
 canvas{background:#fff!important}
+.main{padding:28px 34px!important}
+.panel.active{max-width:1560px;margin:0 auto!important}
+.cg-page{background:#fff!important;padding:20px 26px 36px!important}
+.cg-header{display:block!important;text-align:center!important;border-bottom:0!important;margin:0 0 28px!important;padding:0!important}
+.cg-title{font-size:24px!important;font-weight:850!important;color:#000!important;letter-spacing:.01em!important;margin:0 0 8px!important}
+.cg-sub{max-width:980px!important;margin:0 auto!important;font-size:14px!important;font-weight:750!important;color:#374151!important;line-height:1.42!important}
+.cg-pill{margin:12px auto 0!important;border:0!important;background:transparent!important;font-weight:800!important;justify-content:center!important}
+.signal-bar{border:0!important;border-top:1px solid #e5e7eb!important;border-bottom:1px solid #e5e7eb!important;margin:0 0 24px!important;padding:14px 0!important;background:#fff!important}
+.signal-bar-label{font-size:10px!important;color:#6b7280!important;font-weight:800!important}
+.signal-bar-val{font-size:24px!important;color:#111827!important;font-weight:800!important}
+.signal-bar-divider{background:#e5e7eb!important}
+.signal-range-controls .hist-btn,.signal-bar>.cg-date-range button,.signal-range-controls .cg-date-range button{color:#374151!important;font-weight:800!important}
+.signal-range-controls .hist-btn.active,.signal-bar>.cg-date-range button.active,.signal-range-controls .cg-date-range button.active{color:#000!important;text-decoration:underline!important;text-underline-offset:4px!important}
+.signal-range-controls .cg-date-range input,.signal-bar>.cg-date-range input{color:#111827!important;font-weight:800!important}
+.cg-chart-box{border:1px solid #d7dee4!important;background:#fff!important;margin:0 0 34px!important;padding:0 28px 22px!important}
+.cg-chart-header{justify-content:center!important;position:relative!important;padding:22px 0 8px!important;min-height:50px!important}
+.cg-chart-title{font-size:21px!important;line-height:1.15!important;color:#000!important;font-weight:850!important;text-transform:none!important;letter-spacing:0!important;text-align:center!important}
+.cg-chart-legend{position:absolute!important;left:0!important;top:22px!important;color:#111827!important;font-size:12px!important;gap:18px!important}
+.cg-chart-legend span{color:#111827!important;font-weight:500!important}
+.chart-watermark{left:28px!important;bottom:8px!important;color:rgba(31,41,55,.55)!important;font-size:11px!important}
+.interp-grid{gap:14px!important;margin:12px 0 30px!important}
+.interp-cell{border:1px solid #d7dee4!important;border-left:3px solid #2a9d78!important;background:#fff!important;padding:14px 16px!important}
+.interp-title{font-size:12px!important;font-weight:850!important;margin-bottom:6px!important}
+.interp-text{font-size:12px!important;line-height:1.45!important;color:#4b5563!important}
+.ret-forward-grid .interp-cell:has(.mini-forward-table){border:0!important;padding:0!important;background:#fff!important}
+.ret-fwd-events{font-size:12px!important;color:#374151!important;font-weight:850!important;text-transform:none!important;letter-spacing:0!important;margin:0 0 10px!important}
+.mini-forward-table-wrap{margin-top:0!important;border-color:#7b8a8b!important;background:#fff!important}
+.mini-forward-table{font-size:12px!important}
+.mini-forward-table th{padding:7px 10px!important;font-size:12px!important;background:#087f9f!important;color:#fff!important}
+.mini-forward-table td{padding:7px 10px!important;font-size:12px!important}
+.cap-eq-table{font-size:12px!important}
+.cap-eq-table th,.cap-eq-table td{padding:7px 10px!important}
+.card,.scard,.score-card,.sec-card,.vix-metric,.mom-card,.regime-card,.econ-card{border-color:#d7dee4!important;background:#fff!important}
+.stock-grid,.score-grid,.mom-grid{gap:10px!important}
+.filter-row{margin-bottom:18px!important;padding:12px 14px!important}
 ::-webkit-scrollbar-track{background:#fff!important}
 ::-webkit-scrollbar-thumb{background:#cbd5df!important}
 ::-webkit-scrollbar-thumb:hover{background:#9ca3af!important}
@@ -3375,6 +3410,19 @@ function forwardTableClass(v) {
   return +v >= 0 ? "pos" : "neg";
 }
 
+function forwardTableValues(r) {
+  if(!r) return [];
+  const vals = r.values || r.vals || r.returns || r.rets;
+  return Array.isArray(vals) ? vals.map(Number).filter(Number.isFinite) : [];
+}
+
+function forwardTableMedian(vals) {
+  if(!vals.length) return null;
+  const sorted = [...vals].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 function renderForwardStatsTable(eventText, rows, opts={}) {
   const cols = Array.isArray(rows) ? rows : [];
   const sample = cols.some(r => r && r.n != null);
@@ -3382,9 +3430,23 @@ function renderForwardStatsTable(eventText, rows, opts={}) {
   const row = (label, mapper) => `<tr><td>${seasonEscape(label)}</td>${cols.map(mapper).join("")}</tr>`;
   const avgLabel = opts.avgLabel || "Average";
   const probLabel = opts.probLabel || "Prob.";
+  const hasDistributions = cols.some(r => forwardTableValues(r).length);
+  const metricValue = (r, key) => {
+    const vals = forwardTableValues(r);
+    if(!vals.length) return null;
+    if(key === "median") return forwardTableMedian(vals);
+    if(key === "max") return Math.max(...vals);
+    if(key === "min") return Math.min(...vals);
+    return null;
+  };
   const htmlRows = [
     row(avgLabel, r => cell(r && r.avgText != null ? r.avgText : (r && r.avg != null ? fmtPct(+r.avg, 1) : "—"), forwardTableClass(r && r.avg))),
-    row(probLabel, r => cell(r && r.winText != null ? r.winText : (r && r.win != null ? `${(+r.win).toFixed(0)}%` : "—")))
+    ...(hasDistributions ? [
+      row("Median", r => { const v = metricValue(r, "median"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); }),
+      row("Max", r => { const v = metricValue(r, "max"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); }),
+      row("Min", r => { const v = metricValue(r, "min"); return cell(v == null ? "—" : fmtPct(v, 1), forwardTableClass(v)); })
+    ] : []),
+    row(probLabel, r => cell(r && r.winText != null ? r.winText : (r && r.win != null ? `${(+r.win).toFixed(0)}%` : "—"), r && r.win != null ? (+r.win >= 50 ? "pos" : "neg") : "neut"))
   ];
   if(sample) htmlRows.push(row("Sample", r => cell(r && r.n != null ? String(r.n) : "—")));
   return `<div class="ret-fwd-events">${seasonEscape(eventText || "Historical forward performance")}</div><div class="mini-forward-table-wrap"><table class="mini-forward-table"><thead><tr><th>Metric</th>${cols.map(r=>`<th>${seasonEscape(r && r.label != null ? r.label : "")}</th>`).join("")}</tr></thead><tbody>${htmlRows.join("")}</tbody></table></div>`;
@@ -3975,7 +4037,7 @@ function renderVIXRatioForwardStats(rows, domain=null) {
       if(!vals.length) return { label:`${h}M`, avg:null, win:null, n:0 };
       const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
       const win = vals.filter(v => v > 0).length / vals.length * 100;
-      return { label:`${h}M`, avg, win, n:vals.length };
+      return { label:`${h}M`, avg, win, n:vals.length, values: vals };
     });
     const windowLabel = domain && rows.length ? ` · ${rows[0].date} to ${rows[rows.length - 1].date}` : "";
     return renderForwardStatsTable(`${events.length} threshold events${windowLabel}`, statRows);
@@ -4167,7 +4229,7 @@ function renderReturnForwardStats(rows, plus2, minus2) {
       if(!vals.length) return { label:`${h}M`, avg:null, win:null, n:0 };
       const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
       const prob = vals.filter(v => v > 0).length / vals.length * 100;
-      return { label:`${h}M`, avg, avgText:fmt(avg), win:prob, n:vals.length };
+      return { label:`${h}M`, avg, avgText:fmt(avg), win:prob, n:vals.length, values: vals };
     });
     return renderForwardStatsTable(`${summary.events} historical moves ≥ 2σ`, statRows);
   };
@@ -4437,7 +4499,7 @@ function renderRollingReturnForward(rows, upper, lower, sideFilter="both") {
       }).filter(Number.isFinite);
       const avg = vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
       const win = vals.length ? vals.filter(v => v > 0).length / vals.length * 100 : null;
-      return { label:h.label, avg, win, n:vals.length };
+      return { label:h.label, avg, win, n:vals.length, values: vals };
     });
   };
   const render = (id, events) => {
@@ -4895,7 +4957,7 @@ function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
       }).filter(Number.isFinite);
       const avg = rets.length ? rets.reduce((a,b)=>a+b,0)/rets.length : null;
       const win = rets.length ? rets.filter(v=>v>0).length / rets.length * 100 : null;
-      return { label:h.label, avg, win, n:rets.length };
+      return { label:h.label, avg, win, n:rets.length, values: rets };
     });
   };
   const render = (id, events) => {
@@ -5088,7 +5150,7 @@ function renderMADistanceForwardStats(rows, key, mean, sigma) {
       }).filter(Number.isFinite);
       const avg = rets.length ? rets.reduce((a,b)=>a+b,0)/rets.length : null;
       const win = rets.length ? rets.filter(v=>v>0).length / rets.length * 100 : null;
-      return { label:h.label, avg, win, n:rets.length };
+      return { label:h.label, avg, win, n:rets.length, values: rets };
     });
   };
   const render = (id, title, events, color) => {
@@ -6287,7 +6349,7 @@ function vixSpikeForwardSummary(priceRows, spikeRows, predicate) {
     });
     const avg = rets.length ? rets.reduce((a,b)=>a+b,0) / rets.length : null;
     const win = rets.length ? rets.filter(v => v > 0).length / rets.length * 100 : null;
-    return { ...h, avg, win, count: rets.length, n: rets.length };
+    return { ...h, avg, win, count: rets.length, n: rets.length, values: rets };
   });
   return { events: events.length, rows };
 }
@@ -6937,7 +6999,7 @@ function updateSPXForwardStats(daily, signals) {
     });
     const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
     const win = returns.length ? returns.filter(v => v > 0).length / returns.length * 100 : null;
-    return { ...h, avg, win, count: returns.length, n: returns.length };
+    return { ...h, avg, win, count: returns.length, n: returns.length, values: returns };
   });
   body.innerHTML = renderForwardStatsTable("Measured from the signal-day close. Open horizons excluded.", stats);
 }
@@ -7249,7 +7311,7 @@ function renderBinaryReturnsForward(priceRows, signals, domain=null, elId="binRe
       if(!start || !end || +start.close <= 0) return;
       vals.push((+end.close / +start.close - 1) * 100);
     });
-    return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length };
+    return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length, values: vals };
   });
   const rows = [{ name:"Long", type:"bull", data:calc("bull") }];
   el.innerHTML = renderForwardStatsTable(`${sigs.filter(s=>s.type==="bull").length} visible long signals`, rows[0].data);
@@ -7543,7 +7605,8 @@ function renderRSPSpyForward(priceRows, signals) {
     return {
       avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null,
       win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null,
-      n: vals.length
+      n: vals.length,
+      values: vals
     };
   };
   const row = (label, type) => {
@@ -7873,7 +7936,7 @@ function renderMABreadthForward(rows, priceRows, key, threshold=maBreadthThresho
         if(!Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
         vals.push((+end.close / +start.close - 1) * 100);
       });
-      return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length };
+      return { label:h.label, avg: vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null, win: vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null, n: vals.length, values: vals };
     }) };
   };
   const render = (id, result, label) => {
@@ -8777,7 +8840,8 @@ function renderBTForwardStats(elId, priceRows, signals, label, horizons) {
       label: h.label,
       avg: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null,
       win: vals.length ? vals.filter(v => v > 0).length / vals.length * 100 : null,
-      n: vals.length
+      n: vals.length,
+      values: vals
     };
   });
   el.innerHTML = renderForwardStatsTable(`${sigs.length} historical signals · ${label}`, rows);
@@ -9301,7 +9365,7 @@ function forwardPEForwardStats(peRows, priceRows, mean, sigma) {
       });
       const avg = vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
       const win = vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null;
-      return { label:h.label, avg, win, n:vals.length };
+      return { label:h.label, avg, win, n:vals.length, values: vals };
     });
   };
   const render = (id, rows, events, thresholdText) => {
@@ -9436,7 +9500,7 @@ function peRatioForwardStats(peRows, priceRows, mean, sigma) {
       });
       const avg = vals.length ? vals.reduce((a,b)=>a+b,0) / vals.length : null;
       const win = vals.length ? vals.filter(v=>v>0).length / vals.length * 100 : null;
-      return { label:h.label, avg, win, n:vals.length };
+      return { label:h.label, avg, win, n:vals.length, values: vals };
     });
   };
   const render = (id, rows, events, thresholdText) => {
