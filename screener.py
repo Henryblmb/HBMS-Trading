@@ -3457,7 +3457,7 @@ def high_yield_nhnl_history(limit=260):
         close = hist["Close"].astype(float).dropna()
         if len(close) < 120:
             continue
-        close.index = pd.to_datetime(close.index).normalize()
+        close.index = pd.to_datetime(close.index).tz_localize(None).normalize()
         close = close[~close.index.duplicated(keep="last")].sort_index()
         roll_hi = close.rolling(252, min_periods=80).max()
         roll_lo = close.rolling(252, min_periods=80).min()
