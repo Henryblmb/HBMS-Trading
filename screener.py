@@ -2819,6 +2819,9 @@ def oil_market_payload(sp500_hist=None, years=10, display_start="2016-01-01"):
         if s is not None and not s.empty:
             merged["sp500"] = s
         merged = merged.ffill().dropna(subset=["wti"])
+        merged.index = pd.to_datetime(merged.index)
+        if getattr(merged.index, "tz", None) is not None:
+            merged.index = merged.index.tz_localize(None)
         merged = merged[merged.index >= pd.Timestamp(display_start)]
         for idx, r in merged.iterrows():
             item = {
