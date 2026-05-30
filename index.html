@@ -2348,9 +2348,9 @@ canvas{background:#fff!important}
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">VIX Term Structure — 3Y History · Spread Below</span>
+          <span class="cg-chart-title" id="cgvix2Title">VIX Term Structure — 3Y History · Spread Below</span>
           <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#60a5fa"></span>VIX</span>
+            <span><span class="cg-leg-line" style="background:#111827"></span>VIX</span>
             <span><span class="cg-leg-line" style="background:#a78bfa"></span>VIX3M</span>
             <span><span class="cg-leg-line" style="background:#1D9E75"></span>Spread</span>
           </div>
@@ -9823,10 +9823,11 @@ function drawGoldSilverRatio() {
 function mirrorVIXCharts() {
   const md = window._marketData || {};
   const rawRows = Array.isArray(md.vix_history) ? md.vix_history : [];
-  const rows = filterRowsByDateDomain(rawRows, ensureCGDateControls("cg-vix2", [rawRows], "max"));
+  const domain = ensureCGDateControls("cg-vix2", [rawRows], "3Y");
+  const rows = filterRowsByDateDomain(rawRows, domain);
   updateCGVIX2Readings();
   requestAnimationFrame(()=>{
-    if(rows.length&&document.getElementById("cgvixCanvas")) drawVIXChartToCanvas("cgvixCanvas",rows);
+    if(rows.length&&document.getElementById("cgvixCanvas")) drawVIXTermStructureChart("cgvixCanvas", rows, domain);
     else emptyCanvas("cgvixCanvas", 360, "VIX term-structure history unavailable - run screener.py");
   });
 }
@@ -9846,6 +9847,159 @@ function updateCGVIX2Readings() {
     else{pEl.className="cg-pill active-bear";pEl.innerHTML='<span class="cg-dot"></span>BACKWARDATION — FEAR REGIME';}
   }
 }
+
+function drawVIXTermStructureChart(canvasId, history, domain=null, hoverIndex=null) {
+  const rows = (history || [])
+    .filter(r => r && r.date && Number.isFinite(+r.vix) && Number.isFinite(+r.vix3m))
+    .sort((a, b) => rowDateMs(a) - rowDateMs(b));
+  const c = mkCanvas(canvasId, 430); if(!c) return;
+  const { ctx, W, H } = c;
+  const PAD = { top: 24, right: 58, bottom: 36, left: 56 };
+  const PW = W - PAD.left - PAD.right;
+  const PH = H - PAD.top - PAD.bottom;
+  const VIX_H = Math.round(PH * 0.56);
+  const GAP = 16;
+  const SPR_H = PH - VIX_H - GAP;
+  const sprTop = PAD.top + VIX_H + GAP;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, W, H);
+
+  if(rows.length < 2) {
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("VIX term-structure history unavailable - run screener.py", W / 2, H / 2);
+    return;
+  }
+
+  const startMs = domain?.startMs || rowDateMs(rows[0]);
+  const endMs = domain?.endMs || rowDateMs(rows[rows.length - 1]);
+  const xSpan = endMs - startMs || 1;
+  const toX = r => PAD.left + ((rowDateMs(r) - startMs) / xSpan) * PW;
+  const vixVals = rows.flatMap(r => [+r.vix, +r.vix3m]).filter(Number.isFinite);
+  const sprVals = rows.map(r => Number.isFinite(+r.spread) ? +r.spread : +r.vix3m - +r.vix).filter(Number.isFinite);
+  const vMin = Math.max(0, Math.min(...vixVals) * 0.9);
+  const vMax = Math.max(35, Math.max(...vixVals) * 1.08);
+  const sprAbs = Math.max(5, ...sprVals.map(v => Math.abs(v)));
+  const sMin = -sprAbs * 1.12;
+  const sMax = sprAbs * 1.12;
+  const toYv = v => PAD.top + VIX_H - ((v - vMin) / (vMax - vMin || 1)) * VIX_H;
+  const toYs = v => sprTop + SPR_H - ((v - sMin) / (sMax - sMin || 1)) * SPR_H;
+  const zeroY = toYs(0);
+
+  ctx.fillStyle = "rgba(224,80,80,.06)";
+  ctx.fillRect(PAD.left, PAD.top, PW, Math.max(0, toYv(30) - PAD.top));
+  ctx.fillStyle = "rgba(239,159,39,.05)";
+  ctx.fillRect(PAD.left, toYv(30), PW, Math.max(0, toYv(20) - toYv(30)));
+  ctx.fillStyle = "rgba(29,158,117,.055)";
+  ctx.fillRect(PAD.left, sprTop, PW, Math.max(0, zeroY - sprTop));
+  ctx.fillStyle = "rgba(224,80,80,.06)";
+  ctx.fillRect(PAD.left, zeroY, PW, Math.max(0, PAD.top + PH - zeroY));
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 4]);
+  [15, 20, 25, 30, 40].forEach(v => {
+    if(v < vMin || v > vMax) return;
+    const y = toYv(v);
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+    ctx.fillStyle = "#6b7280"; ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+    ctx.fillText(v.toString(), PAD.left - 6, y + 3);
+  });
+  [-10, -5, 0, 5, 10].forEach(v => {
+    if(v < sMin || v > sMax) return;
+    const y = toYs(v);
+    ctx.strokeStyle = v === 0 ? "#9ca3af" : (v > 0 ? "rgba(29,158,117,.28)" : "rgba(224,80,80,.28)");
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + PW, y); ctx.stroke();
+    ctx.fillStyle = v > 0 ? "#2a9d78" : v < 0 ? "#c43d4b" : "#6b7280";
+    ctx.font = "8px sans-serif"; ctx.textAlign = "right";
+    ctx.fillText((v > 0 ? "+" : "") + v.toString(), PAD.left - 6, y + 3);
+  });
+  ctx.setLineDash([]);
+
+  const drawLine = (key, color, width) => {
+    ctx.beginPath();
+    rows.forEach((r, i) => {
+      const x = toX(r), y = toYv(+r[key]);
+      if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  };
+  drawLine("vix3m", "#7c3aed", 1.45);
+  drawLine("vix", "#111827", 1.7);
+
+  const barW = Math.max(1, PW / rows.length - 0.3);
+  rows.forEach(r => {
+    const spread = Number.isFinite(+r.spread) ? +r.spread : +r.vix3m - +r.vix;
+    const x = toX(r), y = toYs(spread);
+    ctx.fillStyle = spread >= 0 ? "rgba(42,157,120,.70)" : "rgba(196,61,75,.70)";
+    if(spread >= 0) ctx.fillRect(x - barW / 2, y, barW, zeroY - y);
+    else ctx.fillRect(x - barW / 2, zeroY, barW, y - zeroY);
+  });
+
+  const tickCount = 6;
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "8px sans-serif";
+  ctx.textAlign = "center";
+  for(let i = 0; i <= tickCount; i++) {
+    const ms = startMs + (xSpan * i / tickCount);
+    const d = new Date(ms);
+    const label = d.toLocaleString("en-US", { month: "short", year: "2-digit" });
+    const x = PAD.left + (PW * i / tickCount);
+    ctx.fillText(label, x, H - PAD.bottom + 15);
+  }
+
+  const last = rows[rows.length - 1];
+  const lastSpread = Number.isFinite(+last.spread) ? +last.spread : +last.vix3m - +last.vix;
+  ctx.fillStyle = "#111827"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "left";
+  ctx.fillText("VIX", PAD.left + PW + 6, toYv(+last.vix) + 3);
+  ctx.fillStyle = "#7c3aed";
+  ctx.fillText("3M", PAD.left + PW + 6, toYv(+last.vix3m) + 3);
+  ctx.fillStyle = lastSpread >= 0 ? "#2a9d78" : "#c43d4b";
+  ctx.fillText("Spread", PAD.left + PW + 6, toYs(lastSpread) + 3);
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "bold 8px sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("IMPLIED VOL", PAD.left + 4, PAD.top + 10);
+  ctx.fillText("SPREAD (VIX3M − VIX)", PAD.left + 4, sprTop + 10);
+
+  const title = document.getElementById("cgvix2Title");
+  if(title) title.textContent = `VIX Term Structure — ${rows[0].date} to ${rows[rows.length - 1].date} · Spread Below`;
+
+  const canvas = document.getElementById(canvasId);
+  if(canvas) {
+    canvas.onmousemove = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if(x < PAD.left || x > PAD.left + PW) { drawVIXTermStructureChart(canvasId, rows, domain, null); return; }
+      const targetMs = startMs + ((x - PAD.left) / PW) * xSpan;
+      let idx = 0, best = Infinity;
+      rows.forEach((row, i) => {
+        const diff = Math.abs(rowDateMs(row) - targetMs);
+        if(diff < best) { best = diff; idx = i; }
+      });
+      drawVIXTermStructureChart(canvasId, rows, domain, idx);
+    };
+    canvas.onmouseleave = () => drawVIXTermStructureChart(canvasId, rows, domain, null);
+  }
+
+  if(hoverIndex != null && rows[hoverIndex]) {
+    const r = rows[hoverIndex];
+    const spread = Number.isFinite(+r.spread) ? +r.spread : +r.vix3m - +r.vix;
+    const x = toX(r), y = toYs(spread);
+    ctx.strokeStyle = spread >= 0 ? "#2a9d78" : "#c43d4b";
+    ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
+    drawCanvasTooltip(ctx, W, H, PAD, x, y, [
+      `${formatHoverDate(r.date)} · Spread ${spread >= 0 ? "+" : ""}${spread.toFixed(2)}`,
+      `VIX ${(+r.vix).toFixed(2)} · VIX3M ${(+r.vix3m).toFixed(2)}`
+    ], spread >= 0 ? "#2a9d78" : "#c43d4b");
+  }
+}
+
 function drawVIXChartToCanvas(canvasId,history){
   // Same as drawVIXChart but targets a different canvas
   const el=document.getElementById(canvasId);if(!el)return;
