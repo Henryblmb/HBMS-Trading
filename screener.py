@@ -436,6 +436,72 @@ def yf_history(ticker_obj, period, interval, retries=3):
     return None
 
 
+def yahoo_chart_history(symbol, range_="20y", interval="1d", retries=3):
+    encoded = quote(symbol, safe="")
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded}"
+    params = {"range": range_, "interval": interval, "includePrePost": "false"}
+    headers = {"User-Agent": "Mozilla/5.0"}
+    for attempt in range(retries):
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=30)
+            r.raise_for_status()
+            payload = r.json()
+            result = (payload.get("chart", {}).get("result") or [None])[0]
+            if not result:
+                raise ValueError(f"empty Yahoo chart result for {symbol}")
+            timestamps = result.get("timestamp") or []
+            quote_data = (result.get("indicators", {}).get("quote") or [None])[0] or {}
+            if not timestamps or not quote_data:
+                raise ValueError(f"missing Yahoo chart quote data for {symbol}")
+            idx = pd.to_datetime(timestamps, unit="s", utc=True).tz_convert(None).normalize()
+            df = pd.DataFrame({
+                "Open": quote_data.get("open", []),
+                "High": quote_data.get("high", []),
+                "Low": quote_data.get("low", []),
+                "Close": quote_data.get("close", []),
+                "Volume": quote_data.get("volume", [0] * len(timestamps)),
+            }, index=idx)
+            for col in ["Open", "High", "Low", "Close", "Volume"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            df = df.dropna(subset=["Close"]).sort_index()
+            if not df.empty:
+                return df
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(2 + attempt * 3)
+            else:
+                raise
+    return None
+
+
+def has_flat_close_history(df, lookback=60):
+    if df is None or df.empty or "Close" not in df.columns:
+        return True
+    vals = pd.to_numeric(df["Close"], errors="coerce").dropna().tail(lookback)
+    return len(vals) >= 20 and vals.nunique() <= 2
+
+
+def vix_index_history(symbols, range_="20y", interval="1d"):
+    for sym in symbols:
+        try:
+            df = yahoo_chart_history(sym, range_, interval)
+            if df is not None and not df.empty and not has_flat_close_history(df):
+                print(f"  {symbols[0]} Yahoo chart ({sym}): {round(float(df['Close'].iloc[-1]), 2)} ({len(df)} days)")
+                return df
+        except Exception as e:
+            print(f"  {sym} Yahoo chart: {e}")
+    for sym in symbols:
+        try:
+            df = yf_history(yf.Ticker(sym), range_, interval)
+            if df is not None and not df.empty and not has_flat_close_history(df):
+                print(f"  {symbols[0]} yfinance ({sym}): {round(float(df['Close'].iloc[-1]), 2)} ({len(df)} days)")
+                return df
+            print(f"  {sym}: flat or no data")
+        except Exception as e:
+            print(f"  {sym}: {e}")
+    return None
+
+
 INDEX_MAP = {
     "^GSPC": "I:SPX",
     "^NDX": "I:NDX",
@@ -4124,10 +4190,12 @@ def fetch_market_indicators():
     wobp_status = result["washed_out_bottom_picker"].get("status", {})
     print(f"  Washed-out bottom picker: score {wobp_status.get('score')} | state {wobp_status.get('state')} | model {wobp_status.get('model_signal_status')}")
 
+    vix_hist = None
+    v3m_hist = None
+
     # ── VIX 30D ──────────────────────────────────────────────────
     try:
-        tk = yf.Ticker("^VIX")
-        vix_hist = yf_history(tk, "20y", "1d")
+        vix_hist = vix_index_history(["^VIX"], "20y", "1d")
         if vix_hist is not None and not vix_hist.empty:
             result["vix"] = round(float(vix_hist["Close"].iloc[-1]), 2)
             if len(vix_hist) >= 20:
@@ -4137,30 +4205,16 @@ def fetch_market_indicators():
         print(f"  VIX error: {e}")
 
     # ── VIX3M ────────────────────────────────────────────────────
-    for sym in ["^VIX3M", "VXMT", "^VXV"]:
-        try:
-            tk3 = yf.Ticker(sym)
-            v3m_hist = yf_history(tk3, "20y", "1d")
-            if v3m_hist is not None and not v3m_hist.empty:
-                result["vix3m"] = round(float(v3m_hist["Close"].iloc[-1]), 2)
-                print(f"  VIX3M ({sym}): {result['vix3m']}")
-                break
-            print(f"  VIX3M {sym}: no data")
-        except Exception as e:
-            print(f"  VIX3M {sym}: {e}")
+    v3m_hist = vix_index_history(["^VIX3M", "VXMT", "^VXV"], "20y", "1d")
+    if v3m_hist is not None and not v3m_hist.empty:
+        result["vix3m"] = round(float(v3m_hist["Close"].iloc[-1]), 2)
+        print(f"  VIX3M: {result['vix3m']}")
 
     # ── VIX9D ────────────────────────────────────────────────────
-    for sym in ["^VIX9D", "^VXST"]:
-        try:
-            tk9 = yf.Ticker(sym)
-            h9  = yf_history(tk9, "1mo", "1d")
-            if h9 is not None and not h9.empty:
-                result["vix9d"] = round(float(h9["Close"].iloc[-1]), 2)
-                print(f"  VIX9D ({sym}): {result['vix9d']}")
-                break
-            print(f"  VIX9D {sym}: no data")
-        except Exception as e:
-            print(f"  VIX9D {sym}: {e}")
+    h9 = vix_index_history(["^VIX9D", "^VXST"], "1mo", "1d")
+    if h9 is not None and not h9.empty:
+        result["vix9d"] = round(float(h9["Close"].iloc[-1]), 2)
+        print(f"  VIX9D: {result['vix9d']}")
 
     # ── Spread ───────────────────────────────────────────────────
     if result["vix"] and result["vix3m"]:
@@ -4171,12 +4225,12 @@ def fetch_market_indicators():
         vix_s = vix_hist[["Open", "High", "Low", "Close"]].copy()
         vix_s.index = pd.to_datetime(vix_s.index).normalize()
         vix_s = vix_s.rename(columns={"Open": "vix_open", "High": "vix_high", "Low": "vix_low", "Close": "vix_close"})
-        vix_s["vix"] = vix_s[["vix_open", "vix_high", "vix_close"]].max(axis=1)
+        vix_s["vix"] = vix_s["vix_close"]
         if v3m_hist is not None and not v3m_hist.empty:
             v3m_s = v3m_hist[["Open", "High", "Low", "Close"]].copy()
             v3m_s.index = pd.to_datetime(v3m_s.index).normalize()
             v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "High": "vix3m_high", "Low": "vix3m_low", "Close": "vix3m_close"})
-            v3m_s["vix3m"] = v3m_s[["vix3m_open", "vix3m_high", "vix3m_close"]].max(axis=1)
+            v3m_s["vix3m"] = v3m_s["vix3m_close"]
             merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna()
             if len(merged) < 10:
                 merged = pd.concat([vix_s, v3m_s], axis=1, join="outer", sort=False).ffill().dropna()
@@ -4227,11 +4281,11 @@ def fetch_market_indicators():
                 vix_s = vix_hist[["Open", "High", "Low", "Close"]].copy()
                 vix_s.index = pd.to_datetime(vix_s.index).normalize()
                 vix_s = vix_s.rename(columns={"Open": "vix_open", "High": "vix_high", "Low": "vix_low", "Close": "vix_close"})
-                vix_s["vix"] = vix_s[["vix_open", "vix_high", "vix_close"]].max(axis=1)
+                vix_s["vix"] = vix_s["vix_close"]
                 v3m_s = v3m_hist[["Open", "High", "Low", "Close"]].copy()
                 v3m_s.index = pd.to_datetime(v3m_s.index).normalize()
                 v3m_s = v3m_s.rename(columns={"Open": "vix3m_open", "High": "vix3m_high", "Low": "vix3m_low", "Close": "vix3m_close"})
-                v3m_s["vix3m"] = v3m_s[["vix3m_open", "vix3m_high", "vix3m_close"]].max(axis=1)
+                v3m_s["vix3m"] = v3m_s["vix3m_close"]
                 merged = pd.concat([vix_s, v3m_s], axis=1, join="inner", sort=False).dropna()
                 merged["spread"] = merged["vix3m"] - merged["vix"]
                 result["vix_history"] = [
