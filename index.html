@@ -4060,10 +4060,10 @@ function vixRatioRows() {
       const vixOpen = Number.isFinite(+r.vix_open) ? +r.vix_open : vix;
       const vix3mOpen = Number.isFinite(+r.vix3m_open) && +r.vix3m_open > 0 ? +r.vix3m_open : vix3m;
       const vixHigh = Number.isFinite(+r.vix_high) ? +r.vix_high : Math.max(vix, vixOpen);
-      const vix3mLow = Number.isFinite(+r.vix3m_low) && +r.vix3m_low > 0 ? +r.vix3m_low : Math.min(vix3m, vix3mOpen);
+      const vix3mHigh = Number.isFinite(+r.vix3m_high) && +r.vix3m_high > 0 ? +r.vix3m_high : Math.max(vix3m, vix3mOpen);
       const ratio = vix / vix3m;
       const ratioOpen = vixOpen / vix3mOpen;
-      const ratioIntraday = vixHigh / vix3mLow;
+      const ratioIntraday = vixHigh / vix3mHigh;
       const stressRatio = Math.max(ratio, ratioOpen, ratioIntraday);
       return {
         date: r.date,
@@ -4073,7 +4073,7 @@ function vixRatioRows() {
         vixOpen,
         vix3mOpen,
         vixHigh,
-        vix3mLow,
+        vix3mHigh,
         ratio,
         ratioOpen,
         ratioIntraday,
