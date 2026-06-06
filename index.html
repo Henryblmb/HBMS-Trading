@@ -2380,6 +2380,8 @@ canvas{background:#fff!important}
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Intraday High</div><div class="signal-bar-val" id="vixRatioIntradayVal" style="color:#1D9E75">—</div></div>
         <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Range Max</div><div class="signal-bar-val" id="vixRatioRangeMaxVal" style="color:#e05050">—</div></div>
+        <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">VIX</div><div class="signal-bar-val" id="vixRatioVix" style="color:#60a5fa">—</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">VIX3M</div><div class="signal-bar-val" id="vixRatioV3m" style="color:#a78bfa">—</div></div>
@@ -4232,6 +4234,12 @@ function drawVIXRatioChart(hoverIndex=null) {
   ctx.lineWidth = 1.35;
   ctx.stroke();
 
+  rows.filter(r => +r.stressRatio >= 1.2).forEach(r => {
+    const x = toX(r), y = toY(+r.stressRatio);
+    ctx.fillStyle = "#e05050";
+    ctx.beginPath(); ctx.arc(x, y, 2.8, 0, Math.PI * 2); ctx.fill();
+  });
+
   ctx.fillStyle = "#4a4a4a"; ctx.font = "8px sans-serif"; ctx.textAlign = "center";
   [0, .2, .4, .6, .8, 1].forEach(p => {
     const ms = domain.startMs + (domain.endMs - domain.startMs) * p;
@@ -4269,6 +4277,10 @@ function drawVIXRatioChart(hoverIndex=null) {
     const latestOpenRatio = latest ? +latest.ratioOpen : NaN;
     const latestIntradayRatio = latest ? +latest.ratioIntraday : NaN;
     const latestStressRatio = latest ? +latest.stressRatio : latestRatio;
+    const rangeMax = rows.reduce((best, row) => {
+      const v = +row.stressRatio;
+      return Number.isFinite(v) && (!best || v > best.value) ? { value: v, date: row.date } : best;
+    }, null);
     const latestSpread = latest ? (+latest.vix - +latest.vix3m) : NaN;
     const latestRegime = latestStressRatio >= 1 ? "Backwardation" : "Contango";
     const latestCol = latestStressRatio >= 1 ? "#e05050" : "#1D9E75";
@@ -4279,6 +4291,7 @@ function drawVIXRatioChart(hoverIndex=null) {
     set("vixRatioVal", Number.isFinite(latestRatio) ? latestRatio.toFixed(3) : "—", latestCol);
     set("vixRatioOpenVal", Number.isFinite(latestOpenRatio) ? latestOpenRatio.toFixed(3) : "—", latestOpenRatio >= 1 ? "#e05050" : "#1D9E75");
     set("vixRatioIntradayVal", Number.isFinite(latestIntradayRatio) ? latestIntradayRatio.toFixed(3) : "—", latestIntradayRatio >= 1 ? "#e05050" : "#1D9E75");
+    set("vixRatioRangeMaxVal", rangeMax ? rangeMax.value.toFixed(3) : "—", rangeMax && rangeMax.value >= 1.2 ? "#e05050" : "#1D9E75");
     set("vixRatioVix", latest ? latest.vix.toFixed(2) : "—", "#d8d8d8");
     set("vixRatioV3m", latest ? latest.vix3m.toFixed(2) : "—", "#d8d8d8");
     set("vixRatioSpread", Number.isFinite(latestSpread) ? (latestSpread >= 0 ? "+" : "") + latestSpread.toFixed(2) : "—", latestCol);
@@ -4290,8 +4303,10 @@ function drawVIXRatioChart(hoverIndex=null) {
     }
     const read = document.getElementById("vixRatioRead");
     if(read && latest) {
-      read.textContent = `${latest.date}: VIX/VIX3M opened at ${latestOpenRatio.toFixed(3)}, reached an intraday high ratio of ${latestIntradayRatio.toFixed(3)}, and closed at ${latestRatio.toFixed(3)}. The stress ratio uses the highest of intraday, open, and close.`;
+      read.textContent = `${latest.date}: VIX/VIX3M opened at ${latestOpenRatio.toFixed(3)}, reached an intraday high ratio of ${latestIntradayRatio.toFixed(3)}, and closed at ${latestRatio.toFixed(3)}. Visible range max: ${rangeMax ? `${rangeMax.value.toFixed(3)} on ${rangeMax.date}` : "—"}.`;
     }
+    const title = document.getElementById("vixRatioTitle");
+    if(title) title.textContent = `VIX/VIX3M Stress Ratio — max(Intraday, Open, Close) · range max ${rangeMax ? rangeMax.value.toFixed(3) : "—"}`;
     renderVIXRatioForwardStats(rows, domain);
   }
 
