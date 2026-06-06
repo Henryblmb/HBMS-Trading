@@ -2378,6 +2378,8 @@ canvas{background:#fff!important}
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">Open Ratio</div><div class="signal-bar-val" id="vixRatioOpenVal" style="color:#1D9E75">—</div></div>
         <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Intraday High</div><div class="signal-bar-val" id="vixRatioIntradayVal" style="color:#1D9E75">—</div></div>
+        <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">VIX</div><div class="signal-bar-val" id="vixRatioVix" style="color:#60a5fa">—</div></div>
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">VIX3M</div><div class="signal-bar-val" id="vixRatioV3m" style="color:#a78bfa">—</div></div>
@@ -4057,6 +4059,12 @@ function vixRatioRows() {
       const vix3m = +r.vix3m;
       const vixOpen = Number.isFinite(+r.vix_open) ? +r.vix_open : vix;
       const vix3mOpen = Number.isFinite(+r.vix3m_open) && +r.vix3m_open > 0 ? +r.vix3m_open : vix3m;
+      const vixHigh = Number.isFinite(+r.vix_high) ? +r.vix_high : Math.max(vix, vixOpen);
+      const vix3mLow = Number.isFinite(+r.vix3m_low) && +r.vix3m_low > 0 ? +r.vix3m_low : Math.min(vix3m, vix3mOpen);
+      const ratio = vix / vix3m;
+      const ratioOpen = vixOpen / vix3mOpen;
+      const ratioIntraday = vixHigh / vix3mLow;
+      const stressRatio = Math.max(ratio, ratioOpen, ratioIntraday);
       return {
         date: r.date,
         t: rowDateMs(r),
@@ -4064,8 +4072,12 @@ function vixRatioRows() {
         vix3m,
         vixOpen,
         vix3mOpen,
-        ratio: vix / vix3m,
-        ratioOpen: vixOpen / vix3mOpen
+        vixHigh,
+        vix3mLow,
+        ratio,
+        ratioOpen,
+        ratioIntraday,
+        stressRatio
       };
     });
   vixRatioRowsCache = { source, rows };
@@ -4117,7 +4129,7 @@ function vixRatioThresholdEvents(rows, side, threshold) {
   const events = [];
   let wasInside = false;
   rows.forEach(row => {
-    const stress = Math.max(+row.ratio, +row.ratioOpen);
+    const stress = +row.stressRatio;
     if(!Number.isFinite(stress)) return;
     const inside = side === "high" ? stress >= threshold : stress <= threshold;
     if(inside && !wasInside) events.push({ date: row.date, value: stress });
@@ -4169,7 +4181,7 @@ function drawVIXRatioChart(hoverIndex=null) {
     return;
   }
 
-  const ratios = rows.flatMap(r => [+r.ratio, +r.ratioOpen]).filter(Number.isFinite);
+  const ratios = rows.flatMap(r => [+r.ratio, +r.ratioOpen, +r.ratioIntraday, +r.stressRatio]).filter(Number.isFinite);
   const min = Math.min(0.55, Math.min(...ratios) * 0.96);
   const max = Math.max(1.45, Math.max(...ratios) * 1.04);
   const xSpan = domain.endMs - domain.startMs || 1;
@@ -4211,7 +4223,7 @@ function drawVIXRatioChart(hoverIndex=null) {
 
   ctx.beginPath();
   rows.forEach((row, i) => {
-    const stressRatio = Math.max(+row.ratio, +row.ratioOpen);
+    const stressRatio = +row.stressRatio;
     const x = toX(row), y = toY(stressRatio);
     if(i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
@@ -4229,11 +4241,11 @@ function drawVIXRatioChart(hoverIndex=null) {
 
   if(hoverIndex != null && rows[hoverIndex]) {
     const r = rows[hoverIndex];
-    const stressRatio = Math.max(+r.ratio, +r.ratioOpen);
+    const stressRatio = +r.stressRatio;
     const x = toX(r), y = toY(stressRatio);
     const col = stressRatio >= 1 ? "#e05050" : "#1D9E75";
     const dt = new Date(r.date + "T12:00:00");
-    const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · Stress ${stressRatio.toFixed(3)} · O ${(+r.ratioOpen).toFixed(3)} / C ${(+r.ratio).toFixed(3)}`;
+    const label = `${dt.toLocaleDateString("de-DE", { day:"2-digit", month:"short", year:"numeric" }).replace(".", "")} · Stress ${stressRatio.toFixed(3)} · I ${(+r.ratioIntraday).toFixed(3)} / O ${(+r.ratioOpen).toFixed(3)} / C ${(+r.ratio).toFixed(3)}`;
     ctx.strokeStyle = col; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + PH); ctx.stroke();
     ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
@@ -4255,27 +4267,30 @@ function drawVIXRatioChart(hoverIndex=null) {
     const latest = rawRows[rawRows.length - 1];
     const latestRatio = latest ? +latest.ratio : NaN;
     const latestOpenRatio = latest ? +latest.ratioOpen : NaN;
+    const latestIntradayRatio = latest ? +latest.ratioIntraday : NaN;
+    const latestStressRatio = latest ? +latest.stressRatio : latestRatio;
     const latestSpread = latest ? (+latest.vix - +latest.vix3m) : NaN;
-    const latestRegime = latestRatio >= 1 ? "Backwardation" : "Contango";
-    const latestCol = latestRatio >= 1 ? "#e05050" : "#1D9E75";
+    const latestRegime = latestStressRatio >= 1 ? "Backwardation" : "Contango";
+    const latestCol = latestStressRatio >= 1 ? "#e05050" : "#1D9E75";
     const set = (id, txt, color) => {
       const el = document.getElementById(id);
       if(el) { el.textContent = txt; if(color) el.style.color = color; }
     };
     set("vixRatioVal", Number.isFinite(latestRatio) ? latestRatio.toFixed(3) : "—", latestCol);
     set("vixRatioOpenVal", Number.isFinite(latestOpenRatio) ? latestOpenRatio.toFixed(3) : "—", latestOpenRatio >= 1 ? "#e05050" : "#1D9E75");
+    set("vixRatioIntradayVal", Number.isFinite(latestIntradayRatio) ? latestIntradayRatio.toFixed(3) : "—", latestIntradayRatio >= 1 ? "#e05050" : "#1D9E75");
     set("vixRatioVix", latest ? latest.vix.toFixed(2) : "—", "#d8d8d8");
     set("vixRatioV3m", latest ? latest.vix3m.toFixed(2) : "—", "#d8d8d8");
     set("vixRatioSpread", Number.isFinite(latestSpread) ? (latestSpread >= 0 ? "+" : "") + latestSpread.toFixed(2) : "—", latestCol);
     set("vixRatioRegime", latestRegime, latestCol);
     const pill = document.getElementById("vixRatioPill");
     if(pill) {
-      pill.className = latestRatio >= 1 ? "cg-pill active-bear" : "cg-pill active-bull";
-      pill.innerHTML = `<span class="cg-dot"></span>${latestRatio >= 1 ? "BACKWARDATION — FEAR REGIME" : "CONTANGO — CALM REGIME"}`;
+      pill.className = latestStressRatio >= 1 ? "cg-pill active-bear" : "cg-pill active-bull";
+      pill.innerHTML = `<span class="cg-dot"></span>${latestStressRatio >= 1 ? "BACKWARDATION — FEAR REGIME" : "CONTANGO — CALM REGIME"}`;
     }
     const read = document.getElementById("vixRatioRead");
     if(read && latest) {
-      read.textContent = `${latest.date}: VIX/VIX3M opened at ${latestOpenRatio.toFixed(3)} and closed at ${latestRatio.toFixed(3)}, so the curve is in ${latestRegime}. Above 1.0 means spot volatility trades over 3-month volatility.`;
+      read.textContent = `${latest.date}: VIX/VIX3M opened at ${latestOpenRatio.toFixed(3)}, reached an intraday high ratio of ${latestIntradayRatio.toFixed(3)}, and closed at ${latestRatio.toFixed(3)}. The stress ratio uses the highest of intraday, open, and close.`;
     }
     renderVIXRatioForwardStats(rows, domain);
   }
