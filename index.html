@@ -3517,10 +3517,10 @@ function fmtPct(v, digits=1) {
 
 let inflationMetric = "headline_mom";
 const INFLATION_METRICS = {
-  headline_mom: { label:"Headline CPI MoM", short:"Headline MoM", digits:2 },
-  core_mom: { label:"Core CPI MoM", short:"Core MoM", digits:2 },
-  headline_yoy: { label:"Headline CPI YoY", short:"Headline YoY", digits:1 },
-  core_yoy: { label:"Core CPI YoY", short:"Core YoY", digits:1 },
+  headline_mom: { label:"Headline CPI MoM", short:"Headline MoM", chartDigits:1, tableDigits:2 },
+  core_mom: { label:"Core CPI MoM", short:"Core MoM", chartDigits:1, tableDigits:2 },
+  headline_yoy: { label:"Headline CPI YoY", short:"Headline YoY", chartDigits:1, tableDigits:2 },
+  core_yoy: { label:"Core CPI YoY", short:"Core YoY", chartDigits:1, tableDigits:2 },
 };
 const INFLATION_TRACKER_DATA = [
   {
@@ -3582,10 +3582,10 @@ function drawInflationTracker() {
     if(col) el.style.color = col;
   };
   setTxt("inflMetricVal", meta.short);
-  setTxt("inflModelVal", latestMetric ? fmtInfl(latestMetric.model, meta.digits) : "—", "#5DCAA5");
-  setTxt("inflConsensusVal", latestMetric ? fmtInfl(latestMetric.consensus, meta.digits) : "—", "#EF9F27");
-  setTxt("inflActualVal", latestMetric ? fmtInfl(latestMetric.actual, meta.digits) : "—", "#d8d8d8");
-  setTxt("inflSpreadVal", Number.isFinite(spread) ? fmtInfl(spread, meta.digits, true) : "—", spread > 0 ? "#5DCAA5" : "#e05050");
+  setTxt("inflModelVal", latestMetric ? fmtInfl(latestMetric.model, meta.chartDigits) : "—", "#5DCAA5");
+  setTxt("inflConsensusVal", latestMetric ? fmtInfl(latestMetric.consensus, meta.chartDigits) : "—", "#EF9F27");
+  setTxt("inflActualVal", latestMetric ? fmtInfl(latestMetric.actual, meta.chartDigits) : "—", "#d8d8d8");
+  setTxt("inflSpreadVal", Number.isFinite(spread) ? fmtInfl(spread, meta.chartDigits, true) : "—", spread > 0 ? "#5DCAA5" : "#e05050");
   const title = document.getElementById("inflChartTitle");
   if(title) title.textContent = `${meta.label} — Monthly Reported, Model and Consensus`;
 
@@ -3646,7 +3646,7 @@ function drawInflationChart(rows, meta) {
     const v = minV + (maxV - minV) * i / 4;
     const y = yAt(v);
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
-    ctx.fillText(fmtInfl(v, meta.digits), pad.l - 8, y);
+    ctx.fillText(fmtInfl(v, meta.chartDigits), pad.l - 8, y);
   }
   ctx.strokeStyle = "rgba(255,255,255,.18)";
   ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
@@ -3669,7 +3669,7 @@ function drawInflationChart(rows, meta) {
       ctx.globalAlpha = 1;
     }
     pts.forEach(p => {
-      const label = `${s.label}: ${fmtInfl(p.v, meta.digits)}`;
+      const label = `${s.label}: ${fmtInfl(p.v, meta.chartDigits)}`;
       ctx.fillStyle = s.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, s.radius, 0, Math.PI*2); ctx.fill();
       labelItems.push({
@@ -3750,10 +3750,10 @@ function renderInflationTable(rows) {
         <tr>
           <td>${esc(r.month)}</td>
           <td>${esc(meta.short)}</td>
-          <td>${fmtInfl(m.actual, meta.digits)}</td>
-          <td class="pos">${fmtInfl(m.model, meta.digits)}</td>
-          <td>${fmtInfl(m.consensus, meta.digits)}</td>
-          <td>${Number.isFinite(modelErr) ? fmtInfl(modelErr, meta.digits, true) : "—"}</td>
+          <td>${fmtInfl(m.actual, meta.tableDigits)}</td>
+          <td class="pos">${fmtInfl(m.model, meta.tableDigits)}</td>
+          <td>${fmtInfl(m.consensus, meta.tableDigits)}</td>
+          <td>${Number.isFinite(modelErr) ? fmtInfl(modelErr, meta.tableDigits, true) : "—"}</td>
         </tr>`);
     });
   });
