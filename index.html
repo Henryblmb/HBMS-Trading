@@ -3079,11 +3079,11 @@ canvas{background:#fff!important}
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="inflChartTitle">CPI Forecast Tracker</span>
+          <span class="cg-chart-title" id="inflChartTitle">CPI Forecast Bridge</span>
           <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>June reported</span>
             <span><span class="cg-leg-line" style="background:#5DCAA5"></span>HB Model</span>
-            <span><span class="cg-leg-line" style="background:#EF9F27"></span>Consensus</span>
-            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Actual</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>July Consensus</span>
           </div>
         </div>
         <canvas id="inflationCanvas" style="width:100%;display:block"></canvas>
@@ -3577,7 +3577,7 @@ function drawInflationTracker() {
   setTxt("inflActualVal", latestMetric ? fmtInfl(latestMetric.actual, meta.digits) : "—", "#d8d8d8");
   setTxt("inflSpreadVal", Number.isFinite(spread) ? fmtInfl(spread, meta.digits, true) : "—", spread > 0 ? "#5DCAA5" : "#e05050");
   const title = document.getElementById("inflChartTitle");
-  if(title) title.textContent = `${meta.label} — HB Model vs July Consensus vs Actual`;
+  if(title) title.textContent = `${meta.label} — June Reported to July Expectation`;
 
   drawInflationChart(rows, meta);
   renderInflationTable(rows);
@@ -3594,20 +3594,16 @@ function drawInflationChart(rows, meta) {
   const pad = { l:54, r:24, t:28, b:44 };
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
-  const series = [
-    { key:"model", color:"#5DCAA5" },
-    { key:"consensus", color:"#EF9F27" },
-    { key:"actual", color:"#d8d8d8" },
-  ];
+  const latest = rows[rows.length - 1] || null;
+  const m = latest ? (latest[inflationMetric] || {}) : {};
+  const points = [
+    { key:"previous", label:"June reported", xIndex:0, value:m.previous, color:"#d8d8d8" },
+    { key:"model", label:"HB model", xIndex:1, value:m.model, color:"#5DCAA5" },
+    { key:"consensus", label:"July consensus", xIndex:1, value:m.consensus, color:"#EF9F27" },
+    { key:"actual", label:"July actual", xIndex:1, value:m.actual, color:"#d8d8d8" },
+  ].filter(p => p.value != null && Number.isFinite(Number(p.value))).map(p => ({ ...p, value:Number(p.value) }));
   const vals = [];
-  rows.forEach(r => {
-    const m = r[inflationMetric] || {};
-    series.forEach(s => {
-      const raw = m[s.key];
-      const v = Number(raw);
-      if(raw != null && Number.isFinite(v)) vals.push(v);
-    });
-  });
+  points.forEach(p => vals.push(p.value));
   if(!vals.length) {
     emptyCanvas("inflationCanvas", 360, "Inflation tracker data unavailable");
     return;
@@ -3618,7 +3614,7 @@ function drawInflationChart(rows, meta) {
   maxV += span * 0.35;
   if(minV === maxV) { minV -= 0.2; maxV += 0.2; }
 
-  const xAt = i => pad.l + (rows.length <= 1 ? plotW * 0.50 : (i / (rows.length - 1)) * plotW);
+  const xAt = i => pad.l + (i === 0 ? plotW * 0.25 : plotW * 0.75);
   const yAt = v => pad.t + (1 - (v - minV) / (maxV - minV)) * plotH;
 
   ctx.strokeStyle = "rgba(255,255,255,.08)";
@@ -3636,34 +3632,39 @@ function drawInflationChart(rows, meta) {
   ctx.strokeStyle = "rgba(255,255,255,.18)";
   ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
 
-  series.forEach(s => {
-    const pts = rows.map((r,i) => {
-      const m = r[inflationMetric] || {};
-      const raw = m[s.key];
-      const v = Number(raw);
-      return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v } : null;
-    }).filter(Boolean);
-    if(!pts.length) return;
-    ctx.strokeStyle = s.color;
-    ctx.lineWidth = 2;
+  const previous = points.find(p => p.key === "previous");
+  ["model", "consensus", "actual"].forEach(key => {
+    const p = points.find(x => x.key === key);
+    if(!previous || !p) return;
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = key === "actual" ? 2.4 : 2;
+    ctx.globalAlpha = key === "actual" ? 0.95 : 0.75;
     ctx.beginPath();
-    pts.forEach((p,i) => i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y));
+    ctx.moveTo(xAt(0), yAt(previous.value));
+    ctx.lineTo(xAt(1), yAt(p.value));
     ctx.stroke();
-    pts.forEach(p => {
-      ctx.fillStyle = s.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.80)";
-      ctx.textAlign = "left";
-      ctx.font = "10px sans-serif";
-      ctx.fillText(fmtInfl(p.v, meta.digits), p.x + 7, p.y - 8);
-    });
+    ctx.globalAlpha = 1;
   });
 
-  ctx.fillStyle = "rgba(255,255,255,.54)";
+  points.forEach(p => {
+    const x = xAt(p.xIndex);
+    const y = yAt(p.value);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(x, y, p.key === "previous" ? 4.5 : 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,.84)";
+    ctx.textAlign = p.xIndex === 0 ? "right" : "left";
+    ctx.textBaseline = "middle";
+    ctx.font = "10px sans-serif";
+    const dx = p.xIndex === 0 ? -8 : 8;
+    ctx.fillText(`${p.label}: ${fmtInfl(p.value, meta.digits)}`, x + dx, y);
+  });
+
+  ctx.fillStyle = "rgba(255,255,255,.58)";
   ctx.font = "10px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  rows.forEach((r,i) => ctx.fillText(r.period || r.release_date, xAt(i), H - pad.b + 12));
+  ctx.fillText("June reported", xAt(0), H - pad.b + 12);
+  ctx.fillText("July expectation / release", xAt(1), H - pad.b + 12);
 }
 
 function renderInflationTable(rows) {
