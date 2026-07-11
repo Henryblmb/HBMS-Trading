@@ -3051,7 +3051,7 @@ canvas{background:#fff!important}
     <div class="panel cg-page" id="tab-cg-inflation">
       <div class="cg-header">
         <div class="cg-title">Inflation Tracker</div>
-        <div class="cg-sub">Tracks HB model forecasts against economic-calendar consensus and actual CPI releases. Actual values stay open until the official release is available.</div>
+        <div class="cg-sub">Tracks HB model forecasts against the July economic-calendar consensus for the upcoming June CPI release. The previous column refers to the prior CPI print reported in June.</div>
       </div>
 
       <div class="signal-bar">
@@ -3059,11 +3059,11 @@ canvas{background:#fff!important}
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">HB Model</div><div class="signal-bar-val" id="inflModelVal">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Consensus</div><div class="signal-bar-val" id="inflConsensusVal">—</div></div>
+        <div><div class="signal-bar-label">July Consensus</div><div class="signal-bar-val" id="inflConsensusVal">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Actual</div><div class="signal-bar-val" id="inflActualVal">—</div></div>
+        <div><div class="signal-bar-label">July Actual</div><div class="signal-bar-val" id="inflActualVal">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Model vs Consensus</div><div class="signal-bar-val" id="inflSpreadVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div><div class="signal-bar-label">Model vs July Consensus</div><div class="signal-bar-val" id="inflSpreadVal" style="font-size:14px;padding-top:4px">—</div></div>
         <div class="signal-inline-controls">
           <div class="signal-inline-control">
             <label>Series</label>
@@ -3092,7 +3092,7 @@ canvas{background:#fff!important}
       <div class="cg-chart-box">
         <div class="cg-chart-header">
           <span class="cg-chart-title">CPI Release Log</span>
-          <div class="cg-chart-legend"><span>Model, consensus and actual by release</span></div>
+          <div class="cg-chart-legend"><span>HB model forecast, July consensus, July actual and prior June-reported print</span></div>
         </div>
         <div class="cap-eq-table-wrap">
           <table class="cap-eq-table" id="inflationTable"></table>
@@ -3100,9 +3100,9 @@ canvas{background:#fff!important}
       </div>
 
       <div class="interp-grid ret-forward-grid">
-        <div class="interp-cell info"><div class="interp-title info">Purpose</div><div class="interp-text">The tracker compares the model before the release against market consensus and the official CPI print once available.</div></div>
-        <div class="interp-cell neut"><div class="interp-title neut">Current Release</div><div class="interp-text">June CPI is scheduled for July 14, 2026. The current entry uses the last HB model forecast and economic-calendar estimates from the screenshot.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Update Logic</div><div class="interp-text">After the release, fill the Actual column. Over time the chart will show model accuracy, consensus error and directional bias across releases.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Purpose</div><div class="interp-text">The tracker separates what the HB model forecasted from what the economic calendar expected and what the CPI release actually prints.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Current Release</div><div class="interp-text">The July 14, 2026 release reports June CPI. The July Consensus column is the market/economic-calendar expectation for that release.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Previous Print</div><div class="interp-text">Previous refers to the prior CPI print that was reported in June, not to the new July release. After July 14, the July Actual column can be filled.</div></div>
       </div>
     </div>
 
@@ -3525,8 +3525,9 @@ const INFLATION_METRICS = {
 const INFLATION_TRACKER_DATA = [
   {
     release_date:"2026-07-14",
-    period:"Jun 2026",
-    source:"HB model / economic-calendar screenshot",
+    period:"Jun 2026 CPI",
+    source:"HB model forecast / July economic-calendar screenshot",
+    report_note:"July release reports June CPI; previous values are prior prints reported in June.",
     headline_mom:{ model:0.48, consensus:-0.10, previous:0.50, actual:null },
     core_mom:{ model:0.25, consensus:0.30, previous:0.20, actual:null },
     headline_yoy:{ model:4.20, consensus:null, previous:4.20, actual:null },
@@ -3576,7 +3577,7 @@ function drawInflationTracker() {
   setTxt("inflActualVal", latestMetric ? fmtInfl(latestMetric.actual, meta.digits) : "—", "#d8d8d8");
   setTxt("inflSpreadVal", Number.isFinite(spread) ? fmtInfl(spread, meta.digits, true) : "—", spread > 0 ? "#5DCAA5" : "#e05050");
   const title = document.getElementById("inflChartTitle");
-  if(title) title.textContent = `${meta.label} — Model vs Consensus vs Actual`;
+  if(title) title.textContent = `${meta.label} — HB Model vs July Consensus vs Actual`;
 
   drawInflationChart(rows, meta);
   renderInflationTable(rows);
@@ -3687,7 +3688,7 @@ function renderInflationTable(rows) {
     });
   });
   table.innerHTML = `
-    <thead><tr><th>Release</th><th>Period</th><th>Metric</th><th>HB Model</th><th>Consensus</th><th>Actual</th><th>Previous</th></tr></thead>
+    <thead><tr><th>Release</th><th>Period</th><th>Metric</th><th>HB Model Forecast</th><th>July Consensus</th><th>July Actual</th><th>Previous Print<br><span style="font-size:10px;font-weight:500;color:#9ca3af">reported in June</span></th></tr></thead>
     <tbody>${metricRows.join("")}</tbody>`;
 }
 
