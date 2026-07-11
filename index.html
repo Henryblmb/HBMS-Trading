@@ -3051,7 +3051,7 @@ canvas{background:#fff!important}
     <div class="panel cg-page" id="tab-cg-inflation">
       <div class="cg-header">
         <div class="cg-title">Inflation Tracker</div>
-        <div class="cg-sub">Tracks reported inflation, analyst consensus, and HB model forecasts by inflation month. June is filled with the prior reported values and the HB model forecast; July currently contains analyst consensus only.</div>
+        <div class="cg-sub">Tracks reported inflation, analyst consensus, and HB model forecasts by inflation month. July now includes the HB model forecast and analyst consensus; reported values will be added after the release.</div>
       </div>
 
       <div class="signal-bar">
@@ -3101,7 +3101,7 @@ canvas{background:#fff!important}
 
       <div class="interp-grid ret-forward-grid">
         <div class="interp-cell info"><div class="interp-title info">Purpose</div><div class="interp-text">The tracker separates what was reported, what analysts expected, and what the HB model forecasted for each inflation month.</div></div>
-        <div class="interp-cell neut"><div class="interp-title neut">Current Month</div><div class="interp-text">July currently has analyst consensus only: headline MoM -0.1% and core MoM +0.3%. The HB model forecast for July has not been added yet.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Current Month</div><div class="interp-text">July includes analyst consensus and the latest HB model forecast. Reported / actual values remain blank until the release prints.</div></div>
         <div class="interp-cell bull"><div class="interp-title bull">June Row</div><div class="interp-text">The HB model values you sent are stored under June, together with the reported/previous CPI values. They are not treated as July model forecasts.</div></div>
       </div>
     </div>
@@ -3537,11 +3537,11 @@ const INFLATION_TRACKER_DATA = [
     month:"July 2026",
     date:"2026-07-01",
     source:"Economic-calendar analyst consensus",
-    note:"July currently has analyst consensus only. The HB model forecast has not been added yet.",
-    headline_mom:{ actual:null, model:null, consensus:-0.10 },
-    core_mom:{ actual:null, model:null, consensus:0.30 },
-    headline_yoy:{ actual:null, model:null, consensus:null },
-    core_yoy:{ actual:null, model:null, consensus:null },
+    note:"July includes analyst consensus and the latest HB model forecast. Actual values will be added after the release.",
+    headline_mom:{ actual:null, model:-0.13, consensus:-0.10 },
+    core_mom:{ actual:null, model:0.21, consensus:0.30 },
+    headline_yoy:{ actual:null, model:3.77, consensus:null },
+    core_yoy:{ actual:null, model:2.80, consensus:null },
   },
 ];
 
