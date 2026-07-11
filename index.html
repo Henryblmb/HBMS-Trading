@@ -3605,9 +3605,9 @@ function drawInflationChart(rows, meta) {
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
   const series = [
-    { key:"actual", label:"Reported", color:"#d8d8d8", width:2.2, labelDy:-12 },
-    { key:"model", label:"HB model", color:"#5DCAA5", width:2.0, labelDy:8 },
-    { key:"consensus", label:"Consensus", color:"#EF9F27", width:2.0, labelDy:0 },
+    { key:"actual", label:"Reported", color:"#d8d8d8", width:2.2, labelDy:-14, xOffset:-8 },
+    { key:"model", label:"HB model", color:"#5DCAA5", width:2.0, labelDy:12, xOffset:-8 },
+    { key:"consensus", label:"Consensus", color:"#EF9F27", width:2.0, labelDy:-12, xOffset:8 },
   ];
   const vals = [];
   rows.forEach(r => {
@@ -3655,7 +3655,7 @@ function drawInflationChart(rows, meta) {
     const pts = rows.map((r,i) => {
       const raw = (r[inflationMetric] || {})[s.key];
       const v = Number(raw);
-      return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v, row:r } : null;
+      return raw != null && Number.isFinite(v) ? { x:xAt(i) + s.xOffset, y:yAt(v), v, row:r } : null;
     }).filter(Boolean);
     if(!pts.length) return;
     if(pts.length > 1) {
