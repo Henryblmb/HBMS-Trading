@@ -3051,7 +3051,7 @@ canvas{background:#fff!important}
     <div class="panel cg-page" id="tab-cg-inflation">
       <div class="cg-header">
         <div class="cg-title">Inflation Tracker</div>
-        <div class="cg-sub">Tracks HB model forecasts against the July economic-calendar consensus for the upcoming June CPI release. The previous column refers to the prior CPI print reported in June.</div>
+        <div class="cg-sub">Tracks reported inflation, analyst consensus, and HB model forecasts by inflation month. June is filled with the prior reported values and the HB model forecast; July currently contains analyst consensus only.</div>
       </div>
 
       <div class="signal-bar">
@@ -3059,11 +3059,11 @@ canvas{background:#fff!important}
         <div class="signal-bar-divider"></div>
         <div><div class="signal-bar-label">HB Model</div><div class="signal-bar-val" id="inflModelVal">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">July Consensus</div><div class="signal-bar-val" id="inflConsensusVal">—</div></div>
+        <div><div class="signal-bar-label">Analyst Consensus</div><div class="signal-bar-val" id="inflConsensusVal">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">July Actual</div><div class="signal-bar-val" id="inflActualVal">—</div></div>
+        <div><div class="signal-bar-label">Reported / Actual</div><div class="signal-bar-val" id="inflActualVal">—</div></div>
         <div class="signal-bar-divider"></div>
-        <div><div class="signal-bar-label">Model vs July Consensus</div><div class="signal-bar-val" id="inflSpreadVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div><div class="signal-bar-label">Model vs Consensus</div><div class="signal-bar-val" id="inflSpreadVal" style="font-size:14px;padding-top:4px">—</div></div>
         <div class="signal-inline-controls">
           <div class="signal-inline-control">
             <label>Series</label>
@@ -3079,11 +3079,11 @@ canvas{background:#fff!important}
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title" id="inflChartTitle">CPI Forecast Bridge</span>
+          <span class="cg-chart-title" id="inflChartTitle">CPI Monthly Forecast Tracker</span>
           <div class="cg-chart-legend">
-            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>June reported</span>
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Reported / Actual</span>
             <span><span class="cg-leg-line" style="background:#5DCAA5"></span>HB Model</span>
-            <span><span class="cg-leg-line" style="background:#EF9F27"></span>July Consensus</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>Analyst Consensus</span>
           </div>
         </div>
         <canvas id="inflationCanvas" style="width:100%;display:block"></canvas>
@@ -3091,8 +3091,8 @@ canvas{background:#fff!important}
 
       <div class="cg-chart-box">
         <div class="cg-chart-header">
-          <span class="cg-chart-title">CPI Release Log</span>
-          <div class="cg-chart-legend"><span>HB model forecast, July consensus, July actual and prior June-reported print</span></div>
+          <span class="cg-chart-title">CPI Monthly Log</span>
+          <div class="cg-chart-legend"><span>Reported inflation, HB model forecast, and analyst consensus by month</span></div>
         </div>
         <div class="cap-eq-table-wrap">
           <table class="cap-eq-table" id="inflationTable"></table>
@@ -3100,9 +3100,9 @@ canvas{background:#fff!important}
       </div>
 
       <div class="interp-grid ret-forward-grid">
-        <div class="interp-cell info"><div class="interp-title info">Purpose</div><div class="interp-text">The tracker separates what the HB model forecasted from what the economic calendar expected and what the CPI release actually prints.</div></div>
-        <div class="interp-cell neut"><div class="interp-title neut">Current Release</div><div class="interp-text">The July 14, 2026 release reports June CPI. The July Consensus column is the market/economic-calendar expectation for that release.</div></div>
-        <div class="interp-cell bull"><div class="interp-title bull">Previous Print</div><div class="interp-text">Previous refers to the prior CPI print that was reported in June, not to the new July release. After July 14, the July Actual column can be filled.</div></div>
+        <div class="interp-cell info"><div class="interp-title info">Purpose</div><div class="interp-text">The tracker separates what was reported, what analysts expected, and what the HB model forecasted for each inflation month.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Current Month</div><div class="interp-text">July currently has analyst consensus only: headline MoM -0.1% and core MoM +0.3%. The HB model forecast for July has not been added yet.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">June Row</div><div class="interp-text">The HB model values you sent are stored under June, together with the reported/previous CPI values. They are not treated as July model forecasts.</div></div>
       </div>
     </div>
 
@@ -3524,14 +3524,24 @@ const INFLATION_METRICS = {
 };
 const INFLATION_TRACKER_DATA = [
   {
-    release_date:"2026-07-14",
-    period:"Jun 2026 CPI",
-    source:"HB model forecast / July economic-calendar screenshot",
-    report_note:"July release reports June CPI; previous values are prior prints reported in June.",
-    headline_mom:{ model:0.48, consensus:-0.10, previous:0.50, actual:null },
-    core_mom:{ model:0.25, consensus:0.30, previous:0.20, actual:null },
-    headline_yoy:{ model:4.20, consensus:null, previous:4.20, actual:null },
-    core_yoy:{ model:2.85, consensus:null, previous:null, actual:null },
+    month:"June 2026",
+    date:"2026-06-01",
+    source:"Prior reported CPI values and HB model forecast",
+    note:"June contains the reported/previous CPI values plus the HB model forecast sent earlier.",
+    headline_mom:{ actual:0.50, model:0.48, consensus:null },
+    core_mom:{ actual:0.20, model:0.25, consensus:null },
+    headline_yoy:{ actual:4.20, model:4.20, consensus:null },
+    core_yoy:{ actual:null, model:2.85, consensus:null },
+  },
+  {
+    month:"July 2026",
+    date:"2026-07-01",
+    source:"Economic-calendar analyst consensus",
+    note:"July currently has analyst consensus only. The HB model forecast has not been added yet.",
+    headline_mom:{ actual:null, model:null, consensus:-0.10 },
+    core_mom:{ actual:null, model:null, consensus:0.30 },
+    headline_yoy:{ actual:null, model:null, consensus:null },
+    core_yoy:{ actual:null, model:null, consensus:null },
   },
 ];
 
@@ -3560,7 +3570,7 @@ function setInflationMetric(metric) {
 
 function drawInflationTracker() {
   const meta = INFLATION_METRICS[inflationMetric] || INFLATION_METRICS.headline_mom;
-  const rows = INFLATION_TRACKER_DATA.slice().sort((a,b)=>String(a.release_date).localeCompare(String(b.release_date)));
+  const rows = INFLATION_TRACKER_DATA.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   const latest = rows[rows.length - 1] || null;
   const latestMetric = latest ? latest[inflationMetric] : null;
   const spread = latestMetric && Number.isFinite(latestMetric.model) && Number.isFinite(latestMetric.consensus) ? latestMetric.model - latestMetric.consensus : NaN;
@@ -3577,7 +3587,7 @@ function drawInflationTracker() {
   setTxt("inflActualVal", latestMetric ? fmtInfl(latestMetric.actual, meta.digits) : "—", "#d8d8d8");
   setTxt("inflSpreadVal", Number.isFinite(spread) ? fmtInfl(spread, meta.digits, true) : "—", spread > 0 ? "#5DCAA5" : "#e05050");
   const title = document.getElementById("inflChartTitle");
-  if(title) title.textContent = `${meta.label} — June Reported to July Expectation`;
+  if(title) title.textContent = `${meta.label} — Monthly Reported, Model and Consensus`;
 
   drawInflationChart(rows, meta);
   renderInflationTable(rows);
@@ -3594,16 +3604,20 @@ function drawInflationChart(rows, meta) {
   const pad = { l:54, r:24, t:28, b:44 };
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
-  const latest = rows[rows.length - 1] || null;
-  const m = latest ? (latest[inflationMetric] || {}) : {};
-  const points = [
-    { key:"previous", label:"June reported", xIndex:0, value:m.previous, color:"#d8d8d8" },
-    { key:"model", label:"HB model", xIndex:1, value:m.model, color:"#5DCAA5" },
-    { key:"consensus", label:"July consensus", xIndex:1, value:m.consensus, color:"#EF9F27" },
-    { key:"actual", label:"July actual", xIndex:1, value:m.actual, color:"#d8d8d8" },
-  ].filter(p => p.value != null && Number.isFinite(Number(p.value))).map(p => ({ ...p, value:Number(p.value) }));
+  const series = [
+    { key:"actual", label:"Reported", color:"#d8d8d8", width:2.2, labelDy:-12 },
+    { key:"model", label:"HB model", color:"#5DCAA5", width:2.0, labelDy:8 },
+    { key:"consensus", label:"Consensus", color:"#EF9F27", width:2.0, labelDy:0 },
+  ];
   const vals = [];
-  points.forEach(p => vals.push(p.value));
+  rows.forEach(r => {
+    const m = r[inflationMetric] || {};
+    series.forEach(s => {
+      const raw = m[s.key];
+      const v = Number(raw);
+      if(raw != null && Number.isFinite(v)) vals.push(v);
+    });
+  });
   if(!vals.length) {
     emptyCanvas("inflationCanvas", 360, "Inflation tracker data unavailable");
     return;
@@ -3614,7 +3628,7 @@ function drawInflationChart(rows, meta) {
   maxV += span * 0.35;
   if(minV === maxV) { minV -= 0.2; maxV += 0.2; }
 
-  const xAt = i => pad.l + (i === 0 ? plotW * 0.25 : plotW * 0.75);
+  const xAt = i => pad.l + (rows.length <= 1 ? plotW * 0.5 : (i / (rows.length - 1)) * plotW);
   const yAt = v => pad.t + (1 - (v - minV) / (maxV - minV)) * plotH;
 
   ctx.strokeStyle = "rgba(255,255,255,.08)";
@@ -3632,39 +3646,61 @@ function drawInflationChart(rows, meta) {
   ctx.strokeStyle = "rgba(255,255,255,.18)";
   ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
 
-  const previous = points.find(p => p.key === "previous");
-  ["model", "consensus", "actual"].forEach(key => {
-    const p = points.find(x => x.key === key);
-    if(!previous || !p) return;
-    ctx.strokeStyle = p.color;
-    ctx.lineWidth = key === "actual" ? 2.4 : 2;
-    ctx.globalAlpha = key === "actual" ? 0.95 : 0.75;
+  const actualPts = rows.map((r,i) => {
+    const raw = (r[inflationMetric] || {}).actual;
+    const v = Number(raw);
+    return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v, row:r } : null;
+  }).filter(Boolean);
+  const consensusPts = rows.map((r,i) => {
+    const raw = (r[inflationMetric] || {}).consensus;
+    const v = Number(raw);
+    return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v, row:r } : null;
+  }).filter(Boolean);
+  if(actualPts.length && consensusPts.length) {
+    const from = actualPts[actualPts.length - 1];
+    const to = consensusPts[0];
+    ctx.strokeStyle = "#EF9F27";
+    ctx.lineWidth = 1.8;
+    ctx.globalAlpha = 0.55;
     ctx.beginPath();
-    ctx.moveTo(xAt(0), yAt(previous.value));
-    ctx.lineTo(xAt(1), yAt(p.value));
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
     ctx.stroke();
     ctx.globalAlpha = 1;
-  });
+  }
 
-  points.forEach(p => {
-    const x = xAt(p.xIndex);
-    const y = yAt(p.value);
-    ctx.fillStyle = p.color;
-    ctx.beginPath(); ctx.arc(x, y, p.key === "previous" ? 4.5 : 5, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = "rgba(255,255,255,.84)";
-    ctx.textAlign = p.xIndex === 0 ? "right" : "left";
-    ctx.textBaseline = "middle";
-    ctx.font = "10px sans-serif";
-    const dx = p.xIndex === 0 ? -8 : 8;
-    ctx.fillText(`${p.label}: ${fmtInfl(p.value, meta.digits)}`, x + dx, y);
+  series.forEach(s => {
+    const pts = rows.map((r,i) => {
+      const raw = (r[inflationMetric] || {})[s.key];
+      const v = Number(raw);
+      return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v, row:r } : null;
+    }).filter(Boolean);
+    if(!pts.length) return;
+    if(pts.length > 1) {
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.width;
+      ctx.globalAlpha = s.key === "actual" ? 0.9 : 0.8;
+      ctx.beginPath();
+      pts.forEach((p,i) => i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y));
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    pts.forEach(p => {
+      ctx.fillStyle = s.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.84)";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.font = "10px sans-serif";
+      ctx.fillText(`${s.label}: ${fmtInfl(p.v, meta.digits)}`, p.x + 8, p.y + s.labelDy);
+    });
   });
 
   ctx.fillStyle = "rgba(255,255,255,.58)";
   ctx.font = "10px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillText("June reported", xAt(0), H - pad.b + 12);
-  ctx.fillText("July expectation / release", xAt(1), H - pad.b + 12);
+  rows.forEach((r,i) => ctx.fillText(r.month || r.date, xAt(i), H - pad.b + 12));
 }
 
 function renderInflationTable(rows) {
@@ -3676,20 +3712,20 @@ function renderInflationTable(rows) {
     ["headline_mom","core_mom","headline_yoy","core_yoy"].forEach(key => {
       const meta = INFLATION_METRICS[key];
       const m = r[key] || {};
+      const modelErr = Number.isFinite(m.model) && Number.isFinite(m.actual) ? m.model - m.actual : NaN;
       metricRows.push(`
         <tr>
-          <td>${esc(r.release_date)}</td>
-          <td>${esc(r.period)}</td>
+          <td>${esc(r.month)}</td>
           <td>${esc(meta.short)}</td>
+          <td>${fmtInfl(m.actual, meta.digits)}</td>
           <td class="pos">${fmtInfl(m.model, meta.digits)}</td>
           <td>${fmtInfl(m.consensus, meta.digits)}</td>
-          <td>${fmtInfl(m.actual, meta.digits)}</td>
-          <td>${fmtInfl(m.previous, meta.digits)}</td>
+          <td>${Number.isFinite(modelErr) ? fmtInfl(modelErr, meta.digits, true) : "—"}</td>
         </tr>`);
     });
   });
   table.innerHTML = `
-    <thead><tr><th>Release</th><th>Period</th><th>Metric</th><th>HB Model Forecast</th><th>July Consensus</th><th>July Actual</th><th>Previous Print<br><span style="font-size:10px;font-weight:500;color:#9ca3af">reported in June</span></th></tr></thead>
+    <thead><tr><th>Month</th><th>Metric</th><th>Reported / Actual</th><th>HB Model Forecast</th><th>Analyst Consensus</th><th>Model Error</th></tr></thead>
     <tbody>${metricRows.join("")}</tbody>`;
 }
 
