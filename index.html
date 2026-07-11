@@ -3601,7 +3601,7 @@ function drawInflationChart(rows, meta) {
   ctx.fillStyle = "#151515";
   ctx.fillRect(0,0,W,H);
 
-  const pad = { l:54, r:24, t:28, b:44 };
+  const pad = { l:58, r:58, t:28, b:44 };
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
   const series = [
@@ -3629,10 +3629,10 @@ function drawInflationChart(rows, meta) {
   if(minV === maxV) { minV -= 0.2; maxV += 0.2; }
 
   const xAt = i => {
-    if(rows.length <= 1) return pad.l + plotW * 0.5;
-    const inner = 0.62;
-    const left = (1 - inner) / 2;
-    return pad.l + (left + (i / (rows.length - 1)) * inner) * plotW;
+    if(rows.length <= 1) return W * 0.50;
+    const start = W * 0.24;
+    const end = W * 0.68;
+    return start + (i / (rows.length - 1)) * (end - start);
   };
   const yAt = v => pad.t + (1 - (v - minV) / (maxV - minV)) * plotH;
 
@@ -3668,13 +3668,25 @@ function drawInflationChart(rows, meta) {
       ctx.globalAlpha = 1;
     }
     pts.forEach(p => {
+      const label = `${s.label}: ${fmtInfl(p.v, meta.digits)}`;
       ctx.fillStyle = s.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,.84)";
-      ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.font = "10px sans-serif";
-      ctx.fillText(`${s.label}: ${fmtInfl(p.v, meta.digits)}`, p.x + 8, p.y + s.labelDy);
+      const labelW = ctx.measureText(label).width;
+      let tx = p.x + 8;
+      let align = "left";
+      if(tx + labelW > W - 16) {
+        tx = p.x - 8;
+        align = "right";
+      }
+      if(align === "right" && tx - labelW < 16) {
+        tx = Math.max(16, Math.min(W - 16 - labelW, p.x + 8));
+        align = "left";
+      }
+      ctx.textAlign = align;
+      ctx.fillText(label, tx, p.y + s.labelDy);
     });
   });
 
