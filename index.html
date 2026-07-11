@@ -3605,9 +3605,9 @@ function drawInflationChart(rows, meta) {
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
   const series = [
-    { key:"actual", label:"Reported", color:"#d8d8d8", width:1.35, radius:3.4, labelDy:-18, xOffset:-7 },
-    { key:"model", label:"HB model", color:"#5DCAA5", width:1.25, radius:3.4, labelDy:20, xOffset:-7 },
-    { key:"consensus", label:"Consensus", color:"#EF9F27", width:1.25, radius:3.4, labelDy:-18, xOffset:7 },
+    { key:"actual", label:"Reported", color:"#d8d8d8", width:1.35, radius:3.4, labelDy:-24, xOffset:-7, labelX:16 },
+    { key:"model", label:"HB model", color:"#5DCAA5", width:1.25, radius:3.4, labelDy:24, xOffset:-7, labelX:16 },
+    { key:"consensus", label:"Consensus", color:"#EF9F27", width:1.25, radius:3.4, labelDy:-24, xOffset:7, labelX:18 },
   ];
   const vals = [];
   rows.forEach(r => {
@@ -3651,11 +3651,12 @@ function drawInflationChart(rows, meta) {
   ctx.strokeStyle = "rgba(255,255,255,.18)";
   ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
 
+  const labelItems = [];
   series.forEach(s => {
     const pts = rows.map((r,i) => {
       const raw = (r[inflationMetric] || {})[s.key];
       const v = Number(raw);
-      return raw != null && Number.isFinite(v) ? { x:xAt(i) + s.xOffset, y:yAt(v), v, row:r } : null;
+      return raw != null && Number.isFinite(v) ? { x:xAt(i) + s.xOffset, y:yAt(v), v, row:r, monthIndex:i, series:s } : null;
     }).filter(Boolean);
     if(!pts.length) return;
     if(pts.length > 1) {
@@ -3671,30 +3672,61 @@ function drawInflationChart(rows, meta) {
       const label = `${s.label}: ${fmtInfl(p.v, meta.digits)}`;
       ctx.fillStyle = s.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, s.radius, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.82)";
-      ctx.textBaseline = "middle";
-      ctx.font = "9.5px sans-serif";
-      const labelW = ctx.measureText(label).width;
-      const monthIndex = rows.indexOf(p.row);
-      const preferRight = monthIndex <= 0;
-      let tx = preferRight ? p.x + 12 : p.x + 14;
-      let align = preferRight ? "left" : "left";
-      if(tx + labelW > W - 18) { tx = p.x - 12; align = "right"; }
-      if(tx - labelW < 18 && align === "right") { tx = p.x + 12; align = "left"; }
-      const labelY = p.y + s.labelDy;
+      labelItems.push({
+        label,
+        color:s.color,
+        pointX:p.x,
+        pointY:p.y,
+        monthIndex:p.monthIndex,
+        targetY:p.y + s.labelDy,
+        labelX:s.labelX,
+      });
+    });
+  });
+
+  const placeLabels = items => {
+    const minGap = 18;
+    const minY = pad.t + 12;
+    const maxY = H - pad.b - 12;
+    items.sort((a,b) => a.targetY - b.targetY);
+    items.forEach((it, i) => {
+      let y = Math.max(minY, Math.min(maxY, it.targetY));
+      if(i > 0 && y - items[i-1].labelY < minGap) y = items[i-1].labelY + minGap;
+      it.labelY = y;
+    });
+    for(let i=items.length-1;i>=0;i--) {
+      if(items[i].labelY > maxY) items[i].labelY = maxY;
+      if(i < items.length-1 && items[i+1].labelY - items[i].labelY < minGap) items[i].labelY = items[i+1].labelY - minGap;
+      if(items[i].labelY < minY) items[i].labelY = minY;
+    }
+  };
+
+  const leftLabels = labelItems.filter(it => it.monthIndex === 0);
+  const rightLabels = labelItems.filter(it => it.monthIndex !== 0);
+  placeLabels(leftLabels);
+  placeLabels(rightLabels);
+
+  ctx.font = "9.5px sans-serif";
+  ctx.textBaseline = "middle";
+  [...leftLabels, ...rightLabels].forEach(it => {
+      const labelW = ctx.measureText(it.label).width;
+      let tx = it.pointX + it.labelX;
+      let align = "left";
+      if(tx + labelW > W - 18) { tx = it.pointX - it.labelX; align = "right"; }
+      if(align === "right" && tx - labelW < 18) { tx = Math.max(18, Math.min(W - 18 - labelW, it.pointX + it.labelX)); align = "left"; }
       const lineEndX = align === "left" ? tx - 4 : tx + 4;
       ctx.save();
-      ctx.strokeStyle = s.color;
-      ctx.globalAlpha = 0.42;
+      ctx.strokeStyle = it.color;
+      ctx.globalAlpha = 0.38;
       ctx.lineWidth = 0.85;
       ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(lineEndX, labelY);
+      ctx.moveTo(it.pointX, it.pointY);
+      ctx.lineTo(lineEndX, it.labelY);
       ctx.stroke();
       ctx.restore();
+      ctx.fillStyle = "rgba(255,255,255,.82)";
       ctx.textAlign = align;
-      ctx.fillText(label, tx, labelY);
-    });
+      ctx.fillText(it.label, tx, it.labelY);
   });
 
   ctx.fillStyle = "rgba(255,255,255,.58)";
