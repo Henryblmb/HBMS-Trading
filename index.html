@@ -3605,9 +3605,9 @@ function drawInflationChart(rows, meta) {
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
   const series = [
-    { key:"actual", label:"Reported", color:"#d8d8d8", width:2.2, labelDy:-14, xOffset:-8 },
-    { key:"model", label:"HB model", color:"#5DCAA5", width:2.0, labelDy:12, xOffset:-8 },
-    { key:"consensus", label:"Consensus", color:"#EF9F27", width:2.0, labelDy:-12, xOffset:8 },
+    { key:"actual", label:"Reported", color:"#d8d8d8", width:1.35, radius:3.4, labelDy:-18, xOffset:-7 },
+    { key:"model", label:"HB model", color:"#5DCAA5", width:1.25, radius:3.4, labelDy:20, xOffset:-7 },
+    { key:"consensus", label:"Consensus", color:"#EF9F27", width:1.25, radius:3.4, labelDy:-18, xOffset:7 },
   ];
   const vals = [];
   rows.forEach(r => {
@@ -3661,7 +3661,7 @@ function drawInflationChart(rows, meta) {
     if(pts.length > 1) {
       ctx.strokeStyle = s.color;
       ctx.lineWidth = s.width;
-      ctx.globalAlpha = s.key === "actual" ? 0.9 : 0.8;
+      ctx.globalAlpha = s.key === "actual" ? 0.78 : 0.68;
       ctx.beginPath();
       pts.forEach((p,i) => i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y));
       ctx.stroke();
@@ -3670,21 +3670,17 @@ function drawInflationChart(rows, meta) {
     pts.forEach(p => {
       const label = `${s.label}: ${fmtInfl(p.v, meta.digits)}`;
       ctx.fillStyle = s.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.84)";
+      ctx.beginPath(); ctx.arc(p.x, p.y, s.radius, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.82)";
       ctx.textBaseline = "middle";
-      ctx.font = "10px sans-serif";
+      ctx.font = "9.5px sans-serif";
       const labelW = ctx.measureText(label).width;
-      let tx = p.x + 8;
-      let align = "left";
-      if(tx + labelW > W - 16) {
-        tx = p.x - 8;
-        align = "right";
-      }
-      if(align === "right" && tx - labelW < 16) {
-        tx = Math.max(16, Math.min(W - 16 - labelW, p.x + 8));
-        align = "left";
-      }
+      const monthIndex = rows.indexOf(p.row);
+      const preferRight = monthIndex <= 0;
+      let tx = preferRight ? p.x + 12 : p.x + 14;
+      let align = preferRight ? "left" : "left";
+      if(tx + labelW > W - 18) { tx = p.x - 12; align = "right"; }
+      if(tx - labelW < 18 && align === "right") { tx = p.x + 12; align = "left"; }
       ctx.textAlign = align;
       ctx.fillText(label, tx, p.y + s.labelDy);
     });
