@@ -3681,8 +3681,19 @@ function drawInflationChart(rows, meta) {
       let align = preferRight ? "left" : "left";
       if(tx + labelW > W - 18) { tx = p.x - 12; align = "right"; }
       if(tx - labelW < 18 && align === "right") { tx = p.x + 12; align = "left"; }
+      const labelY = p.y + s.labelDy;
+      const lineEndX = align === "left" ? tx - 4 : tx + 4;
+      ctx.save();
+      ctx.strokeStyle = s.color;
+      ctx.globalAlpha = 0.42;
+      ctx.lineWidth = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(lineEndX, labelY);
+      ctx.stroke();
+      ctx.restore();
       ctx.textAlign = align;
-      ctx.fillText(label, tx, p.y + s.labelDy);
+      ctx.fillText(label, tx, labelY);
     });
   });
 
