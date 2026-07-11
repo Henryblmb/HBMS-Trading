@@ -3628,7 +3628,12 @@ function drawInflationChart(rows, meta) {
   maxV += span * 0.35;
   if(minV === maxV) { minV -= 0.2; maxV += 0.2; }
 
-  const xAt = i => pad.l + (rows.length <= 1 ? plotW * 0.5 : (i / (rows.length - 1)) * plotW);
+  const xAt = i => {
+    if(rows.length <= 1) return pad.l + plotW * 0.5;
+    const inner = 0.62;
+    const left = (1 - inner) / 2;
+    return pad.l + (left + (i / (rows.length - 1)) * inner) * plotW;
+  };
   const yAt = v => pad.t + (1 - (v - minV) / (maxV - minV)) * plotH;
 
   ctx.strokeStyle = "rgba(255,255,255,.08)";
@@ -3645,29 +3650,6 @@ function drawInflationChart(rows, meta) {
   }
   ctx.strokeStyle = "rgba(255,255,255,.18)";
   ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
-
-  const actualPts = rows.map((r,i) => {
-    const raw = (r[inflationMetric] || {}).actual;
-    const v = Number(raw);
-    return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v, row:r } : null;
-  }).filter(Boolean);
-  const consensusPts = rows.map((r,i) => {
-    const raw = (r[inflationMetric] || {}).consensus;
-    const v = Number(raw);
-    return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v, row:r } : null;
-  }).filter(Boolean);
-  if(actualPts.length && consensusPts.length) {
-    const from = actualPts[actualPts.length - 1];
-    const to = consensusPts[0];
-    ctx.strokeStyle = "#EF9F27";
-    ctx.lineWidth = 1.8;
-    ctx.globalAlpha = 0.55;
-    ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
-    ctx.lineTo(to.x, to.y);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
 
   series.forEach(s => {
     const pts = rows.map((r,i) => {
