@@ -970,6 +970,11 @@ canvas{background:#fff!important}
       <div class="nav-item sub" onclick="showTab('cg-peratio',this)">P/E Ratio</div>
     </div>
 
+    <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Inflation</span><span class="nav-folder-arrow">›</span></div>
+    <div class="nav-group-content">
+      <div class="nav-item sub" onclick="showTab('cg-inflation',this)">CPI Tracker</div>
+    </div>
+
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Term Structure</span><span class="nav-folder-arrow">›</span></div>
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-goldsilver',this)">Gold/Silver Ratio</div>
@@ -3042,6 +3047,65 @@ canvas{background:#fff!important}
       </div>
     </div>
 
+    <!-- INFLATION TRACKER -->
+    <div class="panel cg-page" id="tab-cg-inflation">
+      <div class="cg-header">
+        <div class="cg-title">Inflation Tracker</div>
+        <div class="cg-sub">Tracks HB model forecasts against economic-calendar consensus and actual CPI releases. Actual values stay open until the official release is available.</div>
+      </div>
+
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Metric</div><div class="signal-bar-val" id="inflMetricVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">HB Model</div><div class="signal-bar-val" id="inflModelVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Consensus</div><div class="signal-bar-val" id="inflConsensusVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Actual</div><div class="signal-bar-val" id="inflActualVal">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Model vs Consensus</div><div class="signal-bar-val" id="inflSpreadVal" style="font-size:14px;padding-top:4px">—</div></div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control">
+            <label>Series</label>
+            <div class="ma-sigma-pick">
+              <button id="inflBtnHeadlineMom" class="active" onclick="setInflationMetric('headline_mom')">Headline MoM</button>
+              <button id="inflBtnCoreMom" onclick="setInflationMetric('core_mom')">Core MoM</button>
+              <button id="inflBtnHeadlineYoy" onclick="setInflationMetric('headline_yoy')">Headline YoY</button>
+              <button id="inflBtnCoreYoy" onclick="setInflationMetric('core_yoy')">Core YoY</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title" id="inflChartTitle">CPI Forecast Tracker</span>
+          <div class="cg-chart-legend">
+            <span><span class="cg-leg-line" style="background:#5DCAA5"></span>HB Model</span>
+            <span><span class="cg-leg-line" style="background:#EF9F27"></span>Consensus</span>
+            <span><span class="cg-leg-line" style="background:#d8d8d8"></span>Actual</span>
+          </div>
+        </div>
+        <canvas id="inflationCanvas" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="cg-chart-box">
+        <div class="cg-chart-header">
+          <span class="cg-chart-title">CPI Release Log</span>
+          <div class="cg-chart-legend"><span>Model, consensus and actual by release</span></div>
+        </div>
+        <div class="cap-eq-table-wrap">
+          <table class="cap-eq-table" id="inflationTable"></table>
+        </div>
+      </div>
+
+      <div class="interp-grid ret-forward-grid">
+        <div class="interp-cell info"><div class="interp-title info">Purpose</div><div class="interp-text">The tracker compares the model before the release against market consensus and the official CPI print once available.</div></div>
+        <div class="interp-cell neut"><div class="interp-title neut">Current Release</div><div class="interp-text">June CPI is scheduled for July 14, 2026. The current entry uses the last HB model forecast and economic-calendar estimates from the screenshot.</div></div>
+        <div class="interp-cell bull"><div class="interp-title bull">Update Logic</div><div class="interp-text">After the release, fill the Actual column. Over time the chart will show model accuracy, consensus error and directional bias across releases.</div></div>
+      </div>
+    </div>
+
     <!-- OIL TERM CURVE -->
     <div class="panel cg-page" id="tab-cg-oil">
       <div class="cg-header">
@@ -3333,6 +3397,7 @@ function showTab(id, el) {
   if(id === "cg-vixrv") setTimeout(drawVIXRealizedVol, 60);
   if(id === "cg-vixspike") setTimeout(drawVIXSpikeModel, 60);
   if(id === "cg-vixsame") setTimeout(drawVIXSameDirectionStreak, 60);
+  if(id === "cg-inflation") setTimeout(drawInflationTracker, 60);
 }
 
 // ═══════════════════════════════════════════════
@@ -3375,6 +3440,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
     if(activePanel && activePanel.id === "tab-cg-vixspike") drawVIXSpikeModel();
     if(activePanel && activePanel.id === "tab-cg-vixsame") drawVIXSameDirectionStreak();
+    if(activePanel && activePanel.id === "tab-cg-inflation") drawInflationTracker();
     if(activePanel && activePanel.id === "tab-cg-forwardpe") drawForwardPEChart();
     if(activePanel && activePanel.id === "tab-cg-peratio") drawPERatioChart();
     if(activePanel && activePanel.id === "tab-cg-vixratio") drawVIXRatioChart();
@@ -3447,6 +3513,182 @@ function seasonEscape(s) {
 function fmtPct(v, digits=1) {
   if(!Number.isFinite(v)) return "—";
   return (v >= 0 ? "+" : "") + v.toFixed(digits) + "%";
+}
+
+let inflationMetric = "headline_mom";
+const INFLATION_METRICS = {
+  headline_mom: { label:"Headline CPI MoM", short:"Headline MoM", digits:2 },
+  core_mom: { label:"Core CPI MoM", short:"Core MoM", digits:2 },
+  headline_yoy: { label:"Headline CPI YoY", short:"Headline YoY", digits:1 },
+  core_yoy: { label:"Core CPI YoY", short:"Core YoY", digits:1 },
+};
+const INFLATION_TRACKER_DATA = [
+  {
+    release_date:"2026-07-14",
+    period:"Jun 2026",
+    source:"HB model / economic-calendar screenshot",
+    headline_mom:{ model:0.48, consensus:-0.10, previous:0.50, actual:null },
+    core_mom:{ model:0.25, consensus:0.30, previous:0.20, actual:null },
+    headline_yoy:{ model:4.20, consensus:null, previous:4.20, actual:null },
+    core_yoy:{ model:2.85, consensus:null, previous:null, actual:null },
+  },
+];
+
+function fmtInfl(v, digits=2, forceSign=false) {
+  if(!Number.isFinite(v)) return "—";
+  const sign = forceSign && v > 0 ? "+" : "";
+  return sign + v.toFixed(digits) + "%";
+}
+
+function setInflationMetric(metric) {
+  inflationMetric = metric;
+  ["HeadlineMom","CoreMom","HeadlineYoy","CoreYoy"].forEach(k => {
+    const el = document.getElementById("inflBtn" + k);
+    if(el) el.classList.remove("active");
+  });
+  const btnMap = {
+    headline_mom:"inflBtnHeadlineMom",
+    core_mom:"inflBtnCoreMom",
+    headline_yoy:"inflBtnHeadlineYoy",
+    core_yoy:"inflBtnCoreYoy",
+  };
+  const btn = document.getElementById(btnMap[metric]);
+  if(btn) btn.classList.add("active");
+  drawInflationTracker();
+}
+
+function drawInflationTracker() {
+  const meta = INFLATION_METRICS[inflationMetric] || INFLATION_METRICS.headline_mom;
+  const rows = INFLATION_TRACKER_DATA.slice().sort((a,b)=>String(a.release_date).localeCompare(String(b.release_date)));
+  const latest = rows[rows.length - 1] || null;
+  const latestMetric = latest ? latest[inflationMetric] : null;
+  const spread = latestMetric && Number.isFinite(latestMetric.model) && Number.isFinite(latestMetric.consensus) ? latestMetric.model - latestMetric.consensus : NaN;
+
+  const setTxt = (id, txt, col) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = txt;
+    if(col) el.style.color = col;
+  };
+  setTxt("inflMetricVal", meta.short);
+  setTxt("inflModelVal", latestMetric ? fmtInfl(latestMetric.model, meta.digits) : "—", "#5DCAA5");
+  setTxt("inflConsensusVal", latestMetric ? fmtInfl(latestMetric.consensus, meta.digits) : "—", "#EF9F27");
+  setTxt("inflActualVal", latestMetric ? fmtInfl(latestMetric.actual, meta.digits) : "—", "#d8d8d8");
+  setTxt("inflSpreadVal", Number.isFinite(spread) ? fmtInfl(spread, meta.digits, true) : "—", spread > 0 ? "#5DCAA5" : "#e05050");
+  const title = document.getElementById("inflChartTitle");
+  if(title) title.textContent = `${meta.label} — Model vs Consensus vs Actual`;
+
+  drawInflationChart(rows, meta);
+  renderInflationTable(rows);
+}
+
+function drawInflationChart(rows, meta) {
+  const c = mkCanvas("inflationCanvas", 360);
+  if(!c) return;
+  const { ctx, W, H } = c;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = "#151515";
+  ctx.fillRect(0,0,W,H);
+
+  const pad = { l:54, r:24, t:28, b:44 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+  const series = [
+    { key:"model", color:"#5DCAA5" },
+    { key:"consensus", color:"#EF9F27" },
+    { key:"actual", color:"#d8d8d8" },
+  ];
+  const vals = [];
+  rows.forEach(r => {
+    const m = r[inflationMetric] || {};
+    series.forEach(s => {
+      const raw = m[s.key];
+      const v = Number(raw);
+      if(raw != null && Number.isFinite(v)) vals.push(v);
+    });
+  });
+  if(!vals.length) {
+    emptyCanvas("inflationCanvas", 360, "Inflation tracker data unavailable");
+    return;
+  }
+  let minV = Math.min(...vals), maxV = Math.max(...vals);
+  const span = Math.max(0.25, maxV - minV);
+  minV -= span * 0.35;
+  maxV += span * 0.35;
+  if(minV === maxV) { minV -= 0.2; maxV += 0.2; }
+
+  const xAt = i => pad.l + (rows.length <= 1 ? plotW * 0.50 : (i / (rows.length - 1)) * plotW);
+  const yAt = v => pad.t + (1 - (v - minV) / (maxV - minV)) * plotH;
+
+  ctx.strokeStyle = "rgba(255,255,255,.08)";
+  ctx.lineWidth = 1;
+  ctx.font = "10px sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,.48)";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for(let i=0;i<=4;i++) {
+    const v = minV + (maxV - minV) * i / 4;
+    const y = yAt(v);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    ctx.fillText(fmtInfl(v, meta.digits), pad.l - 8, y);
+  }
+  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
+
+  series.forEach(s => {
+    const pts = rows.map((r,i) => {
+      const m = r[inflationMetric] || {};
+      const raw = m[s.key];
+      const v = Number(raw);
+      return raw != null && Number.isFinite(v) ? { x:xAt(i), y:yAt(v), v } : null;
+    }).filter(Boolean);
+    if(!pts.length) return;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    pts.forEach((p,i) => i ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y));
+    ctx.stroke();
+    pts.forEach(p => {
+      ctx.fillStyle = s.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.80)";
+      ctx.textAlign = "left";
+      ctx.font = "10px sans-serif";
+      ctx.fillText(fmtInfl(p.v, meta.digits), p.x + 7, p.y - 8);
+    });
+  });
+
+  ctx.fillStyle = "rgba(255,255,255,.54)";
+  ctx.font = "10px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  rows.forEach((r,i) => ctx.fillText(r.period || r.release_date, xAt(i), H - pad.b + 12));
+}
+
+function renderInflationTable(rows) {
+  const table = document.getElementById("inflationTable");
+  if(!table) return;
+  const esc = s => String(s ?? "—").replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+  const metricRows = [];
+  rows.slice().reverse().forEach(r => {
+    ["headline_mom","core_mom","headline_yoy","core_yoy"].forEach(key => {
+      const meta = INFLATION_METRICS[key];
+      const m = r[key] || {};
+      metricRows.push(`
+        <tr>
+          <td>${esc(r.release_date)}</td>
+          <td>${esc(r.period)}</td>
+          <td>${esc(meta.short)}</td>
+          <td class="pos">${fmtInfl(m.model, meta.digits)}</td>
+          <td>${fmtInfl(m.consensus, meta.digits)}</td>
+          <td>${fmtInfl(m.actual, meta.digits)}</td>
+          <td>${fmtInfl(m.previous, meta.digits)}</td>
+        </tr>`);
+    });
+  });
+  table.innerHTML = `
+    <thead><tr><th>Release</th><th>Period</th><th>Metric</th><th>HB Model</th><th>Consensus</th><th>Actual</th><th>Previous</th></tr></thead>
+    <tbody>${metricRows.join("")}</tbody>`;
 }
 
 function forwardTableClass(v) {
@@ -5742,6 +5984,7 @@ const cgRedraw = {
   "cg-vixrv": () => drawVIXRealizedVol(),
   "cg-vixspike": () => drawVIXSpikeModel(),
   "cg-vixsame": () => drawVIXSameDirectionStreak(),
+  "cg-inflation": () => drawInflationTracker(),
   "cg-rethist": () => renderReturnHistogram(),
   "cg-madist": () => renderMADistance(),
   "cg-madist-stocks": () => renderMAStockDistance(),
