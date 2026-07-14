@@ -3605,9 +3605,9 @@ function drawInflationChart(rows, meta) {
   const plotW = W - pad.l - pad.r;
   const plotH = H - pad.t - pad.b;
   const series = [
-    { key:"actual", label:"Reported", color:"#d8d8d8", width:1.35, radius:3.4, labelDy:-24, xOffset:-7, labelX:16 },
-    { key:"model", label:"HB model", color:"#5DCAA5", width:1.25, radius:3.4, labelDy:24, xOffset:-7, labelX:16 },
-    { key:"consensus", label:"Consensus", color:"#EF9F27", width:1.25, radius:3.4, labelDy:-24, xOffset:7, labelX:18 },
+    { key:"actual", label:"Reported", color:"#d8d8d8", width:1.35, radius:3.4, labelDy:0, xOffset:-7, labelX:16 },
+    { key:"model", label:"HB model", color:"#5DCAA5", width:1.25, radius:3.4, labelDy:22, xOffset:-7, labelX:16 },
+    { key:"consensus", label:"Consensus", color:"#EF9F27", width:1.25, radius:3.4, labelDy:-22, xOffset:7, labelX:18 },
   ];
   const vals = [];
   rows.forEach(r => {
