@@ -5583,7 +5583,18 @@ function setCapEqRallyThreshold(level) {
 }
 
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
-  const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
+  const horizons = [
+    {label:"1W",days:5},
+    {label:"1M",days:21},
+    {label:"2M",days:42},
+    {label:"3M",days:63},
+    {label:"4M",days:84},
+    {label:"5M",days:105},
+    {label:"6M",days:126},
+    {label:"9M",days:189},
+    {label:"12M",days:252},
+    {label:"24M",days:504},
+  ];
   const sigmaLevel = maDistBacktestSigmaLevel || 2;
   const plus = mean + sigmaLevel * sigma;
   const minus = mean - sigmaLevel * sigma;
