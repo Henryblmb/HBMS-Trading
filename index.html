@@ -3801,6 +3801,23 @@ function forwardPathStats(rows, events, bars, priceKey="close") {
   return { rets, dds };
 }
 
+const FORWARD_BACKTEST_HORIZONS = Object.freeze([
+  { label: "1W", days: 5, weeks: 1, months: null },
+  { label: "1M", days: 21, weeks: 4, months: 1 },
+  { label: "2M", days: 42, weeks: 8, months: 2 },
+  { label: "3M", days: 63, weeks: 13, months: 3 },
+  { label: "4M", days: 84, weeks: 17, months: 4 },
+  { label: "5M", days: 105, weeks: 22, months: 5 },
+  { label: "6M", days: 126, weeks: 26, months: 6 },
+  { label: "9M", days: 189, weeks: 39, months: 9 },
+  { label: "12M", days: 252, weeks: 52, months: 12 },
+  { label: "24M", days: 504, weeks: 104, months: 24 },
+]);
+
+function forwardBacktestHorizons() {
+  return FORWARD_BACKTEST_HORIZONS.map(h => ({ ...h }));
+}
+
 function calendarForwardStatRows(priceRows, signals, horizons, priceKey="close") {
   const px = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r[priceKey]) && +r[priceKey] > 0);
   return (horizons || []).map(h => {
@@ -4454,12 +4471,7 @@ function vixRatioThresholdEvents(rows, side, threshold) {
 }
 
 function vixRatioForwardSummary(events, priceRows) {
-  return calendarForwardStatRows(priceRows, events, [
-    { label:"1M", months:1 },
-    { label:"3M", months:3 },
-    { label:"6M", months:6 },
-    { label:"12M", months:12 },
-  ]);
+  return calendarForwardStatRows(priceRows, events, forwardBacktestHorizons());
 }
 
 function renderVIXRatioForwardStats(rows, domain=null) {
@@ -4662,15 +4674,16 @@ function forwardReturn(rows, startIdx, months) {
 }
 
 function returnForwardSummary(rows, predicate) {
-  const horizons = [3, 6, 12];
+  const horizons = forwardBacktestHorizons();
   const out = {};
-  horizons.forEach(h => out[h] = []);
+  horizons.forEach(h => out[h.label] = []);
   rows.forEach((r, i) => {
     const v = +r.ret;
     if(!Number.isFinite(v) || !predicate(v)) return;
     horizons.forEach(h => {
-      const fwd = forwardReturn(rows, i, h);
-      if(fwd != null) out[h].push(fwd);
+      if(h.months == null) return;
+      const fwd = forwardReturn(rows, i, h.months);
+      if(fwd != null) out[h.label].push(fwd);
     });
   });
   return { events: rows.filter(r => Number.isFinite(+r.ret) && predicate(+r.ret)).length, byHorizon: out };
@@ -4679,14 +4692,16 @@ function returnForwardSummary(rows, predicate) {
 function renderReturnForwardStats(rows, plus2, minus2) {
   const fmt = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
   const html = summary => {
-    const statRows = [3, 6, 12].map(h => {
-      const vals = summary.byHorizon[h] || [];
-      if(!vals.length) return { label:`${h}M`, avg:null, win:null, n:0 };
+    const statRows = forwardBacktestHorizons().map(h => {
+      const vals = summary.byHorizon[h.label] || [];
+      if(!vals.length) return { label:h.label, avg:null, win:null, n:0 };
       const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
       const prob = vals.filter(v => v > 0).length / vals.length * 100;
-      return { label:`${h}M`, avg, avgText:fmt(avg), win:prob, n:vals.length, values: vals };
+      return { label:h.label, avg, avgText:fmt(avg), win:prob, n:vals.length, values: vals };
     });
-    return renderForwardStatsTable(`${summary.events} historical moves ≥ 2σ`, statRows);
+    return renderForwardStatsTable(`${summary.events} historical moves ≥ 2σ`, statRows, {
+      dataText: "Monthly return series: 1W is unavailable; completed monthly horizons only."
+    });
   };
   const pos = document.getElementById("retForwardPos");
   const neg = document.getElementById("retForwardNeg");
@@ -4944,7 +4959,7 @@ function rollingReturnMonthlyEvents(rows, upper, lower, side) {
 }
 
 function renderRollingReturnForward(rows, upper, lower, sideFilter="both") {
-  const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
+  const horizons = forwardBacktestHorizons();
   const calc = side => {
     const events = rollingReturnMonthlyEvents(rows, upper, lower, side).filter(({i}) => i + 21 < rows.length);
     return horizons.map(h => {
@@ -5402,18 +5417,7 @@ function renderMAStockForwardStats(rows, key, mean, sigma, message=null) {
     return;
   }
   const plus = mean + sigmaLevel * sigma, minus = mean - sigmaLevel * sigma;
-  const horizons = [
-    {label:"1W",days:5},
-    {label:"1M",days:21},
-    {label:"2M",days:42},
-    {label:"3M",days:63},
-    {label:"4M",days:84},
-    {label:"5M",days:105},
-    {label:"6M",days:126},
-    {label:"9M",days:189},
-    {label:"12M",days:252},
-    {label:"24M",days:504},
-  ];
+  const horizons = forwardBacktestHorizons();
   const calc = side => {
     const events = maDistanceMonthlyEvents(rows, key, plus, minus, side).filter(({i}) => i + 21 < rows.length);
     return horizons.map(h => {
@@ -5594,18 +5598,7 @@ function setCapEqRallyThreshold(level) {
 }
 
 function renderMADistanceForwardStats(rows, key, mean, sigma) {
-  const horizons = [
-    {label:"1W",days:5},
-    {label:"1M",days:21},
-    {label:"2M",days:42},
-    {label:"3M",days:63},
-    {label:"4M",days:84},
-    {label:"5M",days:105},
-    {label:"6M",days:126},
-    {label:"9M",days:189},
-    {label:"12M",days:252},
-    {label:"24M",days:504},
-  ];
+  const horizons = forwardBacktestHorizons();
   const sigmaLevel = maDistBacktestSigmaLevel || 2;
   const plus = mean + sigmaLevel * sigma;
   const minus = mean - sigmaLevel * sigma;
@@ -6804,13 +6797,7 @@ function drawVIXSpikeBars(canvasId, rows, h, domain, upThr, lowThr, hoverIndex=n
 function vixSpikeForwardSummary(priceRows, spikeRows, predicate) {
   const px = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
   const events = (spikeRows || []).filter(r => r && r.date && predicate(+r.chg_pct));
-  const horizons = [
-    { label: "1M", months: 1 },
-    { label: "3M", months: 3 },
-    { label: "6M", months: 6 },
-    { label: "12M", months: 12 },
-  ];
-  const rows = calendarForwardStatRows(px, events, horizons);
+  const rows = calendarForwardStatRows(px, events, forwardBacktestHorizons());
   return { events: events.length, rows };
 }
 
@@ -7438,29 +7425,7 @@ function updateSPXForwardStats(daily, signals) {
     body.textContent = "Forward stats unavailable until S&P history and completed signals are loaded.";
     return;
   }
-  const horizons = [
-    { label: "1M", months: 1 },
-    { label: "3M", months: 3 },
-    { label: "6M", months: 6 },
-    { label: "9M", months: 9 },
-    { label: "12M", months: 12 },
-  ];
-  const stats = horizons.map(h => {
-    const returns = [];
-    signals.forEach(sig => {
-      if(!sig || !sig.confirm_date) return;
-      const startIdx = firstIndexOnOrAfter(rows, sig.confirm_date);
-      const targetDate = addMonthsToDate(sig.confirm_date, h.months);
-      if(targetDate > rows[rows.length - 1].date) return;
-      const endIdx = firstIndexOnOrAfter(rows, targetDate);
-      const start = rows[startIdx], end = rows[endIdx];
-      if(!start || !end || !Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
-      returns.push(((+end.close / +start.close) - 1) * 100);
-    });
-    const avg = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
-    const win = returns.length ? returns.filter(v => v > 0).length / returns.length * 100 : null;
-    return { ...h, avg, win, count: returns.length, n: returns.length, values: returns };
-  });
+  const stats = calendarForwardStatRows(rows, signals.map(sig => ({ date: sig.confirm_date })), forwardBacktestHorizons());
   body.innerHTML = renderForwardStatsTable("Measured from the signal-day close. Open horizons excluded.", stats);
 }
 
@@ -7762,7 +7727,7 @@ function renderBinaryReturnsForward(priceRows, signals, domain=null, elId="binRe
     const t = rowDateMs({ date: sig.confirm_date || sig.date });
     return Number.isFinite(t) && t >= domain.startMs && t <= domain.endMs;
   });
-  const horizons = [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"12M",bars:252}];
+  const horizons = forwardBacktestHorizons().map(h => ({ ...h, bars: h.days }));
   const calc = type => horizons.map(h => {
     const vals = [];
     sigs.filter(s => s.type === type).forEach(sig => {
@@ -8070,12 +8035,9 @@ function renderRSPSpyForward(priceRows, signals) {
     };
   };
   const bull = sigs.filter(s=>s.type==="bull").length, bear = sigs.filter(s=>s.type==="bear").length;
-  el.innerHTML = renderForwardStatsTable(`${bull} broad / ${bear} narrow regime starts`, [
-    { label:"Broad +3M", ...calc("bull", 63) },
-    { label:"Broad +12M", ...calc("bull", 252) },
-    { label:"Narrow +3M", ...calc("bear", 63) },
-    { label:"Narrow +12M", ...calc("bear", 252) }
-  ]);
+  const horizons = forwardBacktestHorizons();
+  const rowsFor = type => horizons.map(h => ({ label:h.label, ...calc(type, h.days) }));
+  el.innerHTML = `${renderForwardStatsTable(`${bull} broad regime starts`, rowsFor("bull"))}<div style="height:12px"></div>${renderForwardStatsTable(`${bear} narrow regime starts`, rowsFor("bear"))}`;
 }
 
 function drawRSPSpyBreadth() {
@@ -8146,10 +8108,7 @@ function capEqMedian(vals) {
 }
 
 function capEqForwardStats(rows, signals) {
-  const horizons = [
-    ["+1M", 21], ["+2M", 42], ["+3M", 63],
-    ["+6M", 126], ["+9M", 189], ["+12M", 252]
-  ];
+  const horizons = forwardBacktestHorizons().map(h => [h.label, h.days]);
   const prices = (rows || []).filter(r => r && r.date && Number.isFinite(+r.spy) && +r.spy > 0);
   return horizons.map(([label, bars]) => {
     const vals = [], dds = [];
@@ -8308,7 +8267,7 @@ function renderCapEqForwardTable(stats, signals) {
     return +v >= 0 ? "pos" : "neg";
   };
   table.innerHTML = `<thead><tr><th>Metric</th>${stats.map(s=>`<th>${s.label}</th>`).join("")}</tr></thead><tbody>${rows.map(([label,key]) => `<tr><td>${label}</td>${stats.map(s=>`<td class="${cls(s[key], key)}">${fmt(s[key], key)}</td>`).join("")}</tr>`).join("")}</tbody>`;
-  const m3 = stats.find(s => s.label === "+3M"), m6 = stats.find(s => s.label === "+6M"), m12 = stats.find(s => s.label === "+12M");
+  const m3 = stats.find(s => s.label === "3M"), m6 = stats.find(s => s.label === "6M"), m12 = stats.find(s => s.label === "12M");
   const sign = capEqRallyMode === "broad" ? "&lt;=" : "&gt;=";
   const signedThr = capEqRallyMode === "broad" ? -Math.abs(capEqRallyThreshold) : Math.abs(capEqRallyThreshold);
   summary.innerHTML = `<strong>Signal setup:</strong> SPY 6W return minus RSP 6W return ${sign} ${signedThr.toFixed(signedThr % 1 ? 1 : 0)} pp; sample ${signals.length} de-clustered signals. +3M avg ${m3&&m3.avg!=null?fmtPct(m3.avg,1):"—"}, +6M avg ${m6&&m6.avg!=null?fmtPct(m6.avg,1):"—"}, +12M avg ${m12&&m12.avg!=null?fmtPct(m12.avg,1):"—"}.<br><span>RSP starts in 2004, so this is an ETF-proxy test from the available RSP/SPY history. Forward returns are SPY returns from signal close.</span><span>Disclaimer: Past performance does not guarantee future performance. For research and educational purposes only.</span>`;
@@ -8338,7 +8297,7 @@ function drawCapEqRally() {
   });
   const stats = capEqForwardStats(rows, signals);
   const fwd = document.getElementById("capEqForwardVal");
-  const m3 = stats.find(s => s.label === "+3M"), m12 = stats.find(s => s.label === "+12M");
+  const m3 = stats.find(s => s.label === "3M"), m12 = stats.find(s => s.label === "12M");
   if(fwd) { fwd.textContent = `${m3&&m3.avg!=null?fmtPct(m3.avg,1):"—"} / ${m12&&m12.avg!=null?fmtPct(m12.avg,1):"—"}`; fwd.style.color = color; }
   const priceLegend = document.getElementById("capEqPriceLegend");
   if(priceLegend) { priceLegend.textContent = `${modeText.toLowerCase()} signal starts (${signals.length})`; priceLegend.style.color = color; }
@@ -8383,7 +8342,7 @@ function maBreadthSignalEvents(rows, key, side, threshold=maBreadthThresholdPct)
 }
 
 function renderMABreadthForward(rows, priceRows, key, threshold=maBreadthThresholdPct) {
-  const horizons = [{label:"1M",days:21},{label:"3M",days:63},{label:"6M",days:126},{label:"9M",days:189},{label:"12M",days:252}];
+  const horizons = forwardBacktestHorizons();
   const priceByDate = new Map((priceRows || []).map((r, i) => [r.date, { ...r, i }]));
   const calc = side => {
     const events = maBreadthSignalEvents(rows, key, side, threshold);
@@ -9367,7 +9326,7 @@ function drawZweigBreadthThrust() {
     emptyCanvas("zbtPriceCanvas", 240, "S&P 500 daily history unavailable - run screener.py");
   }
   drawZBTBreadthChart(rows, signals, domain);
-  renderBTForwardStats("zbtForwardStats", rawPriceRows, signals, "Zweig thrust confirm", [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"9M",bars:189},{label:"12M",bars:252}]);
+  renderBTForwardStats("zbtForwardStats", rawPriceRows, signals, "Zweig thrust confirm", forwardBacktestHorizons().map(h => ({ ...h, bars:h.days })));
   const priceTitle = document.getElementById("zbtPriceTitle");
   if(priceTitle && priceRows.length) priceTitle.textContent = `S&P 500 — Zweig Breadth Thrust signals · ${priceRows[0].date} to ${priceRows[priceRows.length - 1].date}`;
   const breadthTitle = document.getElementById("zbtBreadthTitle");
@@ -9437,7 +9396,7 @@ function drawBT20Chart() {
   const breadthTitle = document.getElementById("bt20BreadthTitle");
   if(breadthTitle && breadthRows.length) breadthTitle.textContent = `% S&P 500 Stocks Above 20D MA — Daily History · ${breadthRows[0].date} to ${breadthRows[breadthRows.length - 1].date}`;
   drawBT20BreadthChart(breadthRows, signals, domain);
-  renderBTForwardStats("bt20ForwardStats", rawPriceRows, signals, "20D thrust confirm", [{label:"1M",bars:21},{label:"3M",bars:63},{label:"6M",bars:126},{label:"12M",bars:252}]);
+  renderBTForwardStats("bt20ForwardStats", rawPriceRows, signals, "20D thrust confirm", forwardBacktestHorizons().map(h => ({ ...h, bars:h.days })));
 }
 
 function updateBT20Signal() {
@@ -9476,6 +9435,10 @@ function loadWashedOutFullHistory(payload) {
 
 function washedOutHorizons() {
   return ["1M", "3M", "6M", "9M", "12M"];
+}
+
+function washedOutForwardHorizons() {
+  return forwardBacktestHorizons();
 }
 
 function drawWashedOutSignalLines(canvasId, rows, signals, domain, valueKey=null, logScale=false) {
@@ -9591,11 +9554,12 @@ function drawWashedOutBottomPicker() {
   const modelStats = (payload.model_signal || {}).stats || {};
   const statEl = document.getElementById("washedOutForwardStats");
   if(statEl) {
-    const computedRows = calendarForwardStatRows(priceRows, signals, washedOutHorizons().map(h => ({ label:h, months:+h.replace("M", "") })));
-    const rows = washedOutHorizons().map((h, i) => {
-      const s = modelStats[h] || {};
+    const horizons = washedOutForwardHorizons();
+    const computedRows = calendarForwardStatRows(priceRows, signals, horizons);
+    const rows = horizons.map((h, i) => {
+      const s = modelStats[h.label] || {};
       const c = computedRows[i] || {};
-      return { ...c, label:h, avg:s.avg ?? c.avg, med:s.median ?? c.med, win:s.win_rate ?? c.win, n:s.n ?? c.n };
+      return { ...c, label:h.label, avg:s.avg ?? c.avg, med:s.median ?? c.med, win:s.win_rate ?? c.win, n:s.n ?? c.n };
     });
     statEl.innerHTML = renderForwardStatsTable(`${(payload.model_signal || {}).events || 0} model events · threshold ${threshold}%`, rows);
   }
@@ -9665,7 +9629,7 @@ function drawBT50Chart() {
   const breadthTitle = document.getElementById("bt50BreadthTitle");
   if(breadthTitle && breadthRows.length) breadthTitle.textContent = `% S&P 500 Stocks Above 50D MA — Weekly History · ${breadthRows[0].date} to ${breadthRows[breadthRows.length - 1].date}`;
   drawBT50BreadthChart(breadthRows, signals, domain);
-  renderBTForwardStats("bt50ForwardStats", rawPriceRows, signals, "50D weekly thrust confirm", [{label:"1M",bars:4},{label:"3M",bars:13},{label:"6M",bars:26},{label:"12M",bars:52}]);
+  renderBTForwardStats("bt50ForwardStats", rawPriceRows, signals, "50D weekly thrust confirm", forwardBacktestHorizons().map(h => ({ ...h, bars:h.weeks })));
 }
 
 function updateBT50Signal() {
@@ -9787,10 +9751,15 @@ function updateOilReadings() {
   if(regimeEl){regimeEl.textContent = label; regimeEl.style.color = col;}
 }
 
+function sp500DailyRows() {
+  const rsi = marketHistory("sp500_history_rsi");
+  const twentyYear = marketHistory("sp500_history_20y");
+  const fallback = marketHistory("sp500_history");
+  return (rsi.length ? rsi : twentyYear.length ? twentyYear : fallback).sort((a,b) => rowDateMs(a) - rowDateMs(b));
+}
+
 function sp500MonthlyRows() {
-  const daily = (marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y")).length
-    ? (marketHistory("sp500_history_rsi").length ? marketHistory("sp500_history_rsi") : marketHistory("sp500_history_20y"))
-    : marketHistory("sp500_history");
+  const daily = sp500DailyRows();
   const byMonth = new Map();
   daily.forEach(r => {
     if(!r.date || !Number.isFinite(+r.close)) return;
@@ -9809,19 +9778,18 @@ function forwardPEForwardStats(peRows, priceRows, mean, sigma) {
   const level = forwardPEBacktestSigmaLevel || 1.5;
   const expensive = mean + level * sigma;
   const cheap = mean - level * sigma;
-  const priceByMonth = new Map(priceRows.map(r => [r.date.slice(0, 7), r]));
+  const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
   const eventsFor = side => peRows
     .map((r, i) => ({ r, i, z: sigma ? (+r.pe - mean) / sigma : NaN }))
     .filter(e => Number.isFinite(e.z) && (side === "expensive" ? e.z >= level : e.z <= -level));
-  const horizons = [{label:"1M",months:1},{label:"3M",months:3},{label:"6M",months:6},{label:"9M",months:9},{label:"12M",months:12}];
+  const horizons = forwardBacktestHorizons();
   const calc = side => {
     const events = eventsFor(side);
     return horizons.map(h => {
       const vals = [];
       events.forEach(e => {
-        const start = priceByMonth.get(e.r.date.slice(0, 7));
-        const target = addMonthsToDate(e.r.date, h.months).slice(0, 7);
-        const end = priceByMonth.get(target);
+        const startIdx = firstIndexOnOrAfter(prices, e.r.date);
+        const start = prices[startIdx], end = prices[startIdx + h.days];
         if(!start || !end || !Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
         vals.push((+end.close / +start.close - 1) * 100);
       });
@@ -9898,7 +9866,7 @@ function drawForwardPEChart() {
   const level = forwardPEBacktestSigmaLevel || 1.5;
   const upper = stats.mean + level * stats.sigma;
   const lower = stats.mean - level * stats.sigma;
-  forwardPEForwardStats(rows, sp500MonthlyRows(), stats.mean, stats.sigma);
+  forwardPEForwardStats(rows, sp500DailyRows(), stats.mean, stats.sigma);
   const title = document.getElementById("fpeChartTitle");
   if(title) title.textContent = `S&P 500 Forward P/E · ${rows[0].date.slice(0,7)} to ${rows[rows.length - 1].date.slice(0,7)}`;
   const allVals = vals.concat([stats.mean, upper, lower]).filter(Number.isFinite);
@@ -9944,19 +9912,18 @@ function peRatioForwardStats(peRows, priceRows, mean, sigma) {
   const level = peRatioBacktestSigmaLevel || 1.5;
   const expensive = mean + level * sigma;
   const cheap = mean - level * sigma;
-  const priceByMonth = new Map(priceRows.map(r => [r.date.slice(0, 7), r]));
+  const prices = (priceRows || []).filter(r => r && r.date && Number.isFinite(+r.close) && +r.close > 0);
   const eventsFor = side => peRows
     .map((r, i) => ({ r, i, z: sigma ? (+r.pe - mean) / sigma : NaN }))
     .filter(e => Number.isFinite(e.z) && (side === "expensive" ? e.z >= level : e.z <= -level));
-  const horizons = [{label:"1M",months:1},{label:"3M",months:3},{label:"6M",months:6},{label:"9M",months:9},{label:"12M",months:12}];
+  const horizons = forwardBacktestHorizons();
   const calc = side => {
     const events = eventsFor(side);
     return horizons.map(h => {
       const vals = [];
       events.forEach(e => {
-        const start = priceByMonth.get(e.r.date.slice(0, 7));
-        const target = addMonthsToDate(e.r.date, h.months).slice(0, 7);
-        const end = priceByMonth.get(target);
+        const startIdx = firstIndexOnOrAfter(prices, e.r.date);
+        const start = prices[startIdx], end = prices[startIdx + h.days];
         if(!start || !end || !Number.isFinite(+start.close) || !Number.isFinite(+end.close) || +start.close <= 0) return;
         vals.push((+end.close / +start.close - 1) * 100);
       });
@@ -10033,7 +10000,7 @@ function drawPERatioChart() {
   const level = peRatioBacktestSigmaLevel || 1.5;
   const upper = stats.mean + level * stats.sigma;
   const lower = stats.mean - level * stats.sigma;
-  peRatioForwardStats(rows, sp500LongMonthlyRows(), stats.mean, stats.sigma);
+  peRatioForwardStats(rows, sp500DailyRows(), stats.mean, stats.sigma);
   const title = document.getElementById("peChartTitle");
   if(title) title.textContent = `S&P 500 P/E · ${rows[0].date.slice(0,7)} to ${rows[rows.length - 1].date.slice(0,7)}`;
   const allVals = vals.concat([stats.mean, upper, lower]).filter(Number.isFinite);
