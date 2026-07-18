@@ -4948,7 +4948,9 @@ def refresh_ptf_style_only(upload=True):
         ptf_source,
     )
     output = clean_nans(output)
-    data_json = json.dumps(output, ensure_ascii=False, separators=(",", ":"))
+    # Keep the repository data file stable and reviewable when this targeted
+    # refresh only adds one model payload.
+    data_json = json.dumps(output, ensure_ascii=False, indent=2)
     Path("data.json").write_text(data_json, encoding="utf-8")
     print(f"Saved: data.json ({len(data_json) // 1024} KB) · PTF-style model refreshed")
     if upload:
