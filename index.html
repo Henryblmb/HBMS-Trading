@@ -910,6 +910,20 @@ canvas{background:#fff!important}
 ::-webkit-scrollbar-track{background:#fff}
 ::-webkit-scrollbar-thumb{background:#cbd5df}
 ::-webkit-scrollbar-thumb:hover{background:#9ca3af}
+
+/* ── PTF-STYLE MOMENTUM PAGE ── */
+#tab-cg-ptfmodel .signal-bar{justify-content:center}
+#tab-cg-ptfmodel .signal-bar>div:not(.signal-bar-divider){min-width:165px;text-align:center}
+#tab-cg-ptfmodel .ptf-model-box{padding:0 18px 18px!important}
+#tab-cg-ptfmodel .ptf-model-table-wrap{overflow-x:auto;border:1px solid #aab4bc;background:#fff}
+#tab-cg-ptfmodel .ptf-model-table{width:100%;min-width:800px;border-collapse:collapse;font-size:11px}
+#tab-cg-ptfmodel .ptf-model-table th{background:#087f9f;color:#fff;padding:8px 10px;text-align:right;font-size:10px;font-weight:800;border-right:1px solid rgba(255,255,255,.35);white-space:nowrap}
+#tab-cg-ptfmodel .ptf-model-table th:nth-child(1),#tab-cg-ptfmodel .ptf-model-table th:nth-child(2){text-align:left}
+#tab-cg-ptfmodel .ptf-model-table td{padding:7px 10px;text-align:right;color:#1f2937;border-top:1px solid #d7dee4;border-right:1px solid #d7dee4;white-space:nowrap}
+#tab-cg-ptfmodel .ptf-model-table td:nth-child(1),#tab-cg-ptfmodel .ptf-model-table td:nth-child(2){text-align:left}
+#tab-cg-ptfmodel .ptf-model-table tr:hover td{background:#f8fafc}
+#tab-cg-ptfmodel .ptf-model-note{margin:10px auto 0;max-width:1120px;text-align:center;color:#6b7280;font-size:11px;line-height:1.5}
+@media(max-width:760px){#tab-cg-ptfmodel .signal-bar{justify-content:flex-start;gap:10px;flex-wrap:wrap}#tab-cg-ptfmodel .signal-bar>div:not(.signal-bar-divider){min-width:130px;flex:1}#tab-cg-ptfmodel .signal-bar-divider{display:none}#tab-cg-ptfmodel .ptf-model-box{padding:0 0 12px!important}}
 </style>
 </head>
 <body>
@@ -968,6 +982,7 @@ canvas{background:#fff!important}
     <div class="nav-group-content">
       <div class="nav-item sub" onclick="showTab('cg-spxrsi',this)">SPX RSI Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-spxema',this)">SPX 9/21 EMA</div>
+      <div class="nav-item sub" onclick="showTab('cg-ptfmodel',this)">PTF-Style Momentum</div>
       <div class="nav-item sub" onclick="showTab('cg-dailychg',this)">1-Day % Change</div>
       <div class="nav-item sub" onclick="showTab('cg-rollret',this)">Rolling Returns</div>
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
@@ -1217,28 +1232,6 @@ canvas{background:#fff!important}
 
     <!-- MOMENTUM -->
     <div class="panel" id="tab-momentum">
-      <div class="ptf-model" id="ptfModel">
-        <div class="ptf-model-head">
-          <div>
-            <div class="ptf-model-title">PTF-Style Tech Momentum — Live Shadow Model</div>
-            <div class="ptf-model-sub">Transparent 3M / 6M / 12M relative-strength ranking versus SPY. The candidate set incorporates the current official PTF constituents and updates as the ETF rotates.</div>
-          </div>
-          <div class="ptf-live" id="ptfModelStatus">LOADING</div>
-        </div>
-        <div class="ptf-model-stats">
-          <div class="ptf-model-stat"><b id="ptfModelAsOf">—</b><span>Model as of</span></div>
-          <div class="ptf-model-stat"><b id="ptfModelUniverse">—</b><span>Candidate universe</span></div>
-          <div class="ptf-model-stat"><b id="ptfModelOverlap">—</b><span>Top-20 PTF overlap</span></div>
-          <div class="ptf-model-stat"><b id="ptfModelRebalance">—</b><span>Next rebalance</span></div>
-        </div>
-        <div class="ptf-model-table-wrap">
-          <table class="ptf-model-table">
-            <thead><tr><th>Rank</th><th>Ticker</th><th>Weight</th><th>Composite</th><th>Excess 3M</th><th>Excess 6M</th><th>Excess 12M</th><th>Official PTF</th></tr></thead>
-            <tbody id="ptfModelBody"><tr><td colspan="8" style="text-align:center;color:#444;padding:18px">Loading model…</td></tr></tbody>
-          </table>
-        </div>
-        <div class="ptf-model-note" id="ptfModelNote">Shadow model only — it is not the proprietary Invesco/Dorsey PTF methodology or a recommendation.</div>
-      </div>
       <div class="section-title">Momentum Screener — 7-Signal Score</div>
       <div class="filter-row" style="margin-bottom:.9rem">
         <label>Index:</label>
@@ -1450,6 +1443,34 @@ canvas{background:#fff!important}
         <div class="interp-cell bear"><div class="interp-title bear">Bearish Cross</div><div class="interp-text">The 9-week EMA moves below the 21-week EMA. This marks weakening intermediate momentum.</div></div>
         <div class="interp-cell info"><div class="interp-title info">Weekly Signal</div><div class="interp-text">Weekly smoothing filters daily noise. The marker is drawn on the confirmation week.</div></div>
       </div>
+    </div>
+
+    <!-- PTF-STYLE TECH MOMENTUM -->
+    <div class="panel cg-page" id="tab-cg-ptfmodel">
+      <div class="cg-header">
+        <div class="cg-title">PTF-Style Tech Momentum Model</div>
+        <div class="cg-sub">Transparent technology momentum shadow portfolio ranked by 3M, 6M and 12M excess return versus SPY. The candidate universe incorporates the current official PTF constituents and updates with ETF rotation.</div>
+        <div class="cg-pill loading" id="ptfModelStatus">LOADING MODEL</div>
+      </div>
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">Model As Of</div><div class="signal-bar-val" id="ptfModelAsOf">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Candidate Universe</div><div class="signal-bar-val" id="ptfModelUniverse">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Official PTF Top-20 Overlap</div><div class="signal-bar-val" id="ptfModelOverlap">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Next Quarterly Rebalance</div><div class="signal-bar-val" id="ptfModelRebalance">—</div></div>
+      </div>
+      <div class="cg-chart-box ptf-model-box">
+        <div class="cg-chart-header"><span class="cg-chart-title">Current PTF-Style Shadow Portfolio</span></div>
+        <div class="ptf-model-table-wrap">
+          <table class="ptf-model-table">
+            <thead><tr><th>Rank</th><th>Ticker</th><th>Weight</th><th>Composite</th><th>Excess 3M</th><th>Excess 6M</th><th>Excess 12M</th><th>Official PTF</th></tr></thead>
+            <tbody id="ptfModelBody"><tr><td colspan="8" style="text-align:center;color:#6b7280;padding:18px">Loading model…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ptf-model-note" id="ptfModelNote">Shadow model only — it is not the proprietary Invesco/Dorsey PTF methodology or a recommendation.</div>
     </div>
 
     <!-- SPY BINARY RETURNS -->
@@ -3400,7 +3421,7 @@ function showTab(id, el) {
   // Tab-specific actions
   if(id === "hilo") renderHiLo();
   if(id === "signal-calendar") renderSignalCalendar();
-  if(id === "momentum") { renderMomentum(); renderPTFStyleModel(); }
+  if(id === "momentum") renderMomentum();
   if(id === "seasonality") renderSeasonality();
   if(id === "vix") { window._marketData = window._marketData || {}; setTimeout(renderVIX, 100); }
   if(id === "sectors") { renderHeatmap(); setTimeout(renderRRG, 80); setTimeout(renderSectorDetail, 100); }
@@ -3409,6 +3430,7 @@ function showTab(id, el) {
   if(id === "cg-hyg") setTimeout(() => { drawSPYHYGCompare("hygCompareCanvas","hygSpxChg"); drawHYGNhnlChart(); updateHYGReadings(); }, 60);
   if(id === "cg-spxrsi") setTimeout(drawSPXRSIReversal, 60);
   if(id === "cg-spxema") setTimeout(drawSPXWeeklyEMA, 60);
+  if(id === "cg-ptfmodel") renderPTFStyleModel();
   if(id === "cg-binret") setTimeout(drawSPYBinaryReturns, 60);
   if(id === "cg-goldbin") setTimeout(drawGoldBinary, 60);
   if(id === "cg-btcbin") setTimeout(drawBTCBinaryXL, 60);
@@ -10761,7 +10783,7 @@ function renderPTFStyleModel(){
   if(!status||!body)return;
   const set=(id,value)=>{const el=byId(id);if(el)el.textContent=value;};
   if(model.status!=="ok"||!Array.isArray(model.holdings)||!model.holdings.length){
-    status.textContent="AWAITING REFRESH";status.style.color="#EF9F27";status.style.borderColor="#3a2a1a";status.style.background="#1a1200";
+    status.textContent="AWAITING REFRESH";status.className="cg-pill active-neut";status.style.cssText="";
     set("ptfModelAsOf","—");set("ptfModelUniverse","—");set("ptfModelOverlap","—");set("ptfModelRebalance","—");
     body.innerHTML=`<tr><td colspan="8" style="text-align:center;color:#666;padding:18px">${model.reason||"Model data will appear after the next screener refresh."}</td></tr>`;
     if(note)note.textContent="Shadow model only — it is not the proprietary Invesco/Dorsey PTF methodology or a recommendation.";
@@ -10769,13 +10791,13 @@ function renderPTFStyleModel(){
   }
   const pct=v=>v==null?"—":`${v>=0?"+":""}${Number(v).toFixed(1)}%`;
   const color=v=>v==null?"#666":v>=0?"#1D9E75":"#e05050";
-  status.textContent="LIVE · AUTO REFRESH";status.style.color="#1D9E75";status.style.borderColor="#1a3a1a";status.style.background="#0a1a0a";
+  status.textContent="LIVE · AUTO REFRESH";status.className="cg-pill active-bull";status.style.cssText="";
   set("ptfModelAsOf",model.as_of||"—");
   set("ptfModelUniverse",model.universe_count!=null?`${model.universe_count} names`:"—");
   set("ptfModelOverlap",model.overlap_count!=null?`${model.overlap_count} / 20`:"—");
   set("ptfModelRebalance",model.next_quarterly_rebalance||"—");
   body.innerHTML=model.holdings.map(h=>{const official=h.in_ptf?`<span style="color:#1D9E75">Yes${h.ptf_weight!=null?` · ${Number(h.ptf_weight).toFixed(1)}%`:""}</span>`:'<span style="color:#555">—</span>';
-    return `<tr><td style="color:#555">${h.rank}</td><td style="font-weight:650;color:#eee">${h.ticker}</td><td style="color:#d8d8d8">${Number(h.weight).toFixed(2)}%</td><td style="color:#EF9F27">${Number(h.score).toFixed(1)}</td><td style="color:${color(h.excess_3m)}">${pct(h.excess_3m)}</td><td style="color:${color(h.excess_6m)}">${pct(h.excess_6m)}</td><td style="color:${color(h.excess_12m)}">${pct(h.excess_12m)}</td><td>${official}</td></tr>`;
+    return `<tr><td style="color:#6b7280">${h.rank}</td><td style="font-weight:800;color:#111827">${h.ticker}</td><td style="color:#1f2937">${Number(h.weight).toFixed(2)}%</td><td style="color:#d97706">${Number(h.score).toFixed(1)}</td><td style="color:${color(h.excess_3m)}">${pct(h.excess_3m)}</td><td style="color:${color(h.excess_6m)}">${pct(h.excess_6m)}</td><td style="color:${color(h.excess_12m)}">${pct(h.excess_12m)}</td><td>${official}</td></tr>`;
   }).join("");
   if(note)note.textContent=`${model.method||"3M / 6M / 12M excess return versus SPY"}. Official PTF snapshot: ${model.official_holdings_as_of||"—"}; source: ${model.official_source||"Invesco"}. Shadow model only — not the proprietary Invesco/Dorsey methodology or a recommendation.`;
 }
