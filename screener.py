@@ -4,7 +4,7 @@ HBMS Trading Screener v6.3 – SP500/DAX/HSI Edition
 Fast Polygon OHLC/snapshot data, yfinance fallbacks for unsupported symbols.
 """
 
-import argparse, base64, datetime, html, io, json, os, re, time, warnings
+import argparse, base64, datetime, html, io, json, math, os, re, time, warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import quote
 import numpy as np
@@ -532,12 +532,28 @@ def yf_df(symbol, period="2y", interval="1d"):
     return df[keep].dropna(subset=["Close"]).copy()
 
 
+def eodhd_symbols_for_ticker(ticker):
+    """Return the EODHD notation for each market represented in the screener."""
+    ticker = str(ticker or "").strip().upper()
+    if ticker.endswith(".DE"):
+        return [f"{ticker[:-3]}.XETRA"]
+    if ticker.endswith(".HK"):
+        return [ticker]
+    if "." not in ticker:
+        return [f"{ticker}.US"]
+    return [ticker]
+
+
 def history_df(symbol, years=2, period="2y"):
     pt = polygon_symbol(symbol)
     if pt:
         df = POLYGON.aggs(pt, years=years)
         if df is not None and len(df) >= 20:
             return df, "polygon"
+    if EODHD.enabled:
+        df, source = EODHD.eod_history(eodhd_symbols_for_ticker(symbol), years=years)
+        if df is not None and len(df) >= 20:
+            return df, source
     df = yf_df(symbol, period=period)
     if df is not None and len(df) >= 20:
         return df, "yfinance"
@@ -1057,15 +1073,27 @@ def process_stock(stock):
 
 
 def process_ma_stock_history(stock):
-    t = stock["t"]; n = stock["n"]
+    t = stock["t"]; n = stock["n"]; g = stock["g"]
     try:
+        cache_path = Path("ma_stock_history") / ma_stock_history_filename(t)
+        if cache_path.exists():
+            try:
+                cached = json.loads(cache_path.read_text(encoding="utf-8"))
+                cached_rows = cached.get("rows") if isinstance(cached, dict) else None
+                if isinstance(cached_rows, list) and len(cached_rows) >= 260:
+                    return {
+                        "ticker": t,
+                        "name": n,
+                        "group": g,
+                        "rows": cached_rows,
+                        "source": cached.get("source") or "cached_history",
+                    }
+            except (OSError, ValueError, TypeError):
+                pass
         hist_d, source = None, "none"
         if EODHD.enabled:
-            eod_symbols = [f"{t}.US"]
-            if "." in t:
-                eod_symbols.append(f"{t.replace('.', '-')}.US")
             hist_d, source = EODHD.eod_history(
-                eod_symbols,
+                eodhd_symbols_for_ticker(t),
                 years=80,
                 start_date=datetime.date(1900, 1, 1),
             )
@@ -1094,7 +1122,7 @@ def process_ma_stock_history(stock):
                 round(float(close_val), 4) if pd.notna(close_val) else None,
                 round(float(d20), 2) if pd.notna(d20) else None,
             ])
-        return {"ticker": t, "name": n, "rows": rows, "source": source}
+        return {"ticker": t, "name": n, "group": g, "rows": rows, "source": source}
     except Exception as e:
         print(f"  ERROR MA history {t}: {e}")
         return None
@@ -4483,6 +4511,36 @@ def run_parallel(label, items, fn, item_name):
     return results
 
 
+def assert_universe_coverage(label, universe, results):
+    """Refuse to overwrite the live dashboard with a partial market universe."""
+    expected = {}
+    observed = {}
+    for item in universe:
+        group = str(item.get("g", "unknown"))
+        expected[group] = expected.get(group, 0) + 1
+    for item in results:
+        group = str(item.get("group", "unknown"))
+        observed[group] = observed.get(group, 0) + 1
+
+    problems = []
+    sp500_expected = expected.get("SP500", 0)
+    if sp500_expected < 450:
+        problems.append(f"SP500 universe has only {sp500_expected} symbols (minimum 450)")
+    for group, total in expected.items():
+        completed = observed.get(group, 0)
+        minimum = math.ceil(total * 0.90)
+        if completed < minimum:
+            problems.append(f"{group}: {completed}/{total} completed (minimum {minimum})")
+    if problems:
+        detail = "; ".join(problems)
+        raise RuntimeError(
+            f"{label} coverage check failed — refusing to write or publish partial data: {detail}"
+        )
+    print(f"  {label} coverage check passed: " + ", ".join(
+        f"{group} {observed.get(group, 0)}/{total}" for group, total in expected.items()
+    ))
+
+
 def refresh_snapshots(universe, sectors, trending):
     global STOCK_SNAPSHOTS
     tickers = [x["t"] for x in universe] + [x["t"] for x in sectors] + [x["t"] for x in trending]
@@ -4520,6 +4578,8 @@ def run_once(upload=True, include_insider=True):
     stock_results = run_parallel("[3/5] Stocks (S&P 500, DAX, HSI)", universe, process_stock, "stock")
     ma_stock_universe = sp500 + dax + hsi
     ma_stock_history = run_parallel("[3b/5] MA Distance Stock History (S&P 500, DAX, HSI)", ma_stock_universe, process_ma_stock_history, "ma_history")
+    assert_universe_coverage("Stock", universe, stock_results)
+    assert_universe_coverage("MA history", ma_stock_universe, ma_stock_history)
 
     print("\n[4/5] Market Breadth...")
     breadth = calc_breadth(stock_results)
