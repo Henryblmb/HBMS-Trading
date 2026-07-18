@@ -101,6 +101,30 @@ WASHED_OUT_HORIZONS = {
 WASHED_OUT_TARGET_WIN_RATE = 90.0
 WASHED_OUT_MODEL_MIN_EVENTS = 10
 
+# ─── PTF-STYLE TECH MOMENTUM MODEL ──────────────────────────────
+# Public PTF framework: technology relative strength, score-weighted names and
+# quarterly reconstitution.  This is a transparent *shadow model*, not a claim
+# to reproduce Nasdaq Dorsey Wright's proprietary Point & Figure score.
+PTF_HOLDINGS_API = (
+    "https://dng-api.invesco.com/cache/v1/accounts/en_US/shareclasses/"
+    "46137V811/holdings/fund?idType=cusip&productType=ETF"
+)
+PTF_MODEL_CORE_TICKERS = {
+    "AAPL", "ADBE", "ADI", "ADP", "ADSK", "AMAT", "AMD", "ANET", "APH", "APP", "AVGO",
+    "CDNS", "CRWD", "CRM", "CSCO", "CSGP", "DELL", "DDOG", "FICO", "FTNT", "GLW", "GDDY",
+    "GOOG", "GOOGL", "HPE", "HPQ", "IBM", "INTC", "INTU", "KEYS", "KLAC", "LRCX", "MCHP",
+    "META", "MPWR", "MRVL", "MSFT", "MSI", "MU", "NOW", "NTAP", "NVDA", "NXPI", "ON", "ORCL",
+    "PANW", "PLTR", "PTC", "QCOM", "ROP", "SMCI", "SNPS", "STX", "SWKS", "TER", "TRMB",
+    "TTD", "TTWO", "TXN", "TYL", "VRSN", "WDAY", "WDC", "ZBRA", "AMZN", "NFLX",
+}
+PTF_MODEL_LOOKBACKS = ((63, 0.20, "3m"), (126, 0.30, "6m"), (252, 0.50, "12m"))
+PTF_MODEL_TOP_N = 30
+PTF_MODEL_FALLBACK_TICKERS = [
+    "MU", "SNDK", "KLAC", "WDC", "STX", "AXTI", "WULF", "PENG", "LRCX", "AMD", "AEHR", "AAOI",
+    "DELL", "AMAT", "SMTC", "DOCN", "ICHR", "FORM", "TER", "ATEX", "ACMR", "LSCC", "AMKR", "MTSI",
+    "APPS", "UCTT", "CRDO", "MRVL", "ON", "RIOT", "PDFS", "POWI", "ADEA", "DGII", "ACLS", "CEVA",
+]
+
 
 
 class PolygonClient:
@@ -542,6 +566,157 @@ def eodhd_symbols_for_ticker(ticker):
     if "." not in ticker:
         return [f"{ticker}.US"]
     return [ticker]
+
+
+def fetch_ptf_holdings():
+    """Fetch the latest issuer-published PTF equity holdings for the live model universe."""
+    fallback = [{"t": ticker, "n": ticker, "g": "PTF"} for ticker in PTF_MODEL_FALLBACK_TICKERS]
+    try:
+        response = requests.get(PTF_HOLDINGS_API, headers={"User-Agent": "HBMS Research"}, timeout=25)
+        response.raise_for_status()
+        payload = response.json()
+        holdings = []
+        for row in payload.get("holdings") or []:
+            ticker = str(row.get("ticker") or "").strip().upper()
+            security_type = str(row.get("securityTypeCode") or "").upper()
+            if not ticker or security_type not in {"COM", "ADR"}:
+                continue
+            holdings.append({
+                "t": ticker,
+                "n": str(row.get("issuerName") or ticker).strip(),
+                "g": "PTF",
+                "ptf_weight": float(row.get("percentageOfTotalNetAssets") or 0.0),
+            })
+        if len(holdings) >= 25:
+            print(f"  PTF official holdings loaded: {len(holdings)} · as of {payload.get('effectiveDate', '—')}")
+            return holdings, str(payload.get("effectiveDate") or ""), "invesco"
+    except Exception as e:
+        print(f"  PTF official holdings API failed → fallback: {e}")
+    return fallback, "", "fallback"
+
+
+def dedupe_universe(rows):
+    """Keep the first row for existing dashboard constituents and append new PTF names."""
+    seen = set()
+    out = []
+    for row in rows:
+        ticker = str(row.get("t") or "").upper()
+        if not ticker or ticker in seen:
+            continue
+        seen.add(ticker)
+        out.append(row)
+    return out
+
+
+def ptf_style_weights(scores):
+    """Public-style score weighting with transparent concentration guards."""
+    weights = scores.astype(float) - float(scores.min()) + 0.15
+    weights = weights.clip(lower=0)
+    weights /= weights.sum()
+    for _ in range(15):
+        weights = weights.clip(upper=0.08)
+        big = weights > 0.05
+        if weights[big].sum() > 0.25:
+            weights.loc[big] *= 0.25 / weights[big].sum()
+        residual = 1.0 - weights.sum()
+        available = weights < 0.08 - 1e-9
+        if abs(residual) < 1e-10 or not available.any():
+            break
+        weights.loc[available] += residual * weights.loc[available] / weights.loc[available].sum()
+    return weights / weights.sum()
+
+
+def ptf_style_model_payload(history_items, stock_results, ptf_holdings, official_as_of, official_source):
+    """Build the live transparent technology-momentum shadow ranking from dashboard histories."""
+    live = {str(row.get("ticker") or "").upper(): row for row in stock_results}
+    official = {str(row.get("t") or "").upper(): float(row.get("ptf_weight") or 0.0) for row in ptf_holdings}
+    candidates = PTF_MODEL_CORE_TICKERS | set(official)
+    series = {}
+    for item in history_items:
+        ticker = str(item.get("ticker") or "").upper()
+        if ticker not in candidates:
+            continue
+        rows = item.get("rows") or []
+        values = []
+        for row in rows:
+            if not isinstance(row, list) or len(row) < 4 or row[3] is None:
+                continue
+            try:
+                values.append((pd.Timestamp(row[0]).normalize(), float(row[3])))
+            except (TypeError, ValueError):
+                continue
+        if len(values) < 253:
+            continue
+        close = pd.Series(dict(values), dtype=float).sort_index()
+        quote = live.get(ticker) or {}
+        live_price = quote.get("price")
+        if live_price is not None and float(live_price) > 0:
+            close.iloc[-1] = float(live_price)
+        series[ticker] = close
+
+    spy_hist, spy_source = history_df("SPY", years=2, period="2y")
+    if spy_hist is None or len(spy_hist) < 253:
+        return {"status": "unavailable", "reason": "SPY benchmark history unavailable"}
+    spy = spy_hist["Close"].astype(float).dropna().sort_index()
+    # Cached dashboard dates are timezone-naive while vendor histories may be
+    # UTC-aware. Align both at the trading-date level before joining returns.
+    spy.index = pd.DatetimeIndex(pd.to_datetime(spy.index))
+    if spy.index.tz is not None:
+        spy.index = spy.index.tz_localize(None)
+    spy.index = spy.index.normalize()
+    spy = spy[~spy.index.duplicated(keep="last")]
+    if "SPY" in live and live["SPY"].get("price"):
+        spy.iloc[-1] = float(live["SPY"]["price"])
+    eligible = {}
+    for ticker, close in series.items():
+        aligned = pd.concat([close.rename("stock"), spy.rename("spy")], axis=1).dropna()
+        if len(aligned) < 253:
+            continue
+        row = {}
+        for lookback, _, label in PTF_MODEL_LOOKBACKS:
+            row[label] = float(aligned.stock.iloc[-1] / aligned.stock.iloc[-lookback - 1] - aligned.spy.iloc[-1] / aligned.spy.iloc[-lookback - 1])
+        eligible[ticker] = row
+    if len(eligible) < 20:
+        return {"status": "unavailable", "reason": f"Only {len(eligible)} eligible technology histories"}
+
+    frame = pd.DataFrame(eligible).T
+    score = pd.Series(0.0, index=frame.index)
+    for _, weight, label in PTF_MODEL_LOOKBACKS:
+        score += frame[label].rank(pct=True) * weight
+    selected = score.nlargest(min(PTF_MODEL_TOP_N, len(score)))
+    weights = ptf_style_weights(selected)
+    latest_date = min(series[ticker].index[-1] for ticker in selected.index)
+    holdings = []
+    for rank, ticker in enumerate(weights.sort_values(ascending=False).index, 1):
+        holdings.append({
+            "rank": rank,
+            "ticker": ticker,
+            "weight": round(float(weights[ticker]) * 100, 2),
+            "score": round(float(score[ticker]) * 100, 1),
+            "excess_3m": round(float(frame.loc[ticker, "3m"]) * 100, 2),
+            "excess_6m": round(float(frame.loc[ticker, "6m"]) * 100, 2),
+            "excess_12m": round(float(frame.loc[ticker, "12m"]) * 100, 2),
+            "in_ptf": ticker in official,
+            "ptf_weight": round(official.get(ticker, 0.0), 2) if ticker in official else None,
+        })
+    today = datetime.date.today()
+    quarter_starts = [datetime.date(today.year, month, 1) for month in (1, 4, 7, 10)]
+    next_rebalance = next((date for date in quarter_starts if date > today), datetime.date(today.year + 1, 1, 1))
+    overlap = sum(1 for row in holdings if row["in_ptf"])
+    return {
+        "status": "ok",
+        "as_of": str(pd.Timestamp(latest_date).date()),
+        "benchmark_source": spy_source,
+        "official_holdings_as_of": official_as_of or None,
+        "official_source": official_source,
+        "universe_count": len(eligible),
+        "selected_count": len(holdings),
+        "official_holdings_count": len(official),
+        "overlap_count": overlap,
+        "next_quarterly_rebalance": str(next_rebalance),
+        "method": "Daily 3M/6M/12M excess-return ranking vs SPY (20%/30%/50%); score weighted shadow portfolio.",
+        "holdings": holdings,
+    }
 
 
 def history_df(symbol, years=2, period="2y"):
@@ -4528,7 +4703,11 @@ def assert_universe_coverage(label, universe, results):
         problems.append(f"SP500 universe has only {sp500_expected} symbols (minimum 450)")
     for group, total in expected.items():
         completed = observed.get(group, 0)
-        minimum = math.ceil(total * 0.90)
+        # PTF membership can change intraday and individual small-cap constituents
+        # occasionally have a delayed vendor response. Keep the core dashboard
+        # protected by the usual 90% rule without letting one rotating ETF sleeve
+        # block an otherwise complete refresh.
+        minimum = math.ceil(total * (0.70 if group == "PTF" else 0.90))
         if completed < minimum:
             problems.append(f"{group}: {completed}/{total} completed (minimum {minimum})")
     if problems:
@@ -4564,9 +4743,10 @@ def run_once(upload=True, include_insider=True):
     sp500 = fetch_current_sp500()
     dax = get_dax()
     hsi = get_hsi()
-    universe = sp500 + dax + hsi
+    ptf_holdings, ptf_holdings_as_of, ptf_holdings_source = fetch_ptf_holdings()
+    universe = dedupe_universe(sp500 + dax + hsi + ptf_holdings)
     refresh_snapshots(universe, secs, assets)
-    print(f"  Universe: {len(sp500)} S&P 500 + {len(dax)} DAX + {len(hsi)} HSI = {len(universe)}")
+    print(f"  Universe: {len(sp500)} S&P 500 + {len(dax)} DAX + {len(hsi)} HSI + {len(ptf_holdings)} PTF = {len(universe)}")
 
     sector_raw = run_parallel("[1/5] Sectors (Dual RRG 12M + 3M)", secs, process_sector, "sector")
     sectors = calc_rrg(sector_raw)
@@ -4576,7 +4756,7 @@ def run_once(upload=True, include_insider=True):
 
     trending_results = run_parallel("[2/5] Trending Assets", assets, process_trending, "asset")
     stock_results = run_parallel("[3/5] Stocks (S&P 500, DAX, HSI)", universe, process_stock, "stock")
-    ma_stock_universe = sp500 + dax + hsi
+    ma_stock_universe = universe
     ma_stock_history = run_parallel("[3b/5] MA Distance Stock History (S&P 500, DAX, HSI)", ma_stock_universe, process_ma_stock_history, "ma_history")
     assert_universe_coverage("Stock", universe, stock_results)
     assert_universe_coverage("MA history", ma_stock_universe, ma_stock_history)
@@ -4599,6 +4779,13 @@ def run_once(upload=True, include_insider=True):
     new_highs_rows, new_highs_status = sp500_new_highs_from_stock_histories(ma_stock_history, stock_results)
     market_indicators["new_highs_52w_history"] = new_highs_rows
     market_indicators["new_highs_52w_status"] = new_highs_status
+    market_indicators["ptf_style_model"] = ptf_style_model_payload(
+        ma_stock_history,
+        stock_results,
+        ptf_holdings,
+        ptf_holdings_as_of,
+        ptf_holdings_source,
+    )
 
     insider_trades = []
     if include_insider:
@@ -4737,6 +4924,39 @@ def refresh_washed_out_only(upload=True):
     return True
 
 
+def refresh_ptf_style_only(upload=True):
+    """Refresh just the live PTF-style panel without rerunning the full dashboard."""
+    data_path = Path("data.json")
+    if not data_path.exists():
+        data_path = Path(__file__).resolve().parent / "data.json"
+    output = json.loads(data_path.read_text(encoding="utf-8"))
+    history_items = []
+    for path in sorted((Path(__file__).resolve().parent / "ma_stock_history").glob("*.json")):
+        try:
+            item = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(item, dict) and item.get("ticker") and isinstance(item.get("rows"), list):
+                history_items.append(item)
+        except (OSError, ValueError, TypeError):
+            continue
+    ptf_holdings, ptf_as_of, ptf_source = fetch_ptf_holdings()
+    output.setdefault("market", {})
+    output["market"]["ptf_style_model"] = ptf_style_model_payload(
+        history_items,
+        output.get("stocks") or [],
+        ptf_holdings,
+        ptf_as_of,
+        ptf_source,
+    )
+    output = clean_nans(output)
+    data_json = json.dumps(output, ensure_ascii=False, separators=(",", ":"))
+    Path("data.json").write_text(data_json, encoding="utf-8")
+    print(f"Saved: data.json ({len(data_json) // 1024} KB) · PTF-style model refreshed")
+    if upload:
+        return upload_to_github(data_json)
+    print("  GitHub upload skipped by --no-upload")
+    return True
+
+
 # ─── MAIN ────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser()
@@ -4746,11 +4966,16 @@ def main():
     parser.add_argument("--upload-only", action="store_true", help="upload existing local data.json without refreshing data")
     parser.add_argument("--upload-file", help="upload a local website file to the same path on GitHub")
     parser.add_argument("--refresh-washed-out-only", action="store_true", help="refresh only washed-out bottom picker data/history")
+    parser.add_argument("--refresh-ptf-style-only", action="store_true", help="refresh only the live PTF-style momentum panel")
     parser.add_argument("--skip-insider", action="store_true", help="skip slower OpenInsider scrape")
     args = parser.parse_args()
 
     if args.refresh_washed_out_only:
         ok = refresh_washed_out_only(upload=not args.no_upload)
+        raise SystemExit(0 if ok else 1)
+
+    if args.refresh_ptf_style_only:
+        ok = refresh_ptf_style_only(upload=not args.no_upload)
         raise SystemExit(0 if ok else 1)
 
     if args.upload_file:
