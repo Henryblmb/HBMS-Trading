@@ -1307,6 +1307,51 @@ def ma_stock_history_filename(ticker):
     return re.sub(r"[^A-Z0-9-]", "_", str(ticker or "").upper()) + ".json"
 
 
+def _return_252_stats(dated_prices, windows):
+    """Return trailing 252-trading-day log-return distribution stats by history window."""
+    if len(dated_prices) < 253:
+        return {}
+    frame = pd.DataFrame(dated_prices, columns=["date", "close"])
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    frame["close"] = pd.to_numeric(frame["close"], errors="coerce")
+    frame = frame.dropna().drop_duplicates("date", keep="last").sort_values("date")
+    frame = frame[frame["close"] > 0]
+    if len(frame) < 253:
+        return {}
+    frame["log_return"] = np.log(frame["close"] / frame["close"].shift(252)) * 100.0
+    latest_date = frame["date"].iloc[-1]
+    current = frame["log_return"].iloc[-1]
+    if not np.isfinite(current):
+        return {}
+    out = {}
+    for label, years in windows.items():
+        sample = frame.dropna(subset=["log_return"])
+        if years:
+            cutoff = latest_date - pd.DateOffset(years=years)
+            sample = sample[sample["date"] >= cutoff]
+        vals = sample["log_return"].astype(float)
+        if len(vals) < 60:
+            continue
+        mean = float(vals.mean())
+        sigma = float(vals.std(ddof=1)) if len(vals) > 1 else 0.0
+        if not np.isfinite(sigma) or sigma <= 0:
+            continue
+        current_pct = float((vals <= float(current)).sum() / len(vals) * 100.0)
+        normalization = float((math.exp((mean - float(current)) / 100.0) - 1.0) * 100.0)
+        out[label] = {
+            "current": round(float(current), 4),
+            "mean": round(mean, 4),
+            "sigma": round(sigma, 4),
+            "z": round((float(current) - mean) / sigma, 4),
+            "pctile": round(current_pct, 2),
+            "normalization": round(normalization, 4),
+            "obs": int(len(vals)),
+            "start": str(sample["date"].iloc[0].date()),
+            "end": str(sample["date"].iloc[-1].date()),
+        }
+    return out
+
+
 def ma_stock_history_stats(history_items, stock_results, generated):
     live = {str(s.get("ticker", "")).upper(): s for s in stock_results if s.get("ticker")}
     stats_items = []
@@ -1322,6 +1367,24 @@ def ma_stock_history_stats(history_items, stock_results, generated):
         ticker = str(item.get("ticker", "")).upper()
         stock = live.get(ticker, {})
         ma_out = {}
+        dated_prices = []
+        for r in item.get("rows", []):
+            if len(r) > 3 and r[3] is not None:
+                try:
+                    dated_prices.append((str(r[0]), float(r[3])))
+                except (TypeError, ValueError):
+                    pass
+        if dated_prices and stock.get("price") is not None:
+            try:
+                live_price = float(stock["price"])
+                if live_price > 0:
+                    last_date = dated_prices[-1][0]
+                    dated_prices[-1] = (last_date, live_price)
+                    if gen_date and gen_date > last_date:
+                        dated_prices.append((gen_date, live_price))
+            except (TypeError, ValueError):
+                pass
+        return_252 = _return_252_stats(dated_prices, windows)
         for ma_len, idx in (("50", 1), ("200", 2)):
             dated_vals = []
             for r in item.get("rows", []):
@@ -1362,7 +1425,7 @@ def ma_stock_history_stats(history_items, stock_results, generated):
                         }
             if ma_stats:
                 ma_out[ma_len] = ma_stats
-        stats_items.append({"ticker": ticker, "name": item.get("name") or ticker, "ma": ma_out})
+        stats_items.append({"ticker": ticker, "name": item.get("name") or ticker, "ma": ma_out, "return252": return_252})
     return stats_items
 
 

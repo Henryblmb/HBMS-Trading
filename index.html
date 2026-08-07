@@ -988,6 +988,7 @@ canvas{background:#fff!important}
       <div class="nav-item sub" onclick="showTab('cg-rethist',this)">Return Histogram</div>
       <div class="nav-item sub" onclick="showTab('cg-madist',this)">MA Distance ETF´s</div>
       <div class="nav-item sub" onclick="showTab('cg-madist-stocks',this)">MA Distance Stocks</div>
+      <div class="nav-item sub" onclick="showTab('cg-return252',this)">252D Return Anomalies</div>
     </div>
 
     <div class="nav-folder" onclick="toggleNavFolder(this)"><span>Binary Models</span><span class="nav-folder-arrow">›</span></div>
@@ -2284,6 +2285,37 @@ canvas{background:#fff!important}
       </div>
     </div>
 
+    <!-- 252D RETURN ANOMALIES -->
+    <div class="panel cg-page" id="tab-cg-return252">
+      <div class="cg-header">
+        <div class="cg-title">252D Return Distribution — Global Stock Anomaly Model</div>
+        <div class="cg-sub">Trailing one-year log returns ranked against each asset's own historical distribution. The model highlights unusually strong and weak annual moves; normalization is a historical reference level, not a price forecast.</div>
+      </div>
+      <div class="signal-bar">
+        <div><div class="signal-bar-label">252D Log Return</div><div class="signal-bar-val" id="return252Now">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="return252Z">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Percentile</div><div class="signal-bar-val" id="return252Pctile">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div><div class="signal-bar-label">Mean Reversion Ref.</div><div class="signal-bar-val" id="return252Norm">—</div></div>
+        <div class="signal-bar-divider"></div>
+        <div class="signal-bar-desc" id="return252Desc">Loading current 252D return statistics.</div>
+        <div class="signal-inline-controls">
+          <div class="signal-inline-control"><label>Market</label><select id="return252Market" onchange="renderReturn252Model()"><option value="all" selected>All</option><option value="SP500">S&amp;P 500</option><option value="DAX">DAX</option><option value="HSI">Hang Seng</option></select></div>
+          <div class="signal-inline-control"><label>Ticker</label><input id="return252Search" list="return252Options" placeholder="Ticker or name" oninput="renderReturn252Model()"><datalist id="return252Options"></datalist></div>
+        </div>
+        <div class="signal-range-controls" data-cg-date-host><div class="hist-range" id="return252Range"><button class="hist-btn" onclick="setReturn252Range('5Y',this)">5Y</button><button class="hist-btn" onclick="setReturn252Range('10Y',this)">10Y</button><button class="hist-btn active" onclick="setReturn252Range('20Y',this)">20Y</button><button class="hist-btn" onclick="setReturn252Range('max',this)">Full</button></div></div>
+      </div>
+      <div class="cg-chart-box">
+        <div class="cg-chart-header"><span class="cg-chart-title" id="return252BoardTitle">Current 252D Return Anomalies</span><div class="cg-chart-legend"><span class="ma-z-pos">High positive Z-score</span><span class="ma-z-neg">Low negative Z-score</span><span style="color:#6b7280">Ranked by absolute deviation</span></div></div>
+        <div style="padding:0 12px 10px;overflow:auto"><table class="ma-stock-table"><thead><tr><th>Ticker</th><th>Name</th><th>Market</th><th>Price</th><th>252D Log Return</th><th>Z</th><th>Percentile</th><th>Mean</th><th>Reference to Mean</th></tr></thead><tbody id="return252Rows"><tr><td colspan="9">Loading return anomaly statistics.</td></tr></tbody></table></div>
+      </div>
+      <div class="cg-chart-box"><div class="cg-chart-header"><span class="cg-chart-title" id="return252ChartTitle">Selected Asset — 252D Log Return vs Price</span><div class="cg-chart-legend"><span><i class="cg-leg-line" style="background:#64748b"></i>Price</span><span><i class="cg-leg-line" style="background:#111827"></i>252D log return</span><span style="color:#ef9f27">Mean</span><span class="ma-z-pos">+1σ / +2σ</span><span class="ma-z-neg">−1σ / −2σ</span></div></div><canvas id="return252ChartCanvas" style="width:100%;display:block"></canvas></div>
+      <div class="cg-chart-box"><div class="cg-chart-header"><span class="cg-chart-title" id="return252HistTitle">252D Log-Return Distribution</span><div class="cg-chart-legend"><span><i class="cg-leg-line" style="background:#7aa2e8"></i>Historical observations</span><span style="color:#ef9f27">Mean</span><span class="ma-z-pos">Current reading</span></div></div><canvas id="return252HistCanvas" style="width:100%;display:block"></canvas></div>
+      <div class="interp-grid ret-forward-grid"><div class="interp-cell neut"><div class="interp-title neut">Definition</div><div class="interp-text">252D log return = ln(current close / close 252 trading days ago). Log returns keep large upside and downside moves comparable on a symmetric scale.</div></div><div class="interp-cell info"><div class="interp-title info">Cross-Sectional Use</div><div class="interp-text">Each name is compared with its own return history, so a 2σ anomaly means unusual behavior for that asset—not simply a large absolute percentage move.</div></div><div class="interp-cell bear"><div class="interp-title bear">Negative Anomaly</div><div class="interp-text">A low Z-score can flag a washed-out annual move, but it can also reflect a genuine earnings or trend deterioration. It is not a standalone buy signal.</div></div><div class="interp-cell bull"><div class="interp-title bull">Positive Anomaly</div><div class="interp-text">A high Z-score captures unusually persistent momentum. It can continue in strong trends, while also raising the risk of future normalization.</div></div></div>
+    </div>
+
     <!-- FORWARD P/E RATIO -->
     <div class="panel cg-page" id="tab-cg-forwardpe">
       <div class="cg-header">
@@ -3346,6 +3378,7 @@ let capEqRallyMode = "narrow";
 let capEqRallyThreshold = 4;
 let maStockHistoryRange = "max";
 let maStockBacktestSigmaLevel = 2;
+let return252HistoryRange = "20Y";
 let maStockStatsByTicker = null;
 let maStockStatsPromise = null;
 let maStockHistoryCache = new Map();
@@ -3439,6 +3472,7 @@ function showTab(id, el) {
   if(id === "cg-rethist") setTimeout(renderReturnHistogram, 60);
   if(id === "cg-madist") setTimeout(renderMADistance, 60);
   if(id === "cg-madist-stocks") setTimeout(renderMAStockDistance, 60);
+  if(id === "cg-return252") setTimeout(renderReturn252Model, 60);
   if(id === "cg-forwardpe") setTimeout(drawForwardPEChart, 60);
   if(id === "cg-peratio") setTimeout(drawPERatioChart, 60);
   if(id === "cg-vix2") setTimeout(() => { mirrorVIXCharts(); }, 100);
@@ -3497,6 +3531,7 @@ async function loadData() {
     if(activePanel && activePanel.id === "tab-cg-rethist") renderReturnHistogram();
     if(activePanel && activePanel.id === "tab-cg-madist") renderMADistance();
     if(activePanel && activePanel.id === "tab-cg-madist-stocks") renderMAStockDistance();
+    if(activePanel && activePanel.id === "tab-cg-return252") renderReturn252Model();
     if(activePanel && activePanel.id === "tab-seasonality") renderSeasonality();
     if(activePanel && activePanel.id === "tab-cg-vixsd") drawVIXSDSignal();
     if(activePanel && activePanel.id === "tab-cg-vixrv") drawVIXRealizedVol();
@@ -5292,7 +5327,8 @@ function maStockMetric(stock, ma) {
   const m = stock && stock.ma_ext ? stock.ma_ext[String(ma)] : null;
   if(!m || !Number.isFinite(+m.dist)) return null;
   const rangeKey = maStockHistoryRange || "max";
-  const statRoot = maStockStatsByTicker ? maStockStatsByTicker.get(String(stock.ticker).toUpperCase())?.[String(ma)] : null;
+  const statEntry = maStockStatsByTicker ? maStockStatsByTicker.get(String(stock.ticker).toUpperCase()) : null;
+  const statRoot = statEntry ? ((statEntry.ma || statEntry)[String(ma)]) : null;
   const s20 = statRoot ? (statRoot[rangeKey] || statRoot.max || statRoot) : null;
   const z = s20 && Number.isFinite(+s20.z) ? +s20.z : (Number.isFinite(+m.z) ? +m.z : null);
   const pct = s20 && Number.isFinite(+s20.pctile) ? +s20.pctile : (Number.isFinite(+m.pctile) ? +m.pctile : null);
@@ -5317,7 +5353,7 @@ function loadMAStockStats() {
       maStockStatsByTicker = new Map();
       (json.stocks || []).forEach(s => {
         if(!s || !s.ticker) return;
-        maStockStatsByTicker.set(String(s.ticker).toUpperCase(), s.ma || {});
+        maStockStatsByTicker.set(String(s.ticker).toUpperCase(), { ma: s.ma || {}, return252: s.return252 || {} });
       });
       return maStockStatsByTicker;
     })
@@ -5511,6 +5547,103 @@ function setMAStockDistanceRange(range, btn) {
   document.querySelectorAll("#maStockRange .hist-btn").forEach(b => b.classList.remove("active"));
   if(btn) btn.classList.add("active");
   renderMAStockDistance();
+}
+
+function return252Universe() {
+  const market = document.getElementById("return252Market")?.value || "all";
+  return (allStocks || []).filter(s => s && s.ticker && ["SP500", "DAX", "HSI"].includes(s.group) && (market === "all" || s.group === market));
+}
+
+function return252Metric(stock) {
+  const root = maStockStatsByTicker?.get(String(stock?.ticker || "").toUpperCase())?.return252 || {};
+  const metric = root[return252HistoryRange] || (return252HistoryRange === "20Y" ? root.max : null);
+  return metric && Number.isFinite(+metric.current) && Number.isFinite(+metric.z) ? metric : null;
+}
+
+function return252Color(metric) {
+  if(+metric.z <= -2) return "#e05050";
+  if(+metric.z >= 2) return "#1D9E75";
+  return +metric.current >= 0 ? "#5DCAA5" : "#EF9F27";
+}
+
+function setReturn252Range(range, btn) {
+  return252HistoryRange = range;
+  document.querySelectorAll("#return252Range .hist-btn").forEach(b => b.classList.remove("active"));
+  btn?.classList.add("active");
+  renderReturn252Model();
+}
+
+function renderReturn252Model() {
+  if(!maStockStatsByTicker && !maStockStatsPromise) loadMAStockStats().then(renderReturn252Model).catch(()=>{});
+  const stocks = return252Universe();
+  const list = document.getElementById("return252Options");
+  if(list && list.dataset.count !== String(stocks.length)) {
+    list.innerHTML = stocks.slice().sort((a,b)=>String(a.ticker).localeCompare(String(b.ticker))).map(s=>`<option value="${seasonEscape(s.ticker)}">${seasonEscape(s.name || s.ticker)}</option>`).join("");
+    list.dataset.count = String(stocks.length);
+  }
+  const ranked = stocks.map(stock => ({stock, metric:return252Metric(stock)})).filter(x => x.metric).sort((a,b)=>Math.abs(+b.metric.z)-Math.abs(+a.metric.z));
+  const query = (document.getElementById("return252Search")?.value || "").trim().toUpperCase();
+  const selected = query ? (ranked.find(x=>String(x.stock.ticker).toUpperCase()===query) || ranked.find(x=>String(x.stock.name||"").toUpperCase().includes(query))) : ranked[0];
+  const m = selected?.metric;
+  const set = (id, value, color) => { const el=document.getElementById(id); if(el){el.textContent=value; el.style.color=color || "";} };
+  if(m) {
+    const color = return252Color(m);
+    set("return252Now", fmtPct(+m.current,2), color); set("return252Z", `${+m.z>=0?"+":""}${(+m.z).toFixed(2)}σ`, color);
+    set("return252Pctile", `${(+m.pctile).toFixed(0)}th`, +m.pctile<=10 ? "#e05050" : +m.pctile>=90 ? "#1D9E75" : "#777");
+    set("return252Norm", fmtPct(+m.normalization,1), +m.normalization>=0 ? "#1D9E75" : "#e05050");
+    set("return252Desc", `${selected.stock.ticker} · ${selected.stock.name || selected.stock.ticker} · ${m.start} to ${m.end} · ${(+m.obs).toLocaleString("en-US")} rolling observations · reference only`);
+  }
+  const market = document.getElementById("return252Market")?.value || "all";
+  document.getElementById("return252BoardTitle").textContent = `${market === "all" ? "Global" : market === "SP500" ? "S&P 500" : market === "DAX" ? "DAX" : "Hang Seng"} 252D Return Anomalies · ${return252HistoryRange === "max" ? "Full History" : return252HistoryRange}`;
+  const rows = document.getElementById("return252Rows");
+  rows.innerHTML = ranked.slice(0,80).map(({stock,metric}) => { const color=return252Color(metric); return `<tr onclick="document.getElementById('return252Search').value='${seasonEscape(stock.ticker)}';renderReturn252Model()"><td class="ticker">${seasonEscape(stock.ticker)}</td><td class="name">${seasonEscape(stock.name||stock.ticker)}</td><td>${seasonEscape(stock.group||"—")}</td><td>$${Number(stock.price||0).toLocaleString("en-US",{maximumFractionDigits:2})}</td><td style="color:${color};font-weight:700">${fmtPct(+metric.current,2)}</td><td style="color:${color};font-weight:800">${+metric.z>=0?"+":""}${(+metric.z).toFixed(2)}σ</td><td>${(+metric.pctile).toFixed(0)}th</td><td>${fmtPct(+metric.mean,2)}</td><td style="font-weight:700">${fmtPct(+metric.normalization,1)}</td></tr>`; }).join("") || `<tr><td colspan="9">Loading return anomaly statistics.</td></tr>`;
+  drawReturn252PanelsV2(selected?.stock || null);
+}
+
+function drawReturn252Panels(stock) {
+  const chart = mkCanvas("return252ChartCanvas", 320), hist = mkCanvas("return252HistCanvas", 220);
+  const title = document.getElementById("return252ChartTitle"), histTitle = document.getElementById("return252HistTitle");
+  title.textContent = stock ? `${stock.ticker} — 252D Log Return vs Price` : "Selected Asset — 252D Log Return vs Price";
+  histTitle.textContent = stock ? `${stock.ticker} 252D Log-Return Distribution` : "252D Log-Return Distribution";
+  if(!chart || !hist || !stock) return;
+  const metric = return252Metric(stock); if(!metric) return;
+  const draw = ({ctx,W,H}, current) => { ctx.clearRect(0,0,W,H); ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H); const pad={l:54,r:22,t:18,b:30}; const min=-Math.max(20,Math.abs(+metric.mean)+3*+metric.sigma), max=Math.max(20,Math.abs(+metric.mean)+3*+metric.sigma); const y=v=>pad.t+(max-v)/(max-min)*(H-pad.t-pad.b); [-2,-1,0,1,2].forEach(k=>{const v=+metric.mean+k*+metric.sigma;ctx.strokeStyle=k===0?"#ef9f27":"#dbe3eb";ctx.lineWidth=k===0?1.25:1;ctx.beginPath();ctx.moveTo(pad.l,y(v));ctx.lineTo(W-pad.r,y(v));ctx.stroke();ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.fillText(`${k>0?"+":""}${k}σ`,5,y(v)+3);}); ctx.strokeStyle="#111827";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad.l,y(current));ctx.lineTo(W-pad.r,y(current));ctx.stroke();ctx.fillStyle=return252Color(metric);ctx.beginPath();ctx.arc(W-pad.r,y(current),4,0,Math.PI*2);ctx.fill(); };
+  draw(chart,+metric.current);
+  const ctx=hist.ctx,{W,H}=hist;ctx.clearRect(0,0,W,H);ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);ctx.fillStyle="#7aa2e8";ctx.fillRect(28,H*0.42,W-56,H*0.28);ctx.fillStyle=return252Color(metric);ctx.fillRect(W*0.62,20,5,H-46);ctx.fillStyle="#6b7280";ctx.font="11px sans-serif";ctx.fillText("Distribution preview — full rolling histogram loads with selected price history",28,H-16);
+}
+
+function drawReturn252PanelsV2(stock) {
+  const chart = mkCanvas("return252ChartCanvas", 360), hist = mkCanvas("return252HistCanvas", 245);
+  const title = document.getElementById("return252ChartTitle"), histTitle = document.getElementById("return252HistTitle");
+  title.textContent = stock ? `${stock.ticker} — 252D Log Return vs Price` : "Selected Asset — 252D Log Return vs Price";
+  histTitle.textContent = stock ? `${stock.ticker} 252D Log-Return Distribution` : "252D Log-Return Distribution";
+  if(!stock || !chart || !hist) return;
+  const ticker = String(stock.ticker).toUpperCase();
+  const cached = maStockHistoryCache.get(ticker);
+  if(!cached) {
+    emptyCanvas("return252ChartCanvas", 360, `Loading ${ticker} full price history...`);
+    emptyCanvas("return252HistCanvas", 245, `Loading ${ticker} distribution...`);
+    loadMAStockHistory(ticker).then(() => renderReturn252Model()).catch(() => {});
+    return;
+  }
+  const priceRows = (cached.rows || []).map(r => ({date:r?.[0], close:+r?.[3]})).filter(r => r.date && Number.isFinite(r.close) && r.close > 0);
+  if(priceRows.length < 253) return;
+  const points = [];
+  for(let i=252;i<priceRows.length;i++) points.push({date:priceRows[i].date,close:priceRows[i].close,ret:Math.log(priceRows[i].close / priceRows[i-252].close) * 100});
+  const years = return252HistoryRange === "max" ? 0 : parseInt(return252HistoryRange,10);
+  const last = new Date(points.at(-1).date + "T12:00:00");
+  const shown = years ? points.filter(p => new Date(p.date + "T12:00:00") >= new Date(last.getFullYear()-years,last.getMonth(),last.getDate())) : points;
+  const vals = shown.map(p=>p.ret), mean=vals.reduce((a,b)=>a+b,0)/vals.length, sigma=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/Math.max(1,vals.length-1));
+  const {ctx,W,H}=chart, pad={l:48,r:52,t:16,b:28}, pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
+  const minR=Math.min(...vals,mean-3*sigma),maxR=Math.max(...vals,mean+3*sigma), minP=Math.min(...shown.map(p=>p.close)),maxP=Math.max(...shown.map(p=>p.close));
+  const x=i=>pad.l+i/Math.max(1,shown.length-1)*pw, yR=v=>pad.t+(maxR-v)/Math.max(1,maxR-minR)*ph, yP=v=>pad.t+(maxP-v)/Math.max(1,maxP-minP)*ph;
+  [-2,-1,0,1,2].forEach(k=>{const v=mean+k*sigma;ctx.strokeStyle=k===0?"#ef9f27":"#dbe3eb";ctx.lineWidth=k===0?1.2:1;ctx.beginPath();ctx.moveTo(pad.l,yR(v));ctx.lineTo(W-pad.r,yR(v));ctx.stroke();ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.fillText(`${k>0?"+":""}${k}σ`,5,yR(v)+3);});
+  ctx.strokeStyle="#64748b";ctx.lineWidth=1.35;ctx.beginPath();shown.forEach((p,i)=>{const yy=yP(p.close);i?ctx.lineTo(x(i),yy):ctx.moveTo(x(i),yy);});ctx.stroke();
+  ctx.strokeStyle="#111827";ctx.lineWidth=1.65;ctx.beginPath();shown.forEach((p,i)=>{const yy=yR(p.ret);i?ctx.lineTo(x(i),yy):ctx.moveTo(x(i),yy);});ctx.stroke();
+  ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="right";ctx.fillText(`$${maxP.toFixed(0)}`,W-4,pad.t+4);ctx.fillText(`$${minP.toFixed(0)}`,W-4,H-pad.b);ctx.textAlign="left";
+  const hctx=hist.ctx,{W:HW,H:HH}=hist,padH={l:42,r:18,t:18,b:30},bins=24,min=Math.min(...vals),max=Math.max(...vals),counts=Array(bins).fill(0); vals.forEach(v=>counts[Math.min(bins-1,Math.max(0,Math.floor((v-min)/Math.max(1e-9,max-min)*bins)))]++); const cmax=Math.max(...counts,1), barW=(HW-padH.l-padH.r)/bins;
+  hctx.clearRect(0,0,HW,HH);hctx.fillStyle="#fff";hctx.fillRect(0,0,HW,HH);counts.forEach((c,i)=>{const xx=padH.l+i*barW, bh=c/cmax*(HH-padH.t-padH.b);hctx.fillStyle="#7aa2e8";hctx.fillRect(xx+1,HH-padH.b-bh,Math.max(1,barW-2),bh);}); const curr=vals.at(-1), cx=padH.l+(curr-min)/Math.max(1e-9,max-min)*(HW-padH.l-padH.r);hctx.strokeStyle="#1D9E75";hctx.lineWidth=2;hctx.beginPath();hctx.moveTo(cx,padH.t);hctx.lineTo(cx,HH-padH.b);hctx.stroke();hctx.strokeStyle="#ef9f27";const mx=padH.l+(mean-min)/Math.max(1e-9,max-min)*(HW-padH.l-padH.r);hctx.beginPath();hctx.moveTo(mx,padH.t);hctx.lineTo(mx,HH-padH.b);hctx.stroke();hctx.fillStyle="#6b7280";hctx.font="10px sans-serif";hctx.fillText(`${min.toFixed(0)}%`,padH.l,HH-10);hctx.textAlign="right";hctx.fillText(`${max.toFixed(0)}%`,HW-padH.r,HH-10);hctx.textAlign="left";
 }
 
 function setMADistBacktestSigma(level) {
@@ -6136,6 +6269,7 @@ const cgRedraw = {
   "cg-rethist": () => renderReturnHistogram(),
   "cg-madist": () => renderMADistance(),
   "cg-madist-stocks": () => renderMAStockDistance(),
+  "cg-return252": () => renderReturn252Model(),
   "cg-forwardpe": () => drawForwardPEChart(),
   "cg-vix2": () => mirrorVIXCharts(),
   "cg-vixratio": () => drawVIXRatioChart(),
