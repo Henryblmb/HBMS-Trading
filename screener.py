@@ -268,6 +268,7 @@ class PolygonClient:
 
 POLYGON = PolygonClient(POLYGON_API_KEY)
 STOCK_SNAPSHOTS = {}
+STOCK_RECENT_CLOSES = {}
 
 
 class EODHDClient:
@@ -1184,6 +1185,12 @@ def process_stock(stock):
         close_d = hist_d["Close"].astype(float)
         if len(close_d) < 2:
             return None
+        if pd.Timestamp(close_d.index[-1]).date() < datetime.date.today() - datetime.timedelta(days=7):
+            print(f"  ERROR {t}: latest stock price is stale ({close_d.index[-1]})")
+            return None
+        # Reuse this already fetched series when extending the full-history
+        # MA files. Otherwise their old cache would remain frozen indefinitely.
+        STOCK_RECENT_CLOSES[t] = close_d.copy()
         price, prev_close = snapshot_price(t, float(close_d.iloc[-1]))
         if price <= 0:
             return None
@@ -1251,32 +1258,43 @@ def process_ma_stock_history(stock):
     t = stock["t"]; n = stock["n"]; g = stock["g"]
     try:
         cache_path = Path("ma_stock_history") / ma_stock_history_filename(t)
+        cached_rows = None
         if cache_path.exists():
             try:
                 cached = json.loads(cache_path.read_text(encoding="utf-8"))
                 cached_rows = cached.get("rows") if isinstance(cached, dict) else None
-                if isinstance(cached_rows, list) and len(cached_rows) >= 260:
-                    return {
-                        "ticker": t,
-                        "name": n,
-                        "group": g,
-                        "rows": cached_rows,
-                        "source": cached.get("source") or "cached_history",
-                    }
             except (OSError, ValueError, TypeError):
                 pass
-        hist_d, source = None, "none"
-        if EODHD.enabled:
-            hist_d, source = EODHD.eod_history(
-                eodhd_symbols_for_ticker(t),
-                years=80,
-                start_date=datetime.date(1900, 1, 1),
-            )
-        if hist_d is None or len(hist_d) < 260:
-            hist_d, source = history_df(t, years=80, period="max")
-        if hist_d is None or len(hist_d) < 260:
+        recent = STOCK_RECENT_CLOSES.get(t)
+        source = "recent_stock_history"
+        if recent is None or recent.empty:
+            hist_d, source = history_df(t, years=2, period="2y")
+            if hist_d is None or hist_d.empty:
+                return None
+            recent = hist_d["Close"].astype(float)
+        recent = recent.copy().dropna()
+        recent.index = pd.to_datetime(recent.index).tz_localize(None).normalize()
+        recent = recent[recent > 0].sort_index()
+        if recent.empty or recent.index[-1].date() < datetime.date.today() - datetime.timedelta(days=7):
+            print(f"  ERROR MA history {t}: recent closes are stale")
             return None
-        close = hist_d.dropna(subset=["Close"])["Close"].astype(float)
+        if isinstance(cached_rows, list) and len(cached_rows) >= 260:
+            cached_close = pd.Series({pd.Timestamp(r[0]): float(r[3]) for r in cached_rows
+                                      if isinstance(r, list) and len(r) > 3 and r[3] is not None}, dtype=float)
+            cached_close = cached_close[cached_close > 0].sort_index()
+            overlap = cached_close.index.intersection(recent.index)
+            if not overlap.empty:
+                first = recent.index[0]
+                scale = float(recent.loc[overlap[0]] / cached_close.loc[overlap[0]])
+                if not np.isfinite(scale) or not 0.01 < scale < 100:
+                    raise ValueError(f"implausible cache adjustment factor: {scale}")
+                old_part = cached_close[cached_close.index < first] * scale
+                close = pd.concat([old_part, recent]).sort_index()
+                source = "cached_history+" + source
+            else:
+                close = recent
+        else:
+            close = recent
         if len(close) < 260:
             return None
         frame = pd.DataFrame(index=close.index)
@@ -2144,11 +2162,19 @@ def eodhd_sp500_history(years=10, display_start="2016-01-01"):
     return [], None, "none"
 
 
+def date_partial_week(weekly, last_observation):
+    """Label an in-progress weekly bar with its last actual trading date."""
+    if not weekly.empty and weekly.index[-1].date() > pd.Timestamp(last_observation).date():
+        weekly = weekly.copy()
+        weekly.index = weekly.index[:-1].append(pd.DatetimeIndex([pd.Timestamp(last_observation)]))
+    return weekly
+
+
 def weekly_rows_from_history_df(hist, source, display_start="2006-01-01"):
     if hist is None or hist.empty or "Close" not in hist.columns:
         return []
     closes = hist["Close"].astype(float).dropna().sort_index()
-    weekly = closes.resample("W-FRI").last().dropna()
+    weekly = date_partial_week(closes.resample("W-FRI").last().dropna(), closes.index[-1])
     rows = []
     for idx, close in weekly.items():
         date_s = str(pd.Timestamp(idx).date())
@@ -2161,7 +2187,7 @@ def sp500_weekly_rsi_payload(hist, source, display_start="2016-01-01"):
     if hist is None or hist.empty or "Close" not in hist.columns:
         return [], [], {"status": "unavailable", "source": source}
     closes = hist["Close"].astype(float).dropna().sort_index()
-    weekly = closes.resample("W-FRI").last().dropna()
+    weekly = date_partial_week(closes.resample("W-FRI").last().dropna(), closes.index[-1])
     rsi_values = calc_rsi_series(weekly.tolist(), 14)
     weekly_rows = []
     for idx, close, rsi in zip(weekly.index, weekly.values, rsi_values):
@@ -3202,7 +3228,7 @@ def gold_silver_ratio_payload(display_start="2000-01-01", rolling_window=156):
     if merged.empty:
         return [], {"source": source, "status": "unavailable"}
 
-    weekly = merged.resample("W-FRI").last().dropna()
+    weekly = date_partial_week(merged.resample("W-FRI").last().dropna(), merged.index[-1])
     weekly["ratio"] = weekly["gold"] / weekly["silver"]
     weekly = weekly[weekly.index >= pd.Timestamp(display_start)]
     static_mean = float(weekly["ratio"].mean()) if not weekly.empty else None
@@ -3538,16 +3564,30 @@ def parse_multpl_monthly_rows(text, value_key, min_value=0, max_value=50000):
     return [rows[k] for k in sorted(rows)]
 
 
+def cached_market_rows(key):
+    """Keep the last verified series when a third-party source is unavailable."""
+    try:
+        previous = json.loads(Path("data.json").read_text(encoding="utf-8"))
+        rows = (previous.get("market") or {}).get(key)
+        if isinstance(rows, list) and rows:
+            print(f"  {key}: source unavailable; keeping {len(rows)} cached observations through {rows[-1].get('date')}")
+            return rows
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+    return []
+
+
 def fetch_multpl_pe_ratio_history():
     url = "https://www.multpl.com/s-p-500-pe-ratio/table/by-month"
     try:
         r = requests.get(url, timeout=25, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code >= 400:
-            return []
+            return cached_market_rows("pe_ratio_history")
         rows = parse_multpl_monthly_rows(r.text, "pe", min_value=0, max_value=50)
-        return [r for r in rows if r["date"] >= "1980-01-01"]
+        rows = [r for r in rows if r["date"] >= "1980-01-01"]
+        return rows or cached_market_rows("pe_ratio_history")
     except Exception:
-        return []
+        return cached_market_rows("pe_ratio_history")
 
 
 def fetch_multpl_sp500_monthly_prices():
@@ -3555,11 +3595,12 @@ def fetch_multpl_sp500_monthly_prices():
     try:
         r = requests.get(url, timeout=25, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code >= 400:
-            return []
+            return cached_market_rows("sp500_monthly_price_history")
         rows = parse_multpl_monthly_rows(r.text, "close", min_value=0, max_value=50000)
-        return [r for r in rows if r["date"] >= "1980-01-01"]
+        rows = [r for r in rows if r["date"] >= "1980-01-01"]
+        return rows or cached_market_rows("sp500_monthly_price_history")
     except Exception:
-        return []
+        return cached_market_rows("sp500_monthly_price_history")
 
 
 def pe_status_payload(rows, source):
@@ -3608,6 +3649,8 @@ def pe_status_payload(rows, source):
 def pe_ratio_payload():
     rows = fetch_multpl_pe_ratio_history()
     source = "Multpl monthly S&P 500 trailing P/E"
+    if rows and rows[-1]["date"] < datetime.date.today().replace(day=1).isoformat():
+        source += f" (last available: {rows[-1]['date']})"
     return rows, pe_status_payload(rows, source)
 
 

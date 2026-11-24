@@ -2049,7 +2049,7 @@ canvas { display: block; max-width: 100%; background: #fff; border-radius: 4px; 
 <div aria-labelledby="heading-cg-madist-stocks" class="panel cg-page" id="tab-cg-madist-stocks">
 <div class="cg-header"><span class="page-eyebrow">Research / Momentum</span>
 <h1 class="cg-title" id="heading-cg-madist-stocks" tabindex="-1">MA Distance Stocks — Global Extension Model</h1>
-<div class="cg-sub">Current S&amp;P 500, DAX and Hang Seng stock distance from the selected moving average. Z-score and percentile are calculated from each stock's own recent distance history, so stretched and washed-out names can be compared across markets.</div>
+<div class="cg-sub">Current S&amp;P 500, DAX and Hang Seng stocks ranked by distance from the selected moving average. Z-scores and percentiles use each stock's selected history window. Historical tests use today's constituents and are subject to survivorship bias.</div>
 </div>
 <div class="signal-bar">
 <div><div class="signal-bar-label">Distance</div><div class="signal-bar-val" id="maStockNow" style="color:#d8d8d8">—</div></div>
@@ -2094,7 +2094,7 @@ canvas { display: block; max-width: 100%; background: #fff; border-radius: 4px; 
 </div>
 <div style="padding:0 12px 10px;overflow:auto">
 <table class="ma-stock-table">
-<thead><tr><th>Ticker</th><th>Name</th><th>Sector</th><th>Price</th><th>Distance</th><th>Z</th><th>Percentile</th><th>52W Pos.</th></tr></thead>
+<thead><tr><th>Ticker</th><th>Name</th><th>Market</th><th>Price</th><th>Distance</th><th>Z</th><th>Percentile</th><th>52W Pos.</th></tr></thead>
 <tbody id="maStockRows"><tr><td colspan="8">Waiting for screener data.</td></tr></tbody>
 </table>
 </div>
@@ -2115,7 +2115,7 @@ canvas { display: block; max-width: 100%; background: #fff; border-radius: 4px; 
 </div>
 <div class="interp-grid ret-forward-grid">
 <div class="interp-cell bull"><div class="interp-title bull">Extended Upside</div><div class="interp-text">Stocks above +2σ are unusually stretched above their own trend. This can mark strong momentum, but also short-term exhaustion after fast vertical moves.</div></div>
-<div class="interp-cell bear"><div class="interp-title bear">Washed Out</div><div class="interp-text">Stocks below −2σ are unusually stretched below trend. −3σ names are the deepest current dislocations in the S&amp;P 500 universe.</div></div>
+<div class="interp-cell bear"><div class="interp-title bear">Washed Out</div><div class="interp-text">Stocks below −2σ are unusually stretched below trend. −3σ names are the deepest current dislocations in the selected market.</div></div>
 <div class="interp-cell bear"><div class="interp-title bear ma-forward-title"><span id="maStockForwardNegTitle">Forward After −2σ</span><div class="ma-sigma-pick"><span>Backtest</span><button id="maStockSigma1" onclick="setMAStockBacktestSigma(1)" type="button">1σ</button><button class="active" id="maStockSigma2" onclick="setMAStockBacktestSigma(2)" type="button">2σ</button><button id="maStockSigma3" onclick="setMAStockBacktestSigma(3)" type="button">3σ</button></div></div><div class="interp-text" id="maStockForwardNeg">Click a stock to load forward performance.</div></div>
 <div class="interp-cell bull"><div class="interp-title bull" id="maStockForwardPosTitle">Forward After +2σ</div><div class="interp-text" id="maStockForwardPos">Click a stock to load forward performance.</div></div>
 </div>
@@ -2156,7 +2156,7 @@ canvas { display: block; max-width: 100%; background: #fff; border-radius: 4px; 
 <div class="cg-sub">S&amp;P 500 forward price-to-earnings ratio ranked by selected-history Z-score and percentile. Extreme expensive and cheap readings are forward-tested against later S&amp;P 500 returns.</div>
 </div>
 <div class="signal-bar">
-<div><div class="signal-bar-label">Latest</div><div class="signal-bar-val" id="fpeLatest">—</div></div>
+<div><div class="signal-bar-label">Latest available</div><div class="signal-bar-val" id="fpeLatest">—</div></div>
 <div class="signal-bar-divider"></div>
 <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="fpeZScore">—</div></div>
 <div class="signal-bar-divider"></div>
@@ -2206,7 +2206,7 @@ canvas { display: block; max-width: 100%; background: #fff; border-radius: 4px; 
 <div class="cg-sub">S&amp;P 500 trailing price-to-earnings ratio ranked by selected-history Z-score and percentile. Extreme expensive and cheap readings are forward-tested against later S&amp;P 500 returns.</div>
 </div>
 <div class="signal-bar">
-<div><div class="signal-bar-label">Latest</div><div class="signal-bar-val" id="peLatest">—</div></div>
+<div><div class="signal-bar-label">Latest available</div><div class="signal-bar-val" id="peLatest">—</div></div>
 <div class="signal-bar-divider"></div>
 <div><div class="signal-bar-label">Z-Score</div><div class="signal-bar-val" id="peZScore">—</div></div>
 <div class="signal-bar-divider"></div>
@@ -2910,7 +2910,7 @@ canvas { display: block; max-width: 100%; background: #fff; border-radius: 4px; 
 <div aria-labelledby="heading-cg-inflation" class="panel cg-page" id="tab-cg-inflation">
 <div class="cg-header"><span class="page-eyebrow">Research / Inflation</span>
 <h1 class="cg-title" id="heading-cg-inflation" tabindex="-1">Inflation Tracker</h1>
-<div class="cg-sub">Tracks reported inflation, analyst consensus, and HB model forecasts by inflation month. July now includes the HB model forecast and analyst consensus; reported values will be added after the release.</div>
+<div class="cg-sub">Reported U.S. inflation through October 2026, with archived HB model and consensus estimates where available. Each row refers to the inflation month, not the release month.</div>
 </div>
 <div class="signal-bar">
 <div><div class="signal-bar-label">Metric</div><div class="signal-bar-val" id="inflMetricVal" style="font-size:14px;padding-top:4px">—</div></div>
@@ -2956,8 +2956,8 @@ canvas { display: block; max-width: 100%; background: #fff; border-radius: 4px; 
 </div>
 <div class="interp-grid ret-forward-grid">
 <div class="interp-cell info"><div class="interp-title info">Purpose</div><div class="interp-text">The tracker separates what was reported, what analysts expected, and what the HB model forecasted for each inflation month.</div></div>
-<div class="interp-cell neut"><div class="interp-title neut">Current Month</div><div class="interp-text">July includes analyst consensus and the latest HB model forecast. Reported / actual values remain blank until the release prints.</div></div>
-<div class="interp-cell bull"><div class="interp-title bull">June Row</div><div class="interp-text">The HB model values you sent are stored under June, together with the reported/previous CPI values. They are not treated as July model forecasts.</div></div>
+<div class="interp-cell neut"><div class="interp-title neut">Latest Release</div><div class="interp-text">October headline CPI rose 0.4% month over month and core CPI rose 0.3%. BLS did not publish most October year-over-year rates because October 2025 survey data were unavailable. <a href="https://www.bls.gov/news.release/archives/cpi_11102026.htm" rel="noopener noreferrer" target="_blank">BLS release</a></div></div>
+<div class="interp-cell bull"><div class="interp-title bull">Next Release</div><div class="interp-text">November CPI is scheduled for December 10, 2026. The June and July model and consensus entries are preserved for comparison; later estimates remain blank until documented.</div></div>
 </div>
 </div>
 <!-- OIL TERM CURVE -->
@@ -3401,22 +3401,47 @@ const INFLATION_TRACKER_DATA = [
   {
     month:"June 2026",
     date:"2026-06-01",
-    source:"Prior reported CPI values and HB model forecast",
-    note:"June contains the reported/previous CPI values plus the HB model forecast sent earlier.",
-    headline_mom:{ actual:0.50, model:0.48, consensus:null },
-    core_mom:{ actual:0.20, model:0.25, consensus:null },
-    headline_yoy:{ actual:4.20, model:4.20, consensus:null },
-    core_yoy:{ actual:null, model:2.85, consensus:null },
+    source:"U.S. Bureau of Labor Statistics, June 2026 CPI release",
+    note:"Reported values are for June, released July 14. Archived HB model entries retained.",
+    headline_mom:{ actual:-0.40, model:0.48, consensus:null },
+    core_mom:{ actual:0.00, model:0.25, consensus:null },
+    headline_yoy:{ actual:3.50, model:4.20, consensus:null },
+    core_yoy:{ actual:2.60, model:2.85, consensus:null },
   },
   {
     month:"July 2026",
     date:"2026-07-01",
-    source:"U.S. Bureau of Labor Statistics CPI release, June 2026",
-    note:"June CPI reported on July 14, 2026. Model and consensus values are preserved for comparison.",
-    headline_mom:{ actual:-0.40, model:-0.13, consensus:-0.10 },
-    core_mom:{ actual:0.00, model:0.21, consensus:0.30 },
-    headline_yoy:{ actual:3.50, model:3.77, consensus:null },
-    core_yoy:{ actual:2.60, model:2.80, consensus:null },
+    source:"U.S. Bureau of Labor Statistics, July 2026 CPI release",
+    note:"Reported values are for July, released August 12. Archived HB model and consensus entries retained.",
+    headline_mom:{ actual:0.10, model:-0.13, consensus:-0.10 },
+    core_mom:{ actual:0.20, model:0.21, consensus:0.30 },
+    headline_yoy:{ actual:3.40, model:3.77, consensus:null },
+    core_yoy:{ actual:2.50, model:2.80, consensus:null },
+  },
+  {
+    month:"August 2026", date:"2026-08-01",
+    source:"U.S. Bureau of Labor Statistics, August 2026 CPI release",
+    headline_mom:{ actual:0.40, model:null, consensus:null },
+    core_mom:{ actual:0.30, model:null, consensus:null },
+    headline_yoy:{ actual:3.40, model:null, consensus:null },
+    core_yoy:{ actual:2.40, model:null, consensus:null },
+  },
+  {
+    month:"September 2026", date:"2026-09-01",
+    source:"U.S. Bureau of Labor Statistics, September 2026 CPI release",
+    headline_mom:{ actual:0.60, model:null, consensus:null },
+    core_mom:{ actual:0.30, model:null, consensus:null },
+    headline_yoy:{ actual:3.70, model:null, consensus:null },
+    core_yoy:{ actual:2.60, model:null, consensus:null },
+  },
+  {
+    month:"October 2026", date:"2026-10-01",
+    source:"U.S. Bureau of Labor Statistics, October 2026 CPI release",
+    note:"October 2025 survey data were not collected; most October 2026 year-over-year rates are unavailable.",
+    headline_mom:{ actual:0.40, model:null, consensus:null },
+    core_mom:{ actual:0.30, model:null, consensus:null },
+    headline_yoy:{ actual:null, model:null, consensus:null },
+    core_yoy:{ actual:null, model:null, consensus:null },
   },
 ];
 
@@ -3505,8 +3530,8 @@ function drawInflationChart(rows, meta) {
 
   const xAt = i => {
     if(rows.length <= 1) return W * 0.50;
-    const start = W * 0.24;
-    const end = W * 0.68;
+    const start = W * 0.12;
+    const end = W * 0.84;
     return start + (i / (rows.length - 1)) * (end - start);
   };
   const yAt = v => pad.t + (1 - (v - minV) / (maxV - minV)) * plotH;
@@ -3543,11 +3568,11 @@ function drawInflationChart(rows, meta) {
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
-    pts.forEach(p => {
+    pts.forEach((p, pointIndex) => {
       const label = `${s.label}: ${fmtInfl(p.v, meta.chartDigits)}`;
       ctx.fillStyle = s.color;
       ctx.beginPath(); ctx.arc(p.x, p.y, s.radius, 0, Math.PI*2); ctx.fill();
-      labelItems.push({
+      if(pointIndex === pts.length - 1) labelItems.push({
         label,
         color:s.color,
         pointX:p.x,
@@ -3608,7 +3633,7 @@ function drawInflationChart(rows, meta) {
   ctx.font = "10px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  rows.forEach((r,i) => ctx.fillText(r.month || r.date, xAt(i), H - pad.b + 12));
+  rows.forEach((r,i) => ctx.fillText(new Date(r.date + "T00:00:00").toLocaleDateString("en-US", {month:"short", year:"2-digit"}), xAt(i), H - pad.b + 12));
 }
 
 function renderInflationTable(rows) {
